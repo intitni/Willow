@@ -179,7 +179,7 @@ struct CoreStorageTests {
     }
 
     #if WILLOW_TESTING
-    @Test func `Visible pages outrank queued downloads and disappearing images cancel`() async throws {
+    @Test func `Visible pages outrank prefetch and stale prefetch cancels`() async throws {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let transport = ControlledImages()
@@ -187,47 +187,88 @@ struct CoreStorageTests {
         func request(_ name: String, priority: ImageCache.Priority) -> Task<Data, Error> {
             Task { try await cache.data(for: URL(string: "https://example.com/\(name)")!, priority: priority) }
         }
-        func waitUntil(_ condition: () async -> Bool) async throws {
-            for _ in 0..<200 {
-                if await condition() { return }
-                try await Task.sleep(for: .milliseconds(5))
-            }
-            throw Failure("The image queue did not reach the expected state.")
-        }
         let initial = (0..<6).map { request("initial-\($0)", priority: .download) }
         try await waitUntil { await transport.started.count == 6 }
         let download = request("download", priority: .download)
         let cover = request("cover", priority: .thumbnail)
+        let prefetch = request("prefetch", priority: .prefetch)
         let reading = request("reading", priority: .reading)
-        let hidden = request("hidden", priority: .thumbnail)
-        try await waitUntil { await cache.queuedRequestCount == 4 }
+        let hidden = request("hidden", priority: .prefetch)
+        try await waitUntil { await cache.queuedRequestCount == 5 }
         hidden.cancel()
-        try await waitUntil { await cache.queuedRequestCount == 3 }
+        try await waitUntil { await cache.queuedRequestCount == 4 }
         await transport.release("initial-0")
         try await waitUntil { await transport.started.count == 7 }
         #expect(await transport.started.last == "reading")
         await transport.release("reading")
         try await waitUntil { await transport.started.count == 8 }
+        #expect(await transport.started.last == "prefetch")
+        await transport.release("prefetch")
+        try await waitUntil { await transport.started.count == 9 }
         #expect(await transport.started.last == "cover")
         await transport.release("cover")
-        try await waitUntil { await transport.started.count == 9 }
+        try await waitUntil { await transport.started.count == 10 }
         #expect(await transport.started.last == "download")
         #expect(await !transport.started.contains("hidden"))
         await transport.releaseAll()
-        for task in initial + [download, cover, reading] { _ = try await task.value }
-        do { _ = try await hidden.value; Issue.record("A hidden queued image must be cancelled.") }
+        for task in initial + [download, cover, prefetch, reading] { _ = try await task.value }
+        do { _ = try await hidden.value; Issue.record("A stale queued prefetch must be cancelled.") }
         catch is CancellationError { }
         // A repeat request must hit disk without invoking the transport again.
-        _ = try await cache.data(for: URL(string: "https://example.com/reading")!)
-        #expect(await transport.started.count == 9)
+        _ = try await cache.data(for: URL(string: "https://example.com/prefetch")!, priority: .reading)
+        #expect(await transport.started.count == 10)
         let offscreenPage = request("offscreen-page", priority: .reading)
-        try await waitUntil { await transport.started.count == 10 }
+        try await waitUntil { await transport.started.count == 11 }
         offscreenPage.cancel()
         do { _ = try await offscreenPage.value; Issue.record("The disappearing view must stop waiting.") }
         catch is CancellationError { }
         await transport.release("offscreen-page")
         _ = try await cache.data(for: URL(string: "https://example.com/offscreen-page")!, priority: .reading)
-        #expect(await transport.started.count == 10, "A reading image continues after its view disappears.")
+        #expect(await transport.started.count == 11, "A reading image continues after its view disappears.")
+    }
+
+    @Test func `Cancelled prefetch keeps its slot without blocking visible pages`() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let transport = ControlledImages()
+        let cache = ImageCache(directory: directory) { url in await transport.load(url) }
+        func request(_ name: String, priority: ImageCache.Priority) -> Task<Data, Error> {
+            Task { try await cache.data(for: URL(string: "https://example.com/\(name)")!, priority: priority) }
+        }
+
+        let oldChapter = (0..<4).map { request("old-\($0)", priority: .prefetch) }
+        try await waitUntil { await cache.queuedRequestCount == 2 }
+        try await waitUntil { await transport.started.count == 2 }
+        let started = await transport.started
+        for task in oldChapter { task.cancel() }
+        for task in oldChapter {
+            do { _ = try await task.value; Issue.record("A cancelled reader must stop waiting for prefetch.") }
+            catch is CancellationError { }
+        }
+
+        // The transport intentionally ignores cancellation, just as an active plugin call can.
+        let nextVisiblePrefetch = request("new-first", priority: .prefetch)
+        try await waitUntil { await cache.queuedRequestCount == 1 }
+        let first = request("new-first", priority: .reading)
+        let second = request("new-second", priority: .reading)
+        try await waitUntil { await transport.started.count == 4 }
+        #expect(Set(await transport.started.dropFirst(2)) == ["new-first", "new-second"])
+
+        let upcoming = request("new-third", priority: .prefetch)
+        try await waitUntil { await cache.queuedRequestCount == 1 }
+        await transport.release(started[0])
+        try await waitUntil { await transport.started.count == 5 }
+        #expect(await transport.started.last == "new-third")
+        await transport.releaseAll()
+        for task in [nextVisiblePrefetch, first, second, upcoming] { _ = try await task.value }
+    }
+
+    private func waitUntil(_ condition: () async -> Bool) async throws {
+        for _ in 0..<200 {
+            if await condition() { return }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        throw Failure("The image queue did not reach the expected state.")
     }
 
     private actor ControlledImages {

@@ -77,6 +77,11 @@ final class ReaderModel {
         saveProgress(context: context)
     }
 
+    static func prefetchPage(_ url: URL) async {
+        guard !url.isFileURL else { return }
+        _ = try? await ImageCache.shared.data(for: url, priority: .prefetch)
+    }
+
     func loadChapter(request: Request, plugins: [PluginRecord], context: ModelContext,
                      downloads: DownloadManager) async {
         guard self.request == request else { return }

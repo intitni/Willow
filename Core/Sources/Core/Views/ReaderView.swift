@@ -245,6 +245,19 @@ private struct ReaderPages: View {
                 .id(layoutID)
             }
         }
+        .background {
+            // Include the visible group so its in-flight requests survive the turn.
+            let indices = layout.prefetchIndices(from: position ?? pageIndex, pageCount: urls.count)
+            ZStack {
+                ForEach(indices, id: \.self) { index in
+                    Color.clear.task {
+                        await ReaderModel.prefetchPage(urls[index])
+                    }
+                }
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
         .onChange(of: pageIndex) { _, index in position = layout.anchor(for: index) }
         .onChange(of: layoutID) { _, _ in position = layout.anchor(for: pageIndex) }
     }
