@@ -214,7 +214,6 @@ private struct DiscoverResults: View {
                     }
                 }
                 .padding()
-                .frame(maxWidth: 1080)
                 .frame(maxWidth: .infinity)
             }
         }

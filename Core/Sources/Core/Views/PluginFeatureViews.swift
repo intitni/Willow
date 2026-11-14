@@ -27,7 +27,6 @@ struct PluginCloudFavoritesView: View {
                 }
             }
             .padding()
-            .frame(maxWidth: 1080)
             .frame(maxWidth: .infinity)
             if state.isLoading {
                 ProgressView().padding()

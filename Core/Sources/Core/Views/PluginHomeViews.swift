@@ -91,7 +91,6 @@ struct PluginHomePageView: View {
                 }
             }
             .padding()
-            .frame(maxWidth: 1080)
             .frame(maxWidth: .infinity)
         }
         .modifier(PluginPageTitle(title: embedded ? nil : model.tab.title))
