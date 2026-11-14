@@ -7,6 +7,7 @@ struct SyncSettingsSection: View {
     @Environment(SyncSettingsModel.self) private var model
     @State private var pickingFolder = false
     @State private var folder: SelectedFolder?
+    @State private var isReadingRecoveryKey = false
     @State private var didCopyKey = false
     @State private var error: String?
 
@@ -21,7 +22,17 @@ struct SyncSettingsSection: View {
             if model.selection == .drive {
                 if let folder = model.folder {
                     LabeledContent(L10n.text("SyncSettings.Folder"), value: folder.name)
-                    Button(L10n.text("SyncSettings.CopyKey"), action: copyRecoveryKey)
+                    Button(action: copyRecoveryKey) {
+                        if isReadingRecoveryKey {
+                            HStack {
+                                ProgressView()
+                                Text(L10n.text("SyncSettings.ReadingRecoveryKey"))
+                            }
+                        } else {
+                            Text(L10n.text("SyncSettings.CopyKey"))
+                        }
+                    }
+                    .disabled(isReadingRecoveryKey)
                     if model.activeMethod == .drive {
                         Button(L10n.text("SyncSettings.SyncNow")) {
                             Task { await model.reconcile() }
@@ -79,14 +90,20 @@ struct SyncSettingsSection: View {
     }
 
     private func copyRecoveryKey() {
+        guard !isReadingRecoveryKey, let folder = model.folder else { return }
+        isReadingRecoveryKey = true
         Task {
+            defer { isReadingRecoveryKey = false }
             do {
-                guard let key = try await model.recoveryKey() else { return }
+                guard model.selection == .drive, model.folder == folder,
+                      let key = try await model.recoveryKey(),
+                      model.selection == .drive, model.folder == folder else { return }
                 UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: key]], options: [
                     .localOnly: true, .expirationDate: Date.now.addingTimeInterval(120),
                 ])
                 didCopyKey = true
             } catch {
+                guard model.selection == .drive, model.folder == folder else { return }
                 self.error = error.localizedDescription
             }
         }
