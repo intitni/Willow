@@ -10,6 +10,7 @@ struct LibraryItem: Identifiable, Equatable {
     let comic: ComicSummary
     let collectionName: String
     let lastReadAt: Date?
+    let detailJSON: Data?
 
     init(_ record: ComicRecord) {
         id = record.id
@@ -18,6 +19,7 @@ struct LibraryItem: Identifiable, Equatable {
                              author: record.author, summary: record.summary)
         collectionName = record.collectionName
         lastReadAt = record.lastReadAt
+        detailJSON = record.detailJSON
     }
 }
 
@@ -47,6 +49,9 @@ final class LibraryModel {
     private let paginated: Bool
     private var visibleCount = 40
     private var filteredItems: [LibraryItem] = []
+    private var comicDetails: [String: Data] = [:]
+    private var metadataValues: [String: [String]] = [:]
+    private var metadataTask: Task<Void, Never>?
 
     init(paginated: Bool = false, sort: LibrarySort = .title) {
         self.paginated = paginated
@@ -69,6 +74,7 @@ final class LibraryModel {
         self.context = context
         var seen: Set<String> = []
         allItems = items.filter { seen.insert($0.id).inserted }
+        updateSearchMetadata()
         viewModel.isEmpty = allItems.isEmpty
         viewModel.collections = Set(allItems.map(\.collectionName).filter { !$0.isEmpty }).sorted()
         if let current = viewModel.collection, !viewModel.collections.contains(current) { viewModel.collection = nil }
@@ -110,10 +116,24 @@ final class LibraryModel {
     }
     private func filter() {
         let collection = viewModel.collection
-        let search = viewModel.search
-        filteredItems = allItems.filter {
-            (collection == nil || $0.collectionName == collection) && (search.isEmpty || $0.comic.title.localizedStandardContains(search))
-                && LocalTagSnapshot.matches(comicKey: $0.id, selected: viewModel.selectedTags, tags: viewModel.tags)
+        let search = viewModel.search.trimmingCharacters(in: .whitespacesAndNewlines)
+        var matchingTagComicKeys: Set<String> = []
+        if !search.isEmpty {
+            for tag in viewModel.tags where tag.name.localizedStandardContains(search) {
+                matchingTagComicKeys.formUnion(tag.comicKeys)
+            }
+        }
+        filteredItems = allItems.filter { item in
+            guard collection == nil || item.collectionName == collection,
+                  LocalTagSnapshot.matches(comicKey: item.id, selected: viewModel.selectedTags, tags: viewModel.tags)
+            else { return false }
+
+            return search.isEmpty
+                || item.comic.title.localizedStandardContains(search)
+                || item.comic.author.localizedStandardContains(search)
+                || item.comic.summary.localizedStandardContains(search)
+                || matchingTagComicKeys.contains(item.id)
+                || metadataValues[item.id]?.contains { $0.localizedStandardContains(search) } == true
         }
         filteredItems.sort { lhs, rhs in
             switch viewModel.sort {
@@ -128,6 +148,35 @@ final class LibraryModel {
             return lhs.id < rhs.id
         }
         publish()
+    }
+
+    private func updateSearchMetadata() {
+        let details = Dictionary(uniqueKeysWithValues: allItems.compactMap { item in
+            item.detailJSON.map { (item.id, $0) }
+        })
+        guard details != comicDetails else { return }
+        metadataValues = metadataValues.filter { details[$0.key] == comicDetails[$0.key] }
+        comicDetails = details
+        metadataTask?.cancel()
+        let missingDetails = details.filter { metadataValues[$0.key] == nil }
+        metadataTask = Task { [weak self] in
+            let values = await Self.decodeMetadata(from: missingDetails)
+            guard !Task.isCancelled, let self else { return }
+            metadataValues.merge(values) { _, new in new }
+            if !viewModel.search.isEmpty { filter() }
+        }
+    }
+
+    @concurrent
+    private static func decodeMetadata(from details: [String: Data]) async -> [String: [String]] {
+        let decoder = JSONDecoder()
+        var values: [String: [String]] = [:]
+        for (id, data) in details {
+            guard !Task.isCancelled else { return [:] }
+            let detail = try? decoder.decode(ComicDetail.self, from: data)
+            values[id] = detail?.metadata?.flatMap(\.values) ?? []
+        }
+        return values
     }
 
     private func publish() {

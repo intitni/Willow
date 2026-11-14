@@ -1516,13 +1516,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Find comics"
+            "value" : "Title, author, tags, and more"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "查找漫画"
+            "value" : "搜索标题、作者、标签等"
           }
         }
       }
