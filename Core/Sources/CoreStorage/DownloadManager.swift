@@ -294,7 +294,7 @@ package actor ImageCache {
     private let directory: URL
     private let byteLimit: Int
     private let transport: (@Sendable (URL) async throws -> Data)?
-    package enum Priority: Int, Sendable { case download, thumbnail, reading }
+    package enum Priority: Int, Sendable { case download, thumbnail, prefetch, reading }
     private struct Consumer {
         let priority: Priority
         let continuation: CheckedContinuation<Data, Error>
@@ -307,10 +307,13 @@ package actor ImageCache {
         var consumers: [UUID: Consumer]
         var continuesWithoutView = false
         var task: Task<Void, Never>?
+
+        var priority: Int { consumers.values.map(\.priority.rawValue).max() ?? -1 }
     }
     private var requests: [String: Request] = [:]
     private var pending: [String] = []
     private var activeRequests = 0
+    private var activePrefetches = 0
 
     package init(directory: URL? = nil, byteLimit: Int = 256 * 1024 * 1024,
                  transport: (@Sendable (URL) async throws -> Data)? = nil) {
@@ -373,27 +376,35 @@ package actor ImageCache {
     }
 
     private func startRequests() {
-        while activeRequests < 6, !pending.isEmpty {
-            // Keep FIFO ordering for equal priorities; visible reading pages win over covers and downloads.
-            let index = pending.indices.max { lhs, rhs in
-                let a = requests[pending[lhs]]?.consumers.values.map(\.priority.rawValue).max() ?? -1
-                let b = requests[pending[rhs]]?.consumers.values.map(\.priority.rawValue).max() ?? -1
-                return a == b ? lhs > rhs : a < b
-            }!
+        while activeRequests < 6 {
+            let prefetchLimitReached = activePrefetches >= 2
+            var selected: (index: Int, priority: Int)?
+            // Keep FIFO ordering for equal priorities among requests that can start now.
+            for index in pending.indices {
+                guard let priority = requests[pending[index]]?.priority,
+                      priority > (selected?.priority ?? Int.min),
+                      !prefetchLimitReached || priority != Priority.prefetch.rawValue else { continue }
+                selected = (index, priority)
+            }
+            guard let (index, priority) = selected else { return }
             let key = pending.remove(at: index)
             guard let request = requests[key] else { continue }
+            let startedAsPrefetch = priority == Priority.prefetch.rawValue
+            if startedAsPrefetch { activePrefetches += 1 }
             activeRequests += 1
             requests[key]?.task = Task {
                 let result: Result<Data, Error>
                 do { result = .success(try await fetch(request.url, headers: request.headers, file: request.file)) }
                 catch { result = .failure(error) }
-                finish(key: key, id: request.id, result: result)
+                finish(key: key, id: request.id, startedAsPrefetch: startedAsPrefetch, result: result)
             }
         }
     }
 
-    private func finish(key: String, id: UUID, result: Result<Data, Error>) {
+    private func finish(key: String, id: UUID, startedAsPrefetch: Bool, result: Result<Data, Error>) {
         let request = requests[key]?.id == id ? requests.removeValue(forKey: key) : nil
+        // A cancelled plugin call can keep running until the Rust bridge returns.
+        if startedAsPrefetch { activePrefetches -= 1 }
         activeRequests -= 1
         for consumer in request?.consumers.values ?? Dictionary<UUID, Consumer>().values {
             consumer.continuation.resume(with: result)

@@ -24,4 +24,9 @@ struct ReaderLayout {
     }
 
     func anchor(for page: Int) -> Int { page - page % groupSize }
+
+    func prefetchIndices(from page: Int, pageCount: Int) -> Range<Int> {
+        let start = min(anchor(for: page), pageCount)
+        return start..<min(start + groupSize + 3, pageCount)
+    }
 }
