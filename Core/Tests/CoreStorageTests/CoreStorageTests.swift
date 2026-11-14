@@ -183,7 +183,7 @@ struct CoreStorageTests {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let transport = ControlledImages()
-        let cache = ImageCache(directory: directory) { url in await transport.load(url) }
+        let cache = ImageCache(directory: directory) { url in try await transport.load(url) }
         func request(_ name: String, priority: ImageCache.Priority) -> Task<Data, Error> {
             Task { try await cache.data(for: URL(string: "https://example.com/\(name)")!, priority: priority) }
         }
@@ -231,7 +231,7 @@ struct CoreStorageTests {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let transport = ControlledImages()
-        let cache = ImageCache(directory: directory) { url in await transport.load(url) }
+        let cache = ImageCache(directory: directory) { url in try await transport.load(url) }
         func request(_ name: String, priority: ImageCache.Priority) -> Task<Data, Error> {
             Task { try await cache.data(for: URL(string: "https://example.com/\(name)")!, priority: priority) }
         }
@@ -263,6 +263,158 @@ struct CoreStorageTests {
         for task in [nextVisiblePrefetch, first, second, upcoming] { _ = try await task.value }
     }
 
+    @Test func `A comic cover hits disk with a different URL while the download queue is full`() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let transport = ControlledImages()
+        let firstURL = URL(string: "https://example.com/list-cover")!
+        let secondURL = URL(string: "https://example.com/detail-cover")!
+        let oldCache = ImageCache(directory: directory) { url in try await transport.load(url) }
+        let first = Task { try await oldCache.data(for: firstURL) }
+        try await waitUntil { await transport.started == ["list-cover"] }
+        await transport.release("list-cover")
+        let original = try await first.value
+
+        let cache = ImageCache(directory: directory) { url in try await transport.load(url) }
+        let coverID = ComicRecord.identifier(sourceID: "source", comicID: "comic")
+        let migrated = Task { try await cache.data(for: firstURL, policy: .comicCover(id: coverID)) }
+        defer { migrated.cancel() }
+        try await waitUntil {
+            (try? FileManager.default.contentsOfDirectory(atPath: directory.path).count) == 2
+        }
+        #expect(try await migrated.value == original)
+        let downloads = (0..<6).map { index in
+            Task { try await cache.data(for: URL(string: "https://example.com/download-\(index)")!, priority: .download) }
+        }
+        try await waitUntil { await transport.started.count == 7 }
+        let completion = CoverReadResult()
+        let cached = Task {
+            let data = try await cache.load(for: secondURL, priority: .thumbnail, policy: .comicCover(id: coverID), decode: { data in
+                await completion.recordDecode()
+                return await ImageCache.decodeThumbnail(data) == nil ? nil : data
+            }, showFallback: { _ in Issue.record("A fresh cache hit must not show a fallback.") })
+            if let data { await completion.finish(data) }
+        }
+        defer { cached.cancel() }
+        try await waitUntil { await completion.data != nil }
+        #expect(await completion.data == original)
+        #expect(await completion.decodeCount == 1)
+        #expect(await transport.started.count == 7)
+        await transport.releaseAll()
+        for task in downloads { _ = try await task.value }
+        try await cached.value
+        #expect(await transport.started.count == 7)
+    }
+
+    @Test func `Offscreen thumbnails leave queue capacity for a reading page`() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let transport = ControlledImages()
+        let cache = ImageCache(directory: directory) { url in try await transport.load(url) }
+        let covers = (0..<6).map { index in
+            Task { try await cache.data(for: URL(string: "https://example.com/cover-\(index)")!) }
+        }
+        defer { covers.forEach { $0.cancel() } }
+        try await waitUntil { await cache.queuedRequestCount == 4 }
+        try await waitUntil { await transport.started.count == 2 }
+        let started = await transport.started
+        covers.forEach { $0.cancel() }
+        for cover in covers {
+            do { _ = try await cover.value; Issue.record("Offscreen views must stop waiting.") }
+            catch is CancellationError { }
+        }
+
+        let page = Task {
+            try await cache.data(for: URL(string: "https://example.com/page")!, priority: .reading)
+        }
+        defer { page.cancel() }
+        try await waitUntil { await transport.started == started + ["page"] }
+        await transport.release("page")
+        _ = try await page.value
+        await transport.releaseAll()
+    }
+
+    @Test func `A damaged legacy or shared cover is replaced by a fresh download`() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let transport = ControlledImages()
+        let cache = ImageCache(directory: directory) { url in try await transport.load(url) }
+        let url = URL(string: "https://example.com/cover")!
+        let policy = ImageCache.Policy.comicCover(id: "comic")
+        let legacy = directory.appending(path: ImageCache.fileKey(for: url.absoluteString + "\n"))
+        let shared = directory.appending(path: ImageCache.fileKey(for: "Willow cover\ncomic"))
+        for (index, file) in [legacy, shared].enumerated() {
+            // PNG signature without any image data.
+            try Data([137, 80, 78, 71, 13, 10, 26, 10]).write(to: file)
+            let cover = Task { try await cache.data(for: url, policy: policy) }
+            defer { cover.cancel() }
+            try await waitUntil { await transport.started.count == index + 1 }
+            await transport.release("cover")
+            let data = try await cover.value
+            #expect(try Data(contentsOf: shared) == data)
+        }
+        #expect(!FileManager.default.fileExists(atPath: legacy.path))
+    }
+
+    private actor CoverReadResult {
+        private(set) var data: Data?
+        private(set) var decodeCount = 0
+        func finish(_ data: Data) { self.data = data }
+        func recordDecode() { decodeCount += 1 }
+    }
+
+    @Test func `An expired shared cover reloads even if it was recently read`() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let transport = ControlledImages()
+        let cache = ImageCache(directory: directory) { url in try await transport.load(url) }
+        let coverID = ComicRecord.identifier(sourceID: "source", comicID: "comic")
+        let oldURL = URL(string: "https://example.com/old-cover")!
+        let newURL = URL(string: "https://example.com/new-cover")!
+        let initial = Task { try await cache.data(for: oldURL, policy: .comicCover(id: coverID)) }
+        defer { initial.cancel() }
+        try await waitUntil { await transport.started == ["old-cover"] }
+        await transport.release("old-cover")
+        _ = try await initial.value
+
+        let files = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+        let filename = try #require(files.first)
+        let file = directory.appending(path: filename)
+        try FileManager.default.setAttributes([.creationDate: Date.now.addingTimeInterval(-29 * 24 * 60 * 60)],
+                                              ofItemAtPath: file.path)
+        try #require(try await cache.data(for: newURL, policy: .comicCover(id: coverID)) == initial.value)
+        #expect(await transport.started == ["old-cover"])
+
+        try FileManager.default.setAttributes([.creationDate: Date.now.addingTimeInterval(-31 * 24 * 60 * 60),
+                                               .modificationDate: Date.now], ofItemAtPath: file.path)
+        let restarted = ImageCache(directory: directory) { url in try await transport.load(url) }
+        let fallback = CoverReadResult()
+        let failed = Task {
+            try await restarted.load(for: newURL, priority: .thumbnail, policy: .comicCover(id: coverID), decode: { $0 }) {
+                await fallback.finish($0)
+            }
+        }
+        defer { failed.cancel() }
+        try await waitUntil { await transport.started == ["old-cover", "new-cover"] }
+        let oldBytes = try await initial.value
+        #expect(await fallback.data == oldBytes)
+        await transport.fail("new-cover")
+        do { _ = try await failed.value; Issue.record("The refresh must report a retryable error.") }
+        catch let error as URLError { #expect(error.code == .notConnectedToInternet) }
+        #expect(try Data(contentsOf: file) == oldBytes)
+
+        let refreshed = Task { try await restarted.data(for: newURL, policy: .comicCover(id: coverID)) }
+        defer { refreshed.cancel() }
+        try await waitUntil { await transport.started == ["old-cover", "new-cover", "new-cover"] }
+        await transport.release("new-cover")
+        let bytes = try await refreshed.value
+        let created = try #require(try file.resourceValues(forKeys: [.creationDateKey]).creationDate)
+        #expect(Date.now.timeIntervalSince(created) < 60)
+        let reused = try await cache.data(for: oldURL, policy: .comicCover(id: coverID))
+        #expect(reused == bytes)
+        #expect(await transport.started == ["old-cover", "new-cover", "new-cover"])
+    }
+
     private func waitUntil(_ condition: () async -> Bool) async throws {
         for _ in 0..<200 {
             if await condition() { return }
@@ -273,13 +425,14 @@ struct CoreStorageTests {
 
     private actor ControlledImages {
         private(set) var started: [String] = []
-        private var waiting: [String: CheckedContinuation<Data, Never>] = [:]
+        private var waiting: [String: CheckedContinuation<Data, Error>] = [:]
         private let image = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=")!
-        func load(_ url: URL) async -> Data {
+        func load(_ url: URL) async throws -> Data {
             started.append(url.lastPathComponent)
-            return await withCheckedContinuation { waiting[url.lastPathComponent] = $0 }
+            return try await withCheckedThrowingContinuation { waiting[url.lastPathComponent] = $0 }
         }
         func release(_ name: String) { waiting.removeValue(forKey: name)?.resume(returning: image) }
+        func fail(_ name: String) { waiting.removeValue(forKey: name)?.resume(throwing: URLError(.notConnectedToInternet)) }
         func releaseAll() {
             let continuations = waiting.values
             waiting.removeAll()

@@ -1,6 +1,5 @@
 import CoreStorage
 import Foundation
-import ImageIO
 import Observation
 import UIKit
 
@@ -9,17 +8,24 @@ final class CachedImageViewModel {
     fileprivate(set) var image: UIImage?
     fileprivate(set) var error: String?
     private var operation = UUID()
+    private var currentURL: URL?
+    private var currentPolicy: ImageCache.Policy = .byURL
 
-    fileprivate func begin() -> UUID {
+    fileprivate func begin(url: URL?, policy: ImageCache.Policy, thumbnail: Bool) -> UUID? {
+        guard !Task.isCancelled else { return nil }
+        let sameCover = policy != .byURL && currentPolicy == policy
+        if thumbnail, image != nil, policy == .byURL, currentPolicy == policy, currentURL == url { return nil }
+        currentURL = url
+        currentPolicy = policy
         operation = UUID()
-        image = nil
+        if !sameCover { image = nil }
         error = nil
         return operation
     }
 
     fileprivate func finish(_ id: UUID, image: UIImage?, error: String?) {
         guard operation == id else { return }
-        self.image = image
+        if let image { self.image = image }
         self.error = error
     }
 }
@@ -29,28 +35,27 @@ actor CachedImageModel {
 
     @MainActor init() { viewModel = CachedImageViewModel() }
 
-    func load(url: URL?, thumbnail: Bool) async {
-        guard !Task.isCancelled else { return }
-        let current = await viewModel.begin()
-        guard let url else { return }
+    func load(url: URL?, policy: ImageCache.Policy, thumbnail: Bool) async {
+        guard let current = await viewModel.begin(url: url, policy: policy, thumbnail: thumbnail) else { return }
         do {
-            let data = try await ImageCache.shared.data(for: url, priority: thumbnail ? .thumbnail : .reading)
+            let priority: ImageCache.Priority = thumbnail ? .thumbnail : .reading
+            guard let image = try await ImageCache.shared.load(for: url, priority: priority, policy: policy, decode: { data in
+                if thumbnail {
+                    return await ImageCache.decodeThumbnail(data).map { UIImage(cgImage: $0) }
+                }
+                return UIImage(data: data)
+            }, showFallback: { image in
+                guard !Task.isCancelled else { return }
+                await self.viewModel.finish(current, image: image, error: nil)
+            }) else { return }
             try Task.checkCancellation()
-            let decoded: UIImage?
-            if thumbnail, let source = CGImageSourceCreateWithData(data as CFData, nil),
-               let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceThumbnailMaxPixelSize: 600,
-                kCGImageSourceCreateThumbnailWithTransform: true,
-                kCGImageSourceShouldCacheImmediately: true
-               ] as CFDictionary) {
-                decoded = UIImage(cgImage: image)
-            } else { decoded = UIImage(data: data) }
-            try Task.checkCancellation()
-            await viewModel.finish(current, image: decoded,
-                error: decoded == nil ? L10n.text("Cover.UnsupportedImageFormat") : nil)
+            await viewModel.finish(current, image: image, error: nil)
         } catch {
-            if !Task.isCancelled { await viewModel.finish(current, image: nil, error: error.localizedDescription) }
+            if !Task.isCancelled {
+                let message = (error as? URLError)?.code == .cannotDecodeContentData
+                    ? L10n.text("Cover.UnsupportedImageFormat") : error.localizedDescription
+                await viewModel.finish(current, image: nil, error: message)
+            }
         }
     }
 }

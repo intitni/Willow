@@ -225,7 +225,7 @@ private struct DiscoverResults: View {
                 NavigationLink {
                     ComicDetailView(sourceID: plugin.uuid, summary: comic)
                 } label: {
-                    DiscoverComicTile(comic: comic)
+                    DiscoverComicTile(comic: comic, sourceID: plugin.uuid)
                 }
                 .buttonStyle(.plain)
             }
@@ -235,10 +235,11 @@ private struct DiscoverResults: View {
 
 struct DiscoverComicTile: View {
     let comic: ComicSummary
+    let sourceID: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            ComicCover(url: comic.coverURL)
+            ComicCover(url: comic.coverURL, cachePolicy: .comicCover(id: ComicRecord.identifier(sourceID: sourceID, comicID: comic.id)))
             Text(comic.title)
                 .font(.subheadline.weight(.medium))
                 .lineLimit(2, reservesSpace: true)
