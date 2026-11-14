@@ -14,6 +14,8 @@ Willow supports iPhone and iPad, adapts to changing window sizes on iPhone Duo, 
 4. Bookmark manga to add them to your library, open a chapter to read, or download individual chapters from the details page. The toolbar also lets you download the entire work. The Downloads page lists downloads by chapter.
 5. Assign local tags on a manga's details page and use them to filter your library and downloads.
 
+Willow checks the latest GitHub release at launch and shows a red dot on the Settings tab when an update is available. Open Settings → Updates to see the release notes and release page; updates must still be downloaded and signed manually.
+
 Third-party sources must be installed separately. CloudKit can sync plugin scripts, subscriptions, tags, and the tags assigned to each manga. Plugin settings such as login credentials, cookies, and tokens are encrypted on the device, with the encryption key stored in Keychain. Manga images stay on the device and are excluded from backups.
 
 SwiftData stores bookmarks, reading history, and reading progress. These records can sync through CloudKit on devices configured with the required capabilities. Plugin and tag sync runs in response to data changes, cloud imports, the app returning to the foreground, and system background refresh.

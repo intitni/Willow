@@ -38,6 +38,7 @@ let package = Package(
             name: "Core",
             dependencies: ["CoreStorage", "BreezeRuntime", "BreezePlugins", "CoreToast"],
             resources: [.process("Resources")]
-        )
+        ),
+        .testTarget(name: "CoreTests", dependencies: ["Core"], linkerSettings: testLinker)
     ])
 )
