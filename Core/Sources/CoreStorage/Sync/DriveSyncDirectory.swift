@@ -142,6 +142,12 @@ struct DriveSyncDirectory: Sendable {
         }
     }
 
+    func recoveryKey() throws -> Data {
+        guard let marker = try marker() else { throw DriveSyncError.missingDirectory }
+        guard marker.id == id else { throw DriveSyncError.directoryChanged }
+        return try DriveSyncKeychain.readVerified(id, verify: marker.verify)
+    }
+
     func verify(key: DriveSyncKey) throws {
         guard let marker = try marker() else { throw DriveSyncError.missingDirectory }
         guard marker.id == id else { throw DriveSyncError.directoryChanged }

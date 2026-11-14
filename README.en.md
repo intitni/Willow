@@ -29,9 +29,18 @@ Download `Willow-<version>-unsigned.ipa` and use either tool below to sign and i
 
 ### Use iCloud Drive sync
 
+Sign in to the same iCloud account and enable iCloud Drive on each device. Check that the Files app can access the folder you plan to use. Sync is off by default, so select the sync method and folder separately on each device.
+
 1. On the first device, choose **iCloud Drive** under **Settings → Sync Method**, pick a folder under iCloud Drive in the system picker, and tap **Create Encrypted Sync Folder**.
-2. Back in Settings, tap **Copy Recovery Key** and save it somewhere safe. Willow encrypts sync records and plugin scripts before writing them for upload and stores the recovery key in Keychain. iCloud Keychain can sync the key between devices running Willow under the same signing identity.
-3. On other devices, pick the same folder. Willow reads the verification file and checks for a matching Keychain key. If Keychain has not synced the key or the signing identity differs, enter the recovery key and tap **Connect Existing Folder**. If the files are still arriving, allow iCloud Drive time to download them and try again. Builds signed with a free Apple Account can use the system picker to access iCloud Drive.
+2. Back in Settings, tap **Copy Recovery Key** and save it somewhere safe. Willow encrypts sync records and plugin scripts before writing them for upload and stores the recovery key in this device’s Keychain.
+3. On other devices, pick the same folder. Willow reads the verification file and checks the device’s Keychain. On the first connection, enter the recovery key and tap **Connect Existing Folder**. If the files are still arriving, allow iCloud Drive time to download them and try again. Builds signed with a free Apple Account can use the system picker to access iCloud Drive.
+4. Once **Active Sync Method** shows **iCloud Drive**, tap **Sync Now**. Bookmark a title on one device, then open Willow and sync on the other device to check that the title appears in its library. The last-checked time indicates that Willow completed a local sync pass. File transfers also depend on iCloud Drive scheduling.
+
+Sync files are stored in a `Willow Sync v1` subfolder inside the selected folder. Comic information, tags, reading records, and plugin scripts are encrypted. Keep this subfolder and its verification file intact so other devices can identify it and verify the recovery key.
+
+Save a separate copy of your recovery key somewhere safe. Reinstalling Willow or changing its signing identity may require you to enter the key again. While copying the key, the button shows **Reading recovery key…**, followed by a confirmation when copying finishes.
+
+After an upgrade, Willow verifies a legacy recovery key and saves it to the current device before deleting the old iCloud Keychain item. The deletion propagates to other devices. A device that hasn’t saved its own copy will need the recovery key again.
 
 Switching methods keeps your local data and existing cloud copies. The first connection merges items unique to either side. Newly discovered local items are published as lower-priority versions, so existing Drive edits and deletions still apply when they arrive later. Reading progress and history deletions are ordered by the time of the actual action, so a later reread can move the bookmark to an earlier page. When Willow finds sync records still downloading, it waits for the next sync. iCloud may still be discovering files uploaded by other devices, and those files join the merge when they appear. Switching from iCloud Drive to None immediately stops Willow’s Drive sync tasks. The file provider can finish transfers that Willow has already submitted. For changes involving CloudKit, the previous method stays active until you quit and reopen Willow. Settings shows both the selected method and the method currently in effect.
 

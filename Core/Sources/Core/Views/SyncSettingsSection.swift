@@ -126,9 +126,6 @@ private struct DriveFolderSetupView: View {
     var body: some View {
         NavigationStack {
             Form {
-                if case .needsKey = status {
-                    Button(L10n.text("SyncSettings.RetryKeychain")) { Task { await inspect() } }
-                }
                 if status != nil {
                     Section {
                         SecureField(L10n.text("SyncSettings.RecoveryKey"), text: $key)

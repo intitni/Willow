@@ -4451,23 +4451,6 @@
         }
       }
     },
-    "SyncSettings.RetryKeychain" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Check Keychain Again"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新检查钥匙串"
-          }
-        }
-      }
-    },
     "SyncSettings.SyncNow" : {
       "extractionState" : "manual",
       "localizations" : {
