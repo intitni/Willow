@@ -31,6 +31,7 @@ package final class PreferenceSyncCheckpoint {
     package var payload: Data?
     package var revision: String
     package var localBundlePath: String?
+    package var modifiedAt: Date?
     package init(key: String, payload: Data?, revision: String) {
         self.key = key; self.payload = payload; self.revision = revision
     }
@@ -41,6 +42,35 @@ package enum PreferencePayload: Codable, Equatable, Sendable {
     case subscription(Subscription)
     case tag(Tag)
     case tagLink(TagLink)
+    case favorite(Comic)
+    case reading(Reading)
+
+    package struct Comic: Codable, Equatable, Sendable {
+        let sourceID: String
+        let comicID: String
+        let title: String
+        let coverURL: String
+        let author: String
+        let summary: String
+
+        init(_ record: ComicRecord) {
+            sourceID = record.sourceID
+            comicID = record.comicID
+            title = record.title
+            coverURL = record.coverURL
+            author = record.author
+            summary = record.summary
+        }
+
+        var id: String { ComicRecord.identifier(sourceID: sourceID, comicID: comicID) }
+    }
+
+    package struct Reading: Codable, Equatable, Sendable {
+        let comic: Comic
+        let lastReadAt: Date
+        let chapterID: String?
+        let pageIndex: Int
+    }
 
     package struct Plugin: Codable, Equatable, Sendable {
         package let id: String
@@ -69,6 +99,8 @@ package enum PreferencePayload: Codable, Equatable, Sendable {
         case .plugin(let value): "plugin/" + value.id
         case .subscription(let value): "subscription/" + value.url
         case .tag(let value): "tag/" + value.normalizedName
+        case .favorite(let comic): "favorite/" + comic.id
+        case .reading(let reading): "reading/" + reading.comic.id
         case .tagLink(let value): "tag-link/" + Data(value.normalizedName.utf8).base64EncodedString() + "/" + Data(value.comicKey.utf8).base64EncodedString()
         }
     }

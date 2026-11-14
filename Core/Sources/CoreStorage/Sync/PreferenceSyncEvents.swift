@@ -13,6 +13,7 @@ package final class PreferenceSyncEvents {
     private var worker: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
     private var notificationCenter: NotificationCenter?
+    private var drivePresenter: DriveSyncPresenter?
 
     package init() {}
 
@@ -37,14 +38,30 @@ package final class PreferenceSyncEvents {
         // Observe the UI context, not the worker's contexts, so applying cloud
         // changes cannot trigger an endless loop of our own saves.
         notificationCenter = center
+        let includesComics = sync.usesDrive
         observers = [center.addObserver(forName: ModelContext.didSave, object: context, queue: nil) { notification in
-            if Self.containsPreferenceChanges(notification) { continuation.yield(()) }
+            if Self.containsPreferenceChanges(notification, includesComics: includesComics) { continuation.yield(()) }
         }]
-        observers.append(center.addObserver(forName: NSPersistentCloudKitContainer.eventChangedNotification, object: nil, queue: nil) { notification in
-            guard let event = notification.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey] as? NSPersistentCloudKitContainer.Event,
-                  event.type == .import, event.endDate != nil else { return }
-            continuation.yield(())
-        })
+        if let directory = sync.directory {
+            let presenter = DriveSyncPresenter(directory: directory) { continuation.yield(()) }
+            drivePresenter = presenter
+            presenter.start()
+            #if canImport(UIKit)
+            observers.append(center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated { presenter.stop() }
+            })
+            observers.append(center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { _ in
+                MainActor.assumeIsolated { presenter.start() }
+                continuation.yield(())
+            })
+            #endif
+        } else if !sync.usesDrive {
+            observers.append(center.addObserver(forName: NSPersistentCloudKitContainer.eventChangedNotification, object: nil, queue: nil) { notification in
+                guard let event = notification.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey] as? NSPersistentCloudKitContainer.Event,
+                      event.type == .import, event.endDate != nil else { return }
+                continuation.yield(())
+            })
+        }
         #if canImport(UIKit)
         observers.append(center.addObserver(forName: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil, queue: nil) { _ in
             continuation.yield(())
@@ -70,6 +87,8 @@ package final class PreferenceSyncEvents {
             if let notificationCenter { observers.forEach(notificationCenter.removeObserver) }
             observers.removeAll()
             notificationCenter = nil
+            drivePresenter?.stop()
+            drivePresenter = nil
             continuation?.finish()
             continuation = nil
             previousWorker?.cancel()
@@ -78,8 +97,9 @@ package final class PreferenceSyncEvents {
         client.resume()
     }
 
-    nonisolated private static func containsPreferenceChanges(_ notification: Notification) -> Bool {
-        let names: Set<String> = ["PluginRecord", "SubscriptionRecord", "LocalTagRecord"]
+    nonisolated private static func containsPreferenceChanges(_ notification: Notification, includesComics: Bool) -> Bool {
+        var names: Set<String> = ["PluginRecord", "SubscriptionRecord", "LocalTagRecord"]
+        if includesComics { names.insert("ComicRecord") }
         let keys: [ModelContext.NotificationKey] = [.insertedIdentifiers, .updatedIdentifiers, .deletedIdentifiers]
         return keys.contains { key in
             let value = notification.userInfo?[key] ?? notification.userInfo?[key.rawValue]
@@ -87,4 +107,39 @@ package final class PreferenceSyncEvents {
             return identifiers.contains { names.contains($0.entityName) }
         }
     }
+}
+
+/// Observes subitems of the selected directory, including arrival of evicted files.
+@MainActor
+private final class DriveSyncPresenter: NSObject, NSFilePresenter {
+    nonisolated let presentedItemURL: URL?
+    nonisolated let presentedItemOperationQueue = OperationQueue()
+    private nonisolated let changed: @Sendable () -> Void
+    private let directory: DriveSyncDirectory
+    private var observing = false
+
+    init(directory: DriveSyncDirectory, changed: @escaping @Sendable () -> Void) {
+        self.directory = directory
+        presentedItemURL = directory.root
+        self.changed = changed
+        super.init()
+    }
+
+    func start() {
+        guard !observing, !directory.securityScoped || directory.root.startAccessingSecurityScopedResource() else { return }
+        observing = true
+        NSFileCoordinator.addFilePresenter(self)
+    }
+
+    func stop() {
+        guard observing else { return }
+        observing = false
+        NSFileCoordinator.removeFilePresenter(self)
+        if directory.securityScoped { directory.root.stopAccessingSecurityScopedResource() }
+    }
+
+    nonisolated func presentedItemDidChange() { changed() }
+    nonisolated func presentedSubitemDidAppear(at url: URL) { changed() }
+    nonisolated func presentedSubitemDidChange(at url: URL) { changed() }
+    nonisolated func presentedSubitem(at oldURL: URL, didMoveTo newURL: URL) { changed() }
 }
