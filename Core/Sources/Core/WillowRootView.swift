@@ -17,20 +17,22 @@ public final class CoreAppModel {
     public func scenePhaseChanged(_ phase: ScenePhase) {
         if phase == .background {
             appLock.lock()
-            PreferenceBackgroundRefresh.schedule()
+            if case .success(let session) = startup, session.sync.worker != nil {
+                PreferenceBackgroundRefresh.schedule()
+            }
         }
         if phase == .active, case .success(let session) = startup {
             session.downloads.resumeForegroundDownloads()
-            session.preferenceEvents.request()
+            session.sync.events.request()
         }
     }
 
     public static let preferenceRefreshIdentifier = "com.intii.Willow.preferences.refresh"
 
     public func refreshPreferencesInBackground() async {
-        defer { PreferenceBackgroundRefresh.schedule() }
-        guard case .success(let session) = startup else { return }
-        do { try await session.preferences.reconcile() }
+        guard case .success(let session) = startup, let worker = session.sync.worker else { return }
+        defer { if session.sync.worker != nil { PreferenceBackgroundRefresh.schedule() } }
+        do { try await worker.reconcile() }
         catch { /* Sync errors are reported through the shared ViewModel. */ }
     }
 
@@ -51,14 +53,17 @@ public struct WillowRootView: View {
         Group {
             switch model.startup {
             case .success(let session):
-                WillowTabs(persistence: session.persistence, updates: model.updates)
+                let worker = session.sync.worker
+                let events = session.sync.events
+                WillowTabs(updates: model.updates)
                     .overlay(alignment: .top) { ToastHost() }
                     .modifier(AppLockShield())
                     .modelContainer(session.persistence.container)
                     .environment(session.downloads)
-                    .environment(session.preferences.viewModel)
-                    .task {
-                        await session.preferenceEvents.run(context: session.persistence.container.mainContext, sync: session.preferences)
+                    .environment(session.sync)
+                    .task(id: worker.map(ObjectIdentifier.init)) {
+                        guard let worker else { return }
+                        await events.run(context: session.persistence.container.mainContext, sync: worker)
                     }
                     .environment(model.appLock)
                     .tint(WillowTheme.accent)
@@ -75,13 +80,13 @@ public struct WillowRootView: View {
 private struct AppSession {
     let persistence: WillowPersistence
     let downloads: DownloadManager
-    let preferences: PreferenceSyncModel
-    let preferenceEvents = PreferenceSyncEvents()
+    let sync: SyncSettingsModel
 
     init() throws {
-        persistence = try WillowPersistence.make()
+        let selection = SyncSettingsModel.selectedMethod
+        persistence = try WillowPersistence.make(syncMethod: selection)
         downloads = DownloadManager(context: persistence.container.mainContext)
-        preferences = PreferenceSyncModel(container: persistence.container)
+        sync = SyncSettingsModel(persistence: persistence, selection: selection)
     }
 }
 
@@ -104,7 +109,6 @@ struct AppLockShield: ViewModifier {
 }
 
 private struct WillowTabs: View {
-    let persistence: WillowPersistence
     let updates: UpdateModel
 
     var body: some View {
@@ -124,7 +128,7 @@ private struct WillowTabs: View {
                 NavigationStack { DiscoverView() }
             }
             Tab(L10n.text("Settings.Title"), systemImage: "gearshape") {
-                NavigationStack { SettingsView(persistence: persistence, updates: updates) }
+                NavigationStack { SettingsView(updates: updates) }
             }
             .badge(updateBadge)
         }

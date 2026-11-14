@@ -94,13 +94,12 @@ final class LibraryModel {
         do {
             let id = item.id
             let records = try context.fetch(FetchDescriptor<ComicRecord>(predicate: #Predicate { $0.id == id }))
+            let now = Date.now
             for record in records {
                 if fromFavorites {
                     record.isFavorite = false
                 } else {
-                    record.lastReadAt = nil
-                    record.chapterID = nil
-                    record.pageIndex = 0
+                    record.clearHistory(at: now)
                 }
             }
             try context.save()

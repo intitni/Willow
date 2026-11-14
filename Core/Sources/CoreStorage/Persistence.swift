@@ -4,6 +4,11 @@ import Security
 #endif
 import SwiftData
 
+package enum WillowSyncMethod: String, CaseIterable, Identifiable, Sendable {
+    case none, cloudKit, drive
+    package var id: Self { self }
+}
+
 @MainActor
 package struct WillowPersistence {
     package enum SyncStatus: Equatable, Sendable {
@@ -18,7 +23,7 @@ package struct WillowPersistence {
     package let syncStatus: SyncStatus
     package let syncFailure: String?
 
-    package static func make(inMemory: Bool = false) throws -> WillowPersistence {
+    package static func make(inMemory: Bool = false, syncMethod: WillowSyncMethod = .none) throws -> WillowPersistence {
         let library = Schema([ComicRecord.self, PreferenceSyncRecord.self, PluginSyncAsset.self])
         let local = Schema([PluginRecord.self, SubscriptionRecord.self, DownloadRecord.self, LocalTagRecord.self, PreferenceSyncCheckpoint.self])
         let schema = Schema([ComicRecord.self, PreferenceSyncRecord.self, PluginSyncAsset.self, PluginRecord.self, SubscriptionRecord.self, DownloadRecord.self, LocalTagRecord.self, PreferenceSyncCheckpoint.self])
@@ -47,6 +52,14 @@ package struct WillowPersistence {
             return WillowPersistence(
                 container: try makeContainer(libraryConfiguration: localLibrary),
                 syncStatus: .inMemory,
+                syncFailure: nil
+            )
+        }
+
+        guard syncMethod == .cloudKit else {
+            return WillowPersistence(
+                container: try makeContainer(libraryConfiguration: localLibrary),
+                syncStatus: .localOnly,
                 syncFailure: nil
             )
         }

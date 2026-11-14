@@ -118,6 +118,7 @@ final class ReaderModel {
         record.chapterID = viewModel.chapter.id
         record.pageIndex = viewModel.pageIndex
         record.lastReadAt = .now
+        record.historyClearedAt = nil
         do { try context.save() }
         catch { viewModel.saveError = error.localizedDescription }
     }

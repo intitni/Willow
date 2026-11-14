@@ -57,6 +57,10 @@ package actor PluginSyncFiles {
         if enabled { try Data(path.utf8).write(to: registry, options: [.atomic, .completeFileProtection]) }
         else if FileManager.default.fileExists(atPath: registry.path) { try FileManager.default.removeItem(at: registry) }
     }
+    package func readIfPresent(path: String) throws -> Data? {
+        let url = try file(path)
+        return FileManager.default.fileExists(atPath: url.path) ? try read(path: path) : nil
+    }
     package func remove(id: String, path: String) throws -> Data? {
         let url = try file(path)
         let backup = FileManager.default.fileExists(atPath: url.path) ? try read(path: path) : nil

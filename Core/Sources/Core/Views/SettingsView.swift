@@ -3,21 +3,19 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppLock.self) private var appLock
-    let persistence: WillowPersistence
     let updates: UpdateModel
 
     var body: some View {
-        SettingsForm(appLock: appLock, persistence: persistence, updates: updates)
+        SettingsForm(appLock: appLock, updates: updates)
     }
 }
 
 private struct SettingsForm: View {
-    @Environment(PreferenceSyncViewModel.self) private var preferenceSync
     @State private var model: SettingsModel
     let updates: UpdateModel
 
-    init(appLock: AppLock, persistence: WillowPersistence, updates: UpdateModel) {
-        _model = State(initialValue: SettingsModel(appLock: appLock, persistence: persistence))
+    init(appLock: AppLock, updates: UpdateModel) {
+        _model = State(initialValue: SettingsModel(appLock: appLock))
         self.updates = updates
     }
 
@@ -53,17 +51,7 @@ private struct SettingsForm: View {
                 Text(L10n.resource("Settings.BiometricUnlockDescription", defaultValue: "开启后，Willow 会在返回前台时使用 \(viewModel.biometryName) 解锁。"))
             }
 
-            Section {
-                LabeledContent(L10n.text("Settings.ICloudSync")) {
-                    Text(viewModel.syncStatus)
-                }
-            } footer: {
-                if let failure = viewModel.syncFailure ?? preferenceSync.error {
-                    Text(failure)
-                } else {
-                    Text(L10n.text("Settings.ICloudSyncDescription"))
-                }
-            }
+            SyncSettingsSection()
 
             Section {
                 NavigationLink {

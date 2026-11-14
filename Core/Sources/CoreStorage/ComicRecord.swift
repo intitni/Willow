@@ -14,6 +14,7 @@ package final class ComicRecord {
     // Retain the legacy field for existing SwiftData stores and CloudKit records.
     @Attribute(.allowsCloudEncryption) package var collectionName: String = ""
     @Attribute(.allowsCloudEncryption) package var lastReadAt: Date?
+    @Attribute(.allowsCloudEncryption) package var historyClearedAt: Date?
     @Attribute(.allowsCloudEncryption) package var chapterID: String?
     @Attribute(.allowsCloudEncryption) package var pageIndex: Int = 0
     @Attribute(.allowsCloudEncryption) package var detailJSON: Data?
@@ -35,6 +36,17 @@ package final class ComicRecord {
         self.summary = summary
     }
 
+    var lastReadingEventAt: Date? {
+        [lastReadAt, historyClearedAt].compactMap { $0 }.max()
+    }
+
+    package func clearHistory(at date: Date = .now) {
+        lastReadAt = nil
+        historyClearedAt = date
+        chapterID = nil
+        pageIndex = 0
+    }
+
     package static func identifier(sourceID: String, comicID: String) -> String {
         "\(sourceID.utf8.count):\(sourceID)\(comicID)"
     }
@@ -53,7 +65,7 @@ package final class ComicRecord {
         let descriptor = FetchDescriptor<ComicRecord>(predicate: #Predicate { $0.id == key })
         let matches = try context.fetch(descriptor)
         if let existing = matches.max(by: {
-            ($0.lastReadAt ?? .distantPast) < ($1.lastReadAt ?? .distantPast)
+            ($0.lastReadingEventAt ?? .distantPast) < ($1.lastReadingEventAt ?? .distantPast)
         }) {
             // CloudKit allows simultaneous inserts for the same comic on different devices.
             for duplicate in matches where duplicate !== existing {
