@@ -9,6 +9,7 @@ import SwiftUI
 @Observable
 public final class CoreAppModel {
     fileprivate let appLock = AppLock()
+    fileprivate let updates = UpdateModel()
     fileprivate var startup = Result { try AppSession() }
 
     public init() {}
@@ -47,23 +48,26 @@ public struct WillowRootView: View {
     }
 
     public var body: some View {
-        switch model.startup {
-        case .success(let session):
-            WillowTabs(persistence: session.persistence)
-                .overlay(alignment: .top) { ToastHost() }
-                .modifier(AppLockShield())
-                .modelContainer(session.persistence.container)
-                .environment(session.downloads)
-                .environment(session.preferences.viewModel)
-                .task {
-                    await session.preferenceEvents.run(context: session.persistence.container.mainContext, sync: session.preferences)
-                }
-                .environment(model.appLock)
-                .tint(WillowTheme.accent)
-        case .failure(let error):
-            RetryView(title: L10n.text("App.StartupFailed"), message: error.localizedDescription, retry: model.retry)
-                .tint(WillowTheme.accent)
+        Group {
+            switch model.startup {
+            case .success(let session):
+                WillowTabs(persistence: session.persistence, updates: model.updates)
+                    .overlay(alignment: .top) { ToastHost() }
+                    .modifier(AppLockShield())
+                    .modelContainer(session.persistence.container)
+                    .environment(session.downloads)
+                    .environment(session.preferences.viewModel)
+                    .task {
+                        await session.preferenceEvents.run(context: session.persistence.container.mainContext, sync: session.preferences)
+                    }
+                    .environment(model.appLock)
+                    .tint(WillowTheme.accent)
+            case .failure(let error):
+                RetryView(title: L10n.text("App.StartupFailed"), message: error.localizedDescription, retry: model.retry)
+                    .tint(WillowTheme.accent)
+            }
         }
+        .task { _ = model.updates.startInitialCheck() }
     }
 }
 
@@ -101,9 +105,11 @@ struct AppLockShield: ViewModifier {
 
 private struct WillowTabs: View {
     let persistence: WillowPersistence
+    let updates: UpdateModel
 
     var body: some View {
         @Bindable var notices = PluginNoticeModel.shared.viewModel
+        let updateBadge: String? = updates.isUpdateAvailable == true ? "" : nil
         TabView {
             Tab(L10n.text("Shelf.Title"), systemImage: "books.vertical") {
                 NavigationStack { LibraryView(kind: .favorites) }
@@ -118,8 +124,9 @@ private struct WillowTabs: View {
                 NavigationStack { DiscoverView() }
             }
             Tab(L10n.text("Settings.Title"), systemImage: "gearshape") {
-                NavigationStack { SettingsView(persistence: persistence) }
+                NavigationStack { SettingsView(persistence: persistence, updates: updates) }
             }
+            .badge(updateBadge)
         }
         .modifier(ErrorAlert(error: $notices.message))
     }
