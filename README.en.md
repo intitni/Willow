@@ -27,31 +27,25 @@ Download `Willow-<version>-unsigned.ipa` and use either tool below to sign and i
 - **AltStore Classic.** Run AltServer on your computer, install AltStore Classic on your device, and save the IPA to the Files app. Connect to AltServer over USB or the same Wi-Fi network, then tap **+** in AltStore's **My Apps** tab to import the IPA. If you use a free account, tap **Refresh All** in **My Apps** before the seven-day signing period expires. [macOS setup](https://faq.altstore.io/altstore-classic/how-to-install-altstore-macos) · [Windows setup](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows) · [Refresh instructions](https://faq.altstore.io/altstore-classic/your-altstore)
 - **iLoader.** Install iLoader on your computer and connect your iPhone or iPad over USB. Sign in to your Apple Account in iLoader, select your device, and import the IPA from your computer to sign and install it. [Official download](https://iloader.app/) · [Usage instructions](https://github.com/nab138/iloader#how-to-use)
 
-### Use iCloud Drive sync
+### iCloud Drive sync
 
-Sign in to the same iCloud account and enable iCloud Drive on each device. Check that the Files app can access the folder you plan to use. Sync is off by default, so select the sync method and folder separately on each device.
+Sync is off by default. Sign in to the same iCloud account and enable iCloud Drive on each device.
 
-1. On the first device, choose **iCloud Drive** under **Settings → Sync Method**, pick a folder under iCloud Drive in the system picker, and tap **Create Encrypted Sync Folder**.
-2. Back in Settings, tap **Copy Recovery Key** and save it somewhere safe. Willow encrypts sync records and plugin scripts before writing them for upload and stores the recovery key in this device’s Keychain.
-3. On other devices, pick the same folder. Willow reads the verification file and checks the device’s Keychain. On the first connection, enter the recovery key and tap **Connect Existing Folder**. If the files are still arriving, allow iCloud Drive time to download them and try again. Builds signed with a free Apple Account can use the system picker to access iCloud Drive.
-4. Once **Active Sync Method** shows **iCloud Drive**, tap **Sync Now**. Bookmark a title on one device, then open Willow and sync on the other device to check that the title appears in its library. The last-checked time indicates that Willow completed a local sync pass. File transfers also depend on iCloud Drive scheduling.
+1. On the first device, choose **iCloud Drive** under **Settings → Sync Method**, select a folder in iCloud Drive, and tap **Create Encrypted Sync Folder**.
+2. Tap **Copy Recovery Key** and save it somewhere safe. Sync data is encrypted, and other devices need this key to read it.
+3. On other devices, select the same folder, enter the recovery key, and tap **Connect Existing Folder**.
 
-Sync files are stored in a `Willow Sync v1` subfolder inside the selected folder. Comic information, tags, reading records, and plugin scripts are encrypted. Keep this subfolder and its verification file intact so other devices can identify it and verify the recovery key.
+Willow syncs automatically when you open it. You can also tap **Sync Now**. If changes have not appeared yet, allow iCloud Drive time to transfer them and try again. The recovery key is stored only on your device, so you may need to enter it again after reinstalling Willow.
 
-Save a separate copy of your recovery key somewhere safe. Reinstalling Willow or changing its signing identity may require you to enter the key again. While copying the key, the button shows **Reading recovery key…**, followed by a confirmation when copying finishes.
+### Use CloudKit sync
 
-After an upgrade, Willow verifies a legacy recovery key and saves it to the current device before deleting the old iCloud Keychain item. The deletion propagates to other devices. A device that hasn’t saved its own copy will need the recovery key again.
+We recommend using iCloud Drive sync. Follow the steps above to select a folder and save your recovery key.
 
-Switching methods keeps your local data and existing cloud copies. The first connection merges items unique to either side. Newly discovered local items are published as lower-priority versions, so existing Drive edits and deletions still apply when they arrive later. Reading progress and history deletions are ordered by the time of the actual action, so a later reread can move the bookmark to an earlier page. When Willow finds sync records still downloading, it waits for the next sync. iCloud may still be discovering files uploaded by other devices, and those files join the merge when they appear. Switching from iCloud Drive to None immediately stops Willow’s Drive sync tasks. The file provider can finish transfers that Willow has already submitted. For changes involving CloudKit, the previous method stays active until you quit and reopen Willow. Settings shows both the selected method and the method currently in effect.
+If your build is signed to support CloudKit, you can also choose **CloudKit** under **Settings → Sync Method**. Sign in to the same iCloud account on each device.
 
-### Enable CloudKit sync
+When signing your own build for CloudKit, change the Bundle Identifier (`com.intii.Willow`) and iCloud Container Identifier (`iCloud.intii.Willow`) to identifiers available to your developer team, and update the project configuration accordingly.
 
-CloudKit requires signing with the appropriate entitlements.
-
-1. Use an Apple Developer team with permission to configure iCloud. Set your Team ID as described in the device signing instructions below.
-2. In Xcode, open **Signing & Capabilities** for the Willow target. Enable **CloudKit** under **iCloud** and select a container your team can access. The project already includes the configuration CloudKit uses to receive silent background updates. [Apple setup guide](https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices)
-3. If your team cannot use the preset identifiers `com.intii.Willow` and `iCloud.intii.Willow`, use your team's own bundle ID and iCloud container. Update the build settings, `Willow/Willow.entitlements`, and `WillowPersistence.iCloudContainer` together. Devices that sync with each other must use the same container and CloudKit environment.
-4. Install the signed build on iPhones or iPads signed in to the same iCloud account. Open Willow, select **CloudKit** under **Settings → Sync Method**, then quit and reopen it. **Active Sync Method** shows **CloudKit** once the storage container has initialized. To verify that data syncs, bookmark a title on one device and look for it in the library on another. If the active method still shows **None**, check the message below it and review the signing and container configuration.
+After switching to or from CloudKit, quit and reopen Willow for the change to take effect.
 
 ## Open and build
 
@@ -73,7 +67,7 @@ xcodebuild -project Willow.xcodeproj -scheme Willow -sdk iphonesimulator \
   -configuration Debug -derivedDataPath /tmp/WillowDerivedData CODE_SIGNING_ALLOWED=NO build
 ```
 
-Before running on a device, copy `Config/Signing.example.xcconfig` to `Config/Signing.local.xcconfig` and enter your Team ID in that Git-ignored file. Follow the CloudKit instructions above to configure the required entitlements and container. The simulator uses a local database.
+Before running on a device, copy `Config/Signing.example.xcconfig` to `Config/Signing.local.xcconfig` and enter your Team ID in that Git-ignored file. For CloudKit, enable iCloud / CloudKit in Xcode and keep the selected container consistent with `Willow/Willow.entitlements` and `WillowPersistence.iCloudContainer`. The simulator uses a local database.
 
 The host app target contains only `Willow/App/WillowApp.swift`. It creates `CoreAppModel`, displays `WillowRootView`, and forwards lifecycle events. The local Swift package `Core` contains the app's Swift feature code. SwiftPM automatically picks up new Swift files in existing targets under `Core/Sources`. When adding a feature target, update the target and its dependencies in `Core/Package.swift`.
 
