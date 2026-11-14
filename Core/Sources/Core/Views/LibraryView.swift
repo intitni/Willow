@@ -56,7 +56,6 @@ struct LibraryView: View {
                         }
                     }
                     .padding()
-                    .frame(maxWidth: 1080)
                     .frame(maxWidth: .infinity)
                     if viewModel.hasMore {
                         PaginationTrigger(itemCount: viewModel.items.count, load: model.loadMore)
