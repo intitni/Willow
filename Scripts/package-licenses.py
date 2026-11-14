@@ -21,7 +21,7 @@ ALIASES = {'srcmap-scopes': 'srcmap-codec', 'srcmap-sourcemap': 'srcmap-codec'}
 
 def metadata():
     result = subprocess.check_output([
-        str(Path.home() / '.cargo/bin/cargo'), '+1.96.1', 'metadata', '--locked', '--offline',
+        'cargo', '+1.96.1', 'metadata', '--locked', '--offline',
         '--manifest-path', str(ROOT / 'Bridge/Cargo.toml'), '--format-version', '1',
         '--filter-platform', 'aarch64-apple-ios',
     ], cwd=ROOT)
