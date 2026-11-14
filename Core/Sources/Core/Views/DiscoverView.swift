@@ -24,6 +24,9 @@ struct DiscoverView: View {
         let state = model.viewModel
         let request = model.request(for: plugin)
         VStack(spacing: 0) {
+            DiscoverSearchField(text: $search) { model.submit(search) }
+                .padding(.horizontal)
+
             if let plugin, state.displayedRequest == request {
                 if state.query.isEmpty && !state.loading && state.error == nil {
                     PluginHomePagesView(plugin: plugin, tabs: state.tabs)
@@ -52,8 +55,7 @@ struct DiscoverView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .navigationTitle(plugin.map { L10n.text("Discover.TitleWithSource", defaultValue: "发现 · \($0.name)") } ?? L10n.text("Discover.Title"))
-        .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always), prompt: L10n.text("Discover.SearchPrompt"))
-        .onSubmit(of: .search) { model.submit(search) }
+        .scrollDismissesKeyboard(.interactively)
         .onChange(of: search) { _, value in
             if value.isEmpty { model.clearSearch() }
         }
@@ -119,6 +121,43 @@ struct DiscoverView: View {
         }
         .task(id: request) { await model.loadInitial(plugin: plugin, request: request) }
         .refreshable { await model.loadInitial(plugin: plugin, request: request) }
+    }
+}
+
+private struct DiscoverSearchField: View {
+    @Binding var text: String
+    @FocusState private var focused: Bool
+    let submit: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+                .onTapGesture { focused = true }
+            TextField(L10n.text("Discover.SearchPrompt"), text: $text)
+                .focused($focused)
+                .submitLabel(.search)
+                .onSubmit {
+                    focused = false
+                    submit()
+                }
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L10n.text("Discover.ClearSearch"))
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 44)
+        .background(.fill.tertiary, in: .capsule)
     }
 }
 

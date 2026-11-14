@@ -3069,6 +3069,23 @@
         }
       }
     },
+    "Discover.ClearSearch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear search"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清空搜索"
+          }
+        }
+      }
+    },
     "Discover.SearchPrompt" : {
       "extractionState" : "manual",
       "localizations" : {
