@@ -51,37 +51,77 @@ enum DriveSyncKeychain {
         SymmetricKey(size: .bits256).withUnsafeBytes { Data($0) }
     }
 
-    private static func query(_ id: UUID) -> [String: Any] {
+    private static func query(_ id: UUID, synchronizable: Bool = false) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: "Willow.DriveSync.v1",
             kSecAttrAccount as String: id.uuidString,
             kSecUseDataProtectionKeychain as String: true,
-            kSecAttrSynchronizable as String: true,
+            kSecAttrSynchronizable as String: synchronizable,
         ]
     }
 
-    static func read(_ id: UUID) throws -> Data {
-        var request = query(id)
+    private static func read(_ id: UUID, synchronizable: Bool = false) throws -> Data {
+        var request = query(id, synchronizable: synchronizable)
         request[kSecReturnData as String] = true
         var result: CFTypeRef?
         let status = SecItemCopyMatching(request as CFDictionary, &result)
-        guard status == errSecSuccess, let bytes = result as? Data else { throw DriveSyncError.keychain(status) }
+        guard status == errSecSuccess else { throw DriveSyncError.keychain(status) }
+        guard let bytes = result as? Data else { throw DriveSyncError.invalidKey }
         return bytes
     }
 
     static func save(_ bytes: Data, id: UUID) throws {
         var item = query(id)
         item[kSecValueData as String] = bytes
-        item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+        item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         let status = SecItemAdd(item as CFDictionary, nil)
         if status == errSecDuplicateItem {
-            let updated = SecItemUpdate(query(id) as CFDictionary, [kSecValueData as String: bytes] as CFDictionary)
+            let attributes = [
+                kSecValueData as String: bytes,
+                kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+            ] as [String: Any]
+            let updated = SecItemUpdate(query(id) as CFDictionary, attributes as CFDictionary)
             guard updated == errSecSuccess else { throw DriveSyncError.keychain(updated) }
         } else if status != errSecSuccess {
             throw DriveSyncError.keychain(status)
         }
     }
+
+    static func readVerified(_ id: UUID, verify: (DriveSyncKey) throws -> Void) throws -> Data {
+        do {
+            let bytes = try read(id)
+            try verify(DriveSyncKey(bytes))
+            try deleteLegacy(id)
+            return bytes
+        } catch DriveSyncError.keychain(errSecItemNotFound) {
+            // A previous build may only have stored the synchronizable item.
+        } catch DriveSyncError.wrongKey {
+            // Verify the legacy value against the directory before replacing it.
+        } catch DriveSyncError.invalidKey {
+            // A malformed local item can also be repaired by a verified legacy key.
+        }
+        let legacy = try read(id, synchronizable: true)
+        try saveVerified(legacy, id: id, verify: verify)
+        return legacy
+    }
+
+    static func saveVerified(_ bytes: Data, id: UUID, verify: (DriveSyncKey) throws -> Void) throws {
+        try verify(DriveSyncKey(bytes))
+        try save(bytes, id: id)
+        let persisted = try read(id)
+        guard persisted == bytes else { throw DriveSyncError.invalidKey }
+        try verify(DriveSyncKey(persisted))
+        try deleteLegacy(id)
+    }
+
+    private static func deleteLegacy(_ id: UUID) throws {
+        // Apple propagates deletion of this legacy item to other devices.
+        // Callers must first have a verified, device-only copy.
+        let status = SecItemDelete(query(id, synchronizable: true) as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else { throw DriveSyncError.keychain(status) }
+    }
+
 }
 
 /// Keychain and file-provider coordination stay off the main actor.
@@ -98,11 +138,12 @@ package actor DriveSyncSetup {
         let directory = DriveSyncDirectory(root: url, securityScoped: true)
         guard let marker = try directory.marker() else { return .empty }
         do {
-            let bytes = try DriveSyncKeychain.read(marker.id)
-            try marker.verify(DriveSyncKey(bytes))
+            _ = try DriveSyncKeychain.readVerified(marker.id, verify: marker.verify)
         } catch DriveSyncError.keychain(errSecItemNotFound) {
             return .needsKey
         } catch DriveSyncError.wrongKey {
+            return .needsKey
+        } catch DriveSyncError.invalidKey {
             return .needsKey
         }
         return .connected(DriveSyncFolder(id: marker.id, name: url.lastPathComponent, bookmark: try DriveSyncFolder.makeBookmark(url)))
@@ -116,8 +157,7 @@ package actor DriveSyncSetup {
             guard let bytes = Data(base64Encoded: recoveryKey.trimmingCharacters(in: .whitespacesAndNewlines)),
                   bytes.count == 32 else { throw DriveSyncError.invalidKey }
             guard let marker = try directory.marker() else { throw DriveSyncError.missingDirectory }
-            try marker.verify(DriveSyncKey(bytes))
-            try DriveSyncKeychain.save(bytes, id: marker.id)
+            try DriveSyncKeychain.saveVerified(bytes, id: marker.id, verify: marker.verify)
             id = marker.id
         } else {
             let bytes = DriveSyncKeychain.generate()
@@ -130,6 +170,7 @@ package actor DriveSyncSetup {
     }
 
     package func recoveryKey(for folder: DriveSyncFolder) throws -> String {
-        try DriveSyncKeychain.read(folder.id).base64EncodedString()
+        let directory = try DriveSyncDirectory(folder: folder)
+        return try directory.recoveryKey().base64EncodedString()
     }
 }

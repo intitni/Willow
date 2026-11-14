@@ -20,7 +20,7 @@ package actor PreferenceSyncModel {
     private let files: PluginSyncFiles
     private let unloadPlugin: @Sendable (String) async throws -> Void
     private let drive: Result<DriveSyncDirectory, any Error>?
-    private let driveKey: @Sendable (UUID) throws -> Data
+    private let driveKey: (@Sendable (UUID) throws -> Data)?
     private let readDriveRecord: (@Sendable (URL) throws -> Data?)?
     private(set) var isStopped = false
     private var stopWaiters: [CheckedContinuation<Void, Never>] = []
@@ -39,7 +39,7 @@ package actor PreferenceSyncModel {
 
     @MainActor init(container: ModelContainer, drive: Result<DriveSyncDirectory, any Error>?,
                     files: PluginSyncFiles = PluginSyncFiles(),
-                    driveKey: @escaping @Sendable (UUID) throws -> Data = DriveSyncKeychain.read,
+                    driveKey: (@Sendable (UUID) throws -> Data)? = nil,
                     readDriveRecord: (@Sendable (URL) throws -> Data?)? = nil,
                     unloadPlugin: @escaping @Sendable (String) async throws -> Void = { try await PluginRuntime.shared.unload(id: $0) }) {
         viewModel = PreferenceSyncViewModel()
@@ -128,9 +128,15 @@ package actor PreferenceSyncModel {
         context.autosaveEnabled = false
         let allRevisions: [SyncRevision]
         var firstError: Error?
-        let encryptionKey = try directory.map { try DriveSyncKey(driveKey($0.id)) }
+        let encryptionKey = try directory.map { directory in
+            if let driveKey {
+                let key = try DriveSyncKey(driveKey(directory.id))
+                try directory.verify(key: key)
+                return key
+            }
+            return try DriveSyncKey(directory.recoveryKey())
+        }
         if let directory, let encryptionKey {
-            try directory.verify(key: encryptionKey)
             let read = try directory.readRevisions(key: encryptionKey, readRecord: readDriveRecord)
             guard read.isComplete else { throw read.error ?? DriveSyncError.waitingForFiles }
             allRevisions = read.revisions
