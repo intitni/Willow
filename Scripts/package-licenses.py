@@ -110,7 +110,7 @@ def source_archive(path, packages):
                 if file.is_symlink() or not file.is_file() or any(p in {'.git', 'target'} for p in file.relative_to(directory).parts):
                     continue
                 archive.add(file, arcname=destination + '/' + file.relative_to(directory).as_posix(), recursive=False)
-        for name in ['Bridge/Cargo.toml', 'Bridge/Cargo.lock', 'THIRD_PARTY_NOTICES.md', 'Scripts/package-licenses.py']:
+        for name in ['LICENSE', 'Bridge/Cargo.toml', 'Bridge/Cargo.lock', 'THIRD_PARTY_NOTICES.md', 'Scripts/package-licenses.py']:
             archive.add(ROOT / name, arcname='Willow-Sources/' + name)
         add_tree(ROOT / 'Bridge/src', 'Willow-Sources/Bridge/src')
         add_tree(ROOT / 'Licenses', 'Willow-Sources/Licenses')
@@ -124,7 +124,7 @@ def source_archive(path, packages):
             add_tree(Path(package['manifest_path']).parent, f"Willow-Sources/dependencies/{package['name']}-{package['version']}")
         contents = ('Corresponding source for the Rust components in Willow.\n'
                     'Breeze sources are under MPL-2.0; dependency licenses remain applicable.\n'
-                    'Bridge/src is the Willow integration source, supplied for reference; no new license grant is implied.\n'
+                    'Bridge/src contains the Willow integration source under MPL-2.0. See LICENSE.\n'
                     'Bridge/Cargo.lock records the exact dependency versions and sources.\n'
                     'Dependencies include build-time components as well as runtime components.\n'
                     'Full source locations, license texts and authors are listed in ThirdPartyLicenses.json.\n').encode()

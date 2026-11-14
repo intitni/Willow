@@ -25,7 +25,7 @@ Breeze runtime and decode source, the Willow Rust integration source, and the ex
 Rust dependencies recorded in `Bridge/Cargo.lock`. Breeze and other MPL-covered
 source remain available under MPL-2.0. Recipients may obtain this source without
 additional charge; no Willow terms restrict rights granted by those licenses.
-Original Willow files are not relicensed by this notice.
+Willow's original source code is available under MPL-2.0. See the root [LICENSE](LICENSE).
 
 Breeze corresponding source: https://github.com/breeze-project-org/Breeze/tree/d4888c8d4eaa866a526bd29b90564f6c60b86be3
 

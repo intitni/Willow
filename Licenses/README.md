@@ -9,4 +9,4 @@ The srcmap workspace license applies to codec, scopes, and sourcemap 0.3.9.
 `Standard` contains unmodified license terms for packages whose manifests declare
 those licenses but whose published archives omit the license file. Attribution
 uses the upstream package metadata, without inventing copyright ownership or dates.
-These texts do not assign a license to Willow's original code.
+Willow's original source code is covered by the [repository license](../LICENSE).

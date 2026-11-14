@@ -68,3 +68,7 @@ xcodebuild -project Willow.xcodeproj -scheme Willow -sdk iphonesimulator \
 Scripts/test-core.sh
 Scripts/test-plugins.sh
 ```
+
+## 许可证
+
+Willow 原创代码采用 [Mozilla Public License 2.0](LICENSE)。Breeze 和其他第三方组件的许可及版权声明见 [第三方许可声明](THIRD_PARTY_NOTICES.md)。

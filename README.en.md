@@ -68,3 +68,7 @@ Use the provided scripts to run the storage and plugin tests in isolated environ
 Scripts/test-core.sh
 Scripts/test-plugins.sh
 ```
+
+## License
+
+Willow's original source code is licensed under the [Mozilla Public License 2.0](LICENSE). See the [third-party notices](THIRD_PARTY_NOTICES.md) for the licenses and copyright notices for Breeze and other dependencies.
