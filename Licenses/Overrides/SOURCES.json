@@ -1,0 +1,10 @@
+{
+  "Licenses/Overrides/alloc-stdlib-0.2.4/LICENSE": "https://raw.githubusercontent.com/dropbox/rust-alloc-no-stdlib/ae42d22078b98549e987d2f03d12df7b984fde47/LICENSE",
+  "Licenses/Overrides/alloc-stdlib-0.3.0/LICENSE": "https://raw.githubusercontent.com/dropbox/rust-alloc-no-stdlib/0a81fd6928ea3b33c8cd484aa4575d50ffb98012/LICENSE",
+  "Licenses/Overrides/fluent-langneg-0.13.1/LICENSE-MIT": "https://raw.githubusercontent.com/projectfluent/fluent-langneg-rs/7fdc590466ea63ca2367ac10fb1b881fe561f1a8/LICENSE-MIT",
+  "Licenses/Overrides/fluent-langneg-0.13.1/LICENSE-APACHE": "https://raw.githubusercontent.com/projectfluent/fluent-langneg-rs/7fdc590466ea63ca2367ac10fb1b881fe561f1a8/LICENSE-APACHE",
+  "Licenses/Overrides/srcmap-codec-0.3.9/LICENSE": "https://raw.githubusercontent.com/fallow-rs/srcmap/78e804b1acf60c25f3b74a2739ab6eeeeef48067/LICENSE",
+  "Licenses/Overrides/rquickjs-core-0.12.2/LICENSE": "https://crates.io/api/v1/crates/rquickjs/0.12.2/download (LICENSE)",
+  "Licenses/Overrides/rquickjs-macro-0.12.2/LICENSE": "https://crates.io/api/v1/crates/rquickjs/0.12.2/download (LICENSE)",
+  "Licenses/Overrides/rquickjs-sys-0.12.2/LICENSE": "https://crates.io/api/v1/crates/rquickjs/0.12.2/download (LICENSE)"
+}

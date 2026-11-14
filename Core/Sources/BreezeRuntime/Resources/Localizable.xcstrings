@@ -1,0 +1,301 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "RuntimeError.EmptyImage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin returned an empty image."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件返回了空图片。"
+          }
+        }
+      }
+    },
+    "RuntimeError.InstallSourceFirst" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install the matching source plugin on this device first."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先在此设备安装对应的图源插件。"
+          }
+        }
+      }
+    },
+    "RuntimeError.InvalidFileIdentifier" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin file identifier is invalid. Reinstall this source in plugin management."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件文件标识无效，请在插件管理中重新安装该漫画源。"
+          }
+        }
+      }
+    },
+    "RuntimeError.InvalidImageIdentifier" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The image identifier is invalid."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图片标识无效。"
+          }
+        }
+      }
+    },
+    "RuntimeError.InvalidSourceIdentifier" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The source identifier is invalid."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图源标识无效。"
+          }
+        }
+      }
+    },
+    "RuntimeError.MissingPluginFile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device is missing the source plugin. Reinstall it in plugin management. Your favorites and reading history will be preserved."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前设备缺少这个漫画源的插件文件，请在插件管理中重新安装该漫画源。收藏和阅读历史不会因此删除。"
+          }
+        }
+      }
+    },
+    "RuntimeError.NoResult" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin runtime did not return a result."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件运行时未返回结果。"
+          }
+        }
+      }
+    },
+    "SecurityError.AccessKey" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to access the plugin configuration key. Unlock your device and try again (Keychain %d)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法访问插件配置密钥，请解锁设备后重试（Keychain %d）。"
+          }
+        }
+      }
+    },
+    "SecurityError.GenerateKey" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to generate the plugin configuration key."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法生成插件配置密钥。"
+          }
+        }
+      }
+    },
+    "SecurityError.InvalidKey" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin configuration key is invalid. The original configuration has been preserved."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件配置密钥无效，原始配置已保留。"
+          }
+        }
+      }
+    },
+    "SecurityError.MissingKey" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin configuration key is missing. The original configuration has been preserved but cannot be decrypted."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件配置密钥丢失，无法解密。原始配置已保留。"
+          }
+        }
+      }
+    },
+    "SecurityError.SaveKey" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to save the plugin configuration key (Keychain %d)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法保存插件配置密钥（Keychain %d）。"
+          }
+        }
+      }
+    },
+    "Text.InstallThisImageSourceSPluginOnThisDeviceFirst" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install this image source’s plugin on this device first."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先在此设备安装对应的图源插件。"
+          }
+        }
+      }
+    },
+    "Text.TheImageIdentifierIsInvalid" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The image identifier is invalid."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图片标识无效。"
+          }
+        }
+      }
+    },
+    "Text.TheImageSourceIdentifierIsInvalid" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The image source identifier is invalid."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图源标识无效。"
+          }
+        }
+      }
+    },
+    "Text.ThePluginReturnedAnEmptyImage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin returned an empty image."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件返回了空图片。"
+          }
+        }
+      }
+    },
+    "Text.ThePluginRuntimeDidnTReturnAResult" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The plugin runtime didn’t return a result."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件运行时未返回结果。"
+          }
+        }
+      }
+    },
+    "无法保存插件配置密钥（Keychain %d）。" : {
+
+    },
+    "无法访问插件配置密钥，请解锁设备后重试（Keychain %d）。" : {
+
+    }
+  },
+  "version" : "1.0"
+}

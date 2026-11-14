@@ -1,0 +1,68 @@
+# macOS metadata
+.DS_Store
+.AppleDouble
+._*
+
+# Xcode build products and per-user state
+build/
+DerivedData/
+*.xcarchive/
+*.xcresult/
+*.dSYM/
+*.dSYM.zip
+*.ipa
+*.xcuserstate
+xcuserdata/
+*.xccheckout
+*.xcscmblueprint
+
+# Swift Package Manager caches and local workspace configuration
+.build/
+.swiftpm/
+
+# Rust build products (keep Cargo.lock)
+target/
+
+# Release artifacts, including generated source archives
+dist/
+
+# Local signing overrides and certificate / provisioning material
+Config/*.local.xcconfig
+*.p12
+*.pfx
+*.cer
+*.crt
+*.cert
+*.der
+*.pem
+*.key
+*.p8
+*.p7b
+*.p7c
+*.csr
+*.mobileprovision
+*.provisionprofile
+*.keychain
+*.keychain-db
+
+# Local environment files (allow sanitized templates)
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Python tooling caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local logs and editor temporary files
+*.log
+*.swp
+*.swo
+*~
+
+# Keep shared Xcode schemes, project files, Package.resolved, Cargo.lock,
+# source assets, test fixtures, and bundled license notices under version control.

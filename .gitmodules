@@ -1,0 +1,3 @@
+[submodule "Vendor/Breeze"]
+	path = Vendor/Breeze
+	url = https://github.com/breeze-project-org/Breeze.git

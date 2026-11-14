@@ -1,0 +1,4 @@
+# actionlint 1.7.7 尚未内置 GitHub 官方 Xcode 27 runner 名称。
+self-hosted-runner:
+  labels:
+    - xcode-27
