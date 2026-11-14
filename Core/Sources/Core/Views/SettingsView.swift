@@ -25,15 +25,15 @@ private struct SettingsForm: View {
                 NavigationLink {
                     PluginManagementView()
                 } label: {
-                    Label(L10n.text("Text.PluginsSubscriptions"), systemImage: "puzzlepiece.extension")
+                    Label(L10n.text("PluginManagement.Title"), systemImage: "puzzlepiece.extension")
                 }
             }
 
-            Section(L10n.text("Text.Reading")) {
-                Picker(L10n.text("Text.ReadingDirection"), selection: Binding(get: { viewModel.mode }, set: model.setMode)) {
+            Section(L10n.text("Downloads.Read")) {
+                Picker(L10n.text("ReadingDirection.Title"), selection: Binding(get: { viewModel.mode }, set: model.setMode)) {
                     ForEach(ReaderMode.allCases) { value in Text(value.label).tag(value) }
                 }
-                Toggle(L10n.text("Text.TwoPagesInWideWindows"), isOn: Binding(get: { viewModel.spreads }, set: model.setSpreads))
+                Toggle(L10n.text("Settings.TwoPagesInWideWindows"), isOn: Binding(get: { viewModel.spreads }, set: model.setSpreads))
             }
 
             Section {
@@ -41,24 +41,24 @@ private struct SettingsForm: View {
                     get: { viewModel.lockEnabled },
                     set: model.setAppLock
                 )) {
-                    Label(L10n.text("Text.AppLock"), systemImage: "lock")
+                    Label(L10n.text("Settings.AppLock"), systemImage: "lock")
                 }
                 .disabled(viewModel.updatingLock)
             } header: {
-                Text(L10n.text("Text.Privacy"))
+                Text(L10n.text("Settings.Privacy"))
             } footer: {
-                Text(L10n.resource("Message.BiometricUnlock", defaultValue: "开启后，Willow 会在返回前台时使用 \(viewModel.biometryName) 解锁。"))
+                Text(L10n.resource("Settings.BiometricUnlockDescription", defaultValue: "开启后，Willow 会在返回前台时使用 \(viewModel.biometryName) 解锁。"))
             }
 
             Section {
-                LabeledContent(L10n.text("Text.ICloudSync")) {
+                LabeledContent(L10n.text("Settings.ICloudSync")) {
                     Text(viewModel.syncStatus)
                 }
             } footer: {
                 if let failure = viewModel.syncFailure ?? preferenceSync.error {
                     Text(failure)
                 } else {
-                    Text(L10n.text("Message.ICloudSyncScope"))
+                    Text(L10n.text("Settings.ICloudSyncDescription"))
                 }
             }
 
@@ -66,11 +66,11 @@ private struct SettingsForm: View {
                 NavigationLink {
                     AboutView()
                 } label: {
-                    Label(L10n.text("Text.AboutOpenSourceLicenses"), systemImage: "info.circle")
+                    Label(L10n.text("Settings.AboutAndLicenses"), systemImage: "info.circle")
                 }
             }
         }
-        .navigationTitle(L10n.text("Text.Settings"))
+        .navigationTitle(L10n.text("Settings.Title"))
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification, object: UserDefaults.standard)) { _ in
             model.reloadReaderPreferences()
         }
@@ -83,30 +83,30 @@ private struct AboutView: View {
 
     var body: some View {
         List {
-            Section(L10n.text("Text.WillowNative")) {
+            Section(L10n.text("About.AppName")) {
                 if let version = viewModel.version {
                     LabeledContent(L10n.text("Text.Version"), value: version)
                 }
             }
 
-            Section(L10n.text("Text.OpenSourceLicenses")) {
-                Text(L10n.text("Text.WillowNativeUsesTheBreezePluginRuntime"))
-                Link(L10n.text("Text.BreezeSourceCode"), destination: viewModel.upstream)
-                Link(L10n.text("Text.MozillaPublicLicense20"), destination: viewModel.license)
+            Section(L10n.text("Licenses.Title")) {
+                Text(L10n.text("About.BreezeDescription"))
+                Link(L10n.text("About.BreezeSourceCode"), destination: viewModel.upstream)
+                Link(L10n.text("About.MozillaPublicLicense20"), destination: viewModel.license)
                 NavigationLink {
                     ThirdPartyLicensesView()
                 } label: {
-                    Label(L10n.text("Text.BundledLicenseNotices"), systemImage: "doc.text")
+                    Label(L10n.text("About.BundledLicenseNotices"), systemImage: "doc.text")
                 }
                 LabeledContent {
                     Text(viewModel.revision)
                         .font(.caption.monospaced())
                         .textSelection(.enabled)
                 } label: {
-                    Text(L10n.text("Text.BreezeRevision"))
+                    Text(L10n.text("About.BreezeRevision"))
                 }
             }
         }
-        .navigationTitle(L10n.text("Text.AboutWillow"))
+        .navigationTitle(L10n.text("About.Title"))
     }
 }

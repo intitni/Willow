@@ -20,9 +20,9 @@ struct PluginManagementView: View {
     var body: some View {
         @Bindable var viewModel = model.viewModel
         List {
-            Section(L10n.text("Text.Installed")) {
+            Section(L10n.text("PluginManagement.Installed")) {
                 if plugins.isEmpty {
-                    Text(L10n.text("Text.NoInstalledPlugins")).foregroundStyle(.secondary)
+                    Text(L10n.text("PluginManagement.EmptyPlugins")).foregroundStyle(.secondary)
                 }
                 ForEach(plugins, id: \.uuid) { plugin in
                     NavigationLink {
@@ -32,23 +32,23 @@ struct PluginManagementView: View {
                             Text(plugin.name)
                             HStack {
                                 Text(plugin.version)
-                                if !plugin.enabled { Text(L10n.text("Text.Disabled")) }
+                                if !plugin.enabled { Text(L10n.text("PluginManagement.Disabled")) }
                             }
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         }
                     }
                     .swipeActions {
-                        Button(L10n.text("Text.Uninstall"), systemImage: "trash", role: .destructive) {
+                        Button(L10n.text("PluginManagement.Uninstall"), systemImage: "trash", role: .destructive) {
                             uninstalling = plugin
                         }
                     }
                 }
             }
 
-            Section(L10n.text("Text.Subscriptions")) {
+            Section(L10n.text("PluginManagement.Subscriptions")) {
                 if subscriptions.isEmpty {
-                    Text(L10n.text("Text.NoSubscriptions")).foregroundStyle(.secondary)
+                    Text(L10n.text("PluginManagement.EmptySubscriptions")).foregroundStyle(.secondary)
                 }
                 ForEach(subscriptions, id: \.url) { subscription in
                     NavigationLink {
@@ -67,23 +67,23 @@ struct PluginManagementView: View {
                 }
             }
         }
-        .navigationTitle(L10n.text("Text.PluginsSubscriptions"))
+        .navigationTitle(L10n.text("PluginManagement.Title"))
         .toolbar {
             Menu(L10n.text("Text.Add"), systemImage: "plus") {
                 if model.canAddDefaultSubscription(subscriptions) {
-                    Button(L10n.text("Text.AddBreezePluginDirectory"), systemImage: "list.bullet.rectangle") {
+                    Button(L10n.text("PluginManagement.AddBreezePluginDirectory"), systemImage: "list.bullet.rectangle") {
                         model.addDefaultSubscription(context: context)
                     }
                 }
-                Button(L10n.text("Text.AddSubscription"), systemImage: "list.bullet") {
+                Button(L10n.text("PluginManagement.AddSubscription"), systemImage: "list.bullet") {
                     viewModel.address = ""
                     showingSubscriptionPrompt = true
                 }
-                Button(L10n.text("Text.InstallFromLink"), systemImage: "link") {
+                Button(L10n.text("PluginManagement.InstallFromLink"), systemImage: "link") {
                     viewModel.address = ""
                     showingInstallPrompt = true
                 }
-                Button(L10n.text("Text.ImportPluginFile"), systemImage: "doc.badge.plus") {
+                Button(L10n.text("PluginManagement.ImportPluginFile"), systemImage: "doc.badge.plus") {
                     showingImporter = true
                 }
             }
@@ -95,24 +95,24 @@ struct PluginManagementView: View {
             await Task.yield()
             guard !Task.isCancelled else { return }
             if let progressToast { Toast.hide(progressToast); self.progressToast = nil }
-            if working { progressToast = Toast.info(L10n.text("Text.Working"), duration: nil, scope: toastScope) }
+            if working { progressToast = Toast.info(L10n.text("PluginManagement.Working"), duration: nil, scope: toastScope) }
         }
         .onDisappear {
             if let progressToast { Toast.hide(progressToast); self.progressToast = nil }
         }
-        .alert(L10n.text("Text.AddSubscription"), isPresented: $showingSubscriptionPrompt) {
+        .alert(L10n.text("PluginManagement.AddSubscription"), isPresented: $showingSubscriptionPrompt) {
             PluginAddressField(address: $viewModel.address)
             Button(L10n.text("Text.Add")) { model.addSubscription(context: context) }
             Button(L10n.text("Text.Cancel"), role: .cancel) {}
         } message: {
-            Text(L10n.text("Text.EnterTheLinkToTheSubscriptionCatalog"))
+            Text(L10n.text("PluginManagement.SubscriptionURLPrompt"))
         }
-        .alert(L10n.text("Text.InstallFromLink"), isPresented: $showingInstallPrompt) {
+        .alert(L10n.text("PluginManagement.InstallFromLink"), isPresented: $showingInstallPrompt) {
             PluginAddressField(address: $viewModel.address)
-            Button(L10n.text("Text.Install")) { model.install(context: context) }
+            Button(L10n.text("PluginManagement.Install")) { model.install(context: context) }
             Button(L10n.text("Text.Cancel"), role: .cancel) {}
         } message: {
-            Text(L10n.text("Message.EnterTheLinkToThePluginFilePluginsCanAccessTheNetworkSoOnlyInstallPluginsFromSourcesYouTrust"))
+            Text(L10n.text("PluginManagement.InstallURLPrompt"))
         }
         .fileImporter(isPresented: $showingImporter, allowedContentTypes: [
             UTType(filenameExtension: "cjs") ?? .data,
@@ -121,19 +121,19 @@ struct PluginManagementView: View {
         ]) { result in
             model.importPlugin(result, context: context)
         }
-        .confirmationDialog(L10n.text("Text.UninstallPlugin"), isPresented: Binding(
+        .confirmationDialog(L10n.text("PluginManagement.UninstallTitle"), isPresented: Binding(
             get: { uninstalling != nil },
             set: { if !$0 { uninstalling = nil } }
         ), titleVisibility: .visible, presenting: uninstalling) { plugin in
-            Button(L10n.text("ButtonTitle.UninstallPlugin", defaultValue: "卸载 \(plugin.name)"), role: .destructive) {
+            Button(L10n.text("PluginManagement.UninstallNamedPlugin", defaultValue: "卸载 \(plugin.name)"), role: .destructive) {
                 model.uninstall(plugin, context: context)
             }
         }
-        .confirmationDialog(L10n.text("Text.RemoveSubscription"), isPresented: Binding(
+        .confirmationDialog(L10n.text("PluginManagement.RemoveSubscriptionTitle"), isPresented: Binding(
             get: { removingSubscription != nil },
             set: { if !$0 { removingSubscription = nil } }
         ), titleVisibility: .visible, presenting: removingSubscription) { subscription in
-            Button(L10n.text("ButtonTitle.RemoveSubscription", defaultValue: "移除 \(subscription.name)"), role: .destructive) {
+            Button(L10n.text("PluginManagement.RemoveNamedSubscription", defaultValue: "移除 \(subscription.name)"), role: .destructive) {
                 model.remove(subscription, context: context)
             }
         }
@@ -145,7 +145,7 @@ private struct PluginAddressField: View {
     @Binding var address: String
 
     var body: some View {
-        TextField(L10n.text("Text.Https"), text: $address)
+        TextField(L10n.text("PluginManagement.URLPlaceholder"), text: $address)
             .keyboardType(.URL)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
@@ -165,34 +165,34 @@ private struct InstalledPluginView: View {
     var body: some View {
         @Bindable var viewModel = model.viewModel
         Form {
-            Section(L10n.text("Text.PluginInformation")) {
+            Section(L10n.text("PluginSettings.Information")) {
                 LabeledContent(L10n.text("Text.Version"), value: viewModel.version)
                 if let subscriptionURL = viewModel.subscriptionURL {
-                    LabeledContent(L10n.text("Text.Subscriptions"), value: subscriptionURL)
+                    LabeledContent(L10n.text("PluginManagement.Subscriptions"), value: subscriptionURL)
                 }
-                Toggle(L10n.text("Text.Enable"), isOn: Binding(
+                Toggle(L10n.text("PluginSettings.Enable"), isOn: Binding(
                     get: { viewModel.enabled },
                     set: { model.setEnabled($0, context: context) }
                 ))
             }
 
             if viewModel.enabled {
-                Section(L10n.text("Text.PluginSettings")) {
+                Section(L10n.text("PluginSettings.Title")) {
                     if viewModel.loading {
-                        ProgressView(L10n.text("Text.LoadingSettings"))
+                        ProgressView(L10n.text("PluginSettings.Loading"))
                     } else if let fields = viewModel.fields {
                         if fields.isEmpty && !viewModel.canLogin {
-                            Text(L10n.text("Text.ThisPluginHasNoEditableSettings")).foregroundStyle(.secondary)
+                            Text(L10n.text("PluginSettings.NoEditableSettings")).foregroundStyle(.secondary)
                         }
                         ForEach(fields) { field in
                             settingRow(field)
                         }
                         if viewModel.canLogin {
-                            Button(L10n.text("Text.SignIn"), systemImage: "person.crop.circle", action: model.openLogin)
+                            Button(L10n.text("PluginSettings.SignIn"), systemImage: "person.crop.circle", action: model.openLogin)
                                 .disabled(viewModel.working)
                         }
                     } else {
-                        Button(L10n.text("Text.RetryLoadingSettings")) { Task { await model.loadSettings() } }
+                        Button(L10n.text("PluginSettings.RetryLoading")) { Task { await model.loadSettings() } }
                     }
                 }
             }
@@ -201,12 +201,12 @@ private struct InstalledPluginView: View {
         .task(id: viewModel.enabled) {
             await model.loadSettings()
         }
-        .alert(editingField?.title ?? L10n.text("Text.EditSetting"), isPresented: Binding(
+        .alert(editingField?.title ?? L10n.text("PluginSettings.EditSetting"), isPresented: Binding(
             get: { editingField != nil },
             set: { if !$0 { editingField = nil } }
         ), presenting: editingField) { field in
             if case .password = field.kind {
-                SecureField(L10n.text("Text.Password"), text: $editedValue)
+                SecureField(L10n.text("PluginSettings.Password"), text: $editedValue)
             } else {
                 TextField(L10n.text("Text.Value"), text: $editedValue)
                     .textInputAutocapitalization(.never)
@@ -242,7 +242,7 @@ private struct InstalledPluginView: View {
         case .password:
             editButton(field, value: "")
         case .unsupported:
-            LabeledContent(field.title) { Text(L10n.text("Text.ThisSettingIsCurrentlyUnsupported")) }
+            LabeledContent(field.title) { Text(L10n.text("PluginSettings.UnsupportedSetting")) }
         }
     }
 
@@ -311,13 +311,13 @@ private struct SubscriptionView: View {
         @Bindable var viewModel = model.viewModel
         Group {
             if viewModel.loading && viewModel.rows.isEmpty {
-                ProgressView(L10n.text("Text.LoadingSubscription"))
+                ProgressView(L10n.text("Subscription.Loading"))
             } else if let error = viewModel.loadError, viewModel.rows.isEmpty {
-                RetryView(title: L10n.text("Text.CouldnTLoadSubscription"), message: error) {
+                RetryView(title: L10n.text("Subscription.LoadFailed"), message: error) {
                     Task { await model.reload(refresh: true, context: context) }
                 }
             } else if viewModel.rows.isEmpty {
-                ContentUnavailableView(L10n.text("Text.ThisSubscriptionHasNoPlugins"), systemImage: "puzzlepiece.extension")
+                ContentUnavailableView(L10n.text("Subscription.EmptyTitle"), systemImage: "puzzlepiece.extension")
             } else {
                 List {
                     if let error = viewModel.loadError {
@@ -333,7 +333,7 @@ private struct SubscriptionView: View {
         }
         .navigationTitle(viewModel.name)
         .toolbar {
-            Button(L10n.text("Text.RefreshSubscription"), systemImage: "arrow.clockwise") {
+            Button(L10n.text("Subscription.Refresh"), systemImage: "arrow.clockwise") {
                 Task { await model.reload(refresh: true, context: context) }
             }
             .disabled(viewModel.loading)
@@ -360,11 +360,11 @@ private struct SubscriptionPluginRow: View {
                 Text(row.description).font(.subheadline)
             }
             if installing {
-                ProgressView(L10n.text("Text.Installing"))
+                ProgressView(L10n.text("Subscription.Installing"))
             } else if row.status == .installed {
-                Label(L10n.text("Text.Installed"), systemImage: "checkmark.circle").font(.caption)
+                Label(L10n.text("PluginManagement.Installed"), systemImage: "checkmark.circle").font(.caption)
             } else {
-                Button(row.status == .install ? L10n.text("Text.Install") : L10n.text("Text.Update"), action: install)
+                Button(row.status == .install ? L10n.text("PluginManagement.Install") : L10n.text("Subscription.Update"), action: install)
                     .buttonStyle(.glass)
                     .disabled(!row.canDownload)
             }

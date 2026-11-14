@@ -24,7 +24,7 @@
     "%@：服务器返回无效响应。" : {
 
     },
-    "Message.InstallationWasCanceledBecauseThePluginIDDidnTMatchTheSubscriptionCatalog" : {
+    "PluginInstall.SubscriptionIdentifierMismatch" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -41,7 +41,7 @@
         }
       }
     },
-    "NetworkError.HTTPStatus" : {
+    "Network.HTTPStatus" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -58,7 +58,7 @@
         }
       }
     },
-    "NetworkError.InvalidResponse" : {
+    "Network.InvalidResponse" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -75,7 +75,7 @@
         }
       }
     },
-    "NetworkError.RateLimited" : {
+    "Network.RateLimited" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -92,7 +92,7 @@
         }
       }
     },
-    "NetworkError.ServerFailure" : {
+    "Network.ServerFailure" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -109,7 +109,7 @@
         }
       }
     },
-    "PluginError.DownloadFailures" : {
+    "PluginInstall.DownloadFailures" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -126,7 +126,7 @@
         }
       }
     },
-    "PluginError.DuplicateSubscriptionIdentifier" : {
+    "Subscription.DuplicatePluginIdentifier" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -143,7 +143,7 @@
         }
       }
     },
-    "PluginError.InvalidPackage" : {
+    "PluginInstall.InvalidPackage" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -160,7 +160,7 @@
         }
       }
     },
-    "PluginError.InvalidSubscriptionIdentifier" : {
+    "Subscription.InvalidPluginIdentifier" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -177,7 +177,7 @@
         }
       }
     },
-    "PluginError.NoDownloadableFiles" : {
+    "PluginInstall.NoDownloadableFiles" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -194,7 +194,7 @@
         }
       }
     },
-    "PluginError.SignInFailed" : {
+    "PluginSignIn.Failed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -211,7 +211,7 @@
         }
       }
     },
-    "PluginError.UnsupportedComponent" : {
+    "PluginHome.UnsupportedComponent" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -228,7 +228,7 @@
         }
       }
     },
-    "Text.Author" : {
+    "ComicMetadata.Author" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -245,7 +245,7 @@
         }
       }
     },
-    "Text.Categories" : {
+    "ComicMetadata.Categories" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -262,7 +262,7 @@
         }
       }
     },
-    "Text.DownloadServer" : {
+    "Network.DownloadServer" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -279,7 +279,7 @@
         }
       }
     },
-    "Text.EnterAValidHTTPSAddress" : {
+    "Network.InvalidHTTPSURL" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -296,7 +296,7 @@
         }
       }
     },
-    "Text.OpenTheSignInFormFirst" : {
+    "PluginSignIn.FormRequired" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -313,7 +313,7 @@
         }
       }
     },
-    "Text.OtherInformation" : {
+    "ComicMetadata.OtherInformation" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -330,7 +330,7 @@
         }
       }
     },
-    "Text.SignInFailedCheckYourAccountDetails" : {
+    "PluginSignIn.CheckAccountDetails" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -347,7 +347,7 @@
         }
       }
     },
-    "Text.Tags" : {
+    "ComicMetadata.Tags" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -364,7 +364,7 @@
         }
       }
     },
-    "Text.TheDownloadExceedsTheSizeLimit" : {
+    "Network.DownloadTooLarge" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -381,7 +381,7 @@
         }
       }
     },
-    "Text.ThePluginDidnTProvideASupportedSignInForm" : {
+    "PluginSignIn.UnsupportedForm" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -398,7 +398,7 @@
         }
       }
     },
-    "Text.ThePluginDidnTReturnAnyReadablePagesForThisChapter" : {
+    "Reader.NoPages" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -415,7 +415,7 @@
         }
       }
     },
-    "Text.ThePluginFileIsTooLarge" : {
+    "PluginInstall.FileTooLarge" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -432,7 +432,7 @@
         }
       }
     },
-    "Text.ThePluginIsMissingAValidUUIDNameOrVersion" : {
+    "PluginInstall.InvalidManifest" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -449,7 +449,7 @@
         }
       }
     },
-    "Text.ThePluginIsNotEncodedInUTF8" : {
+    "PluginInstall.InvalidEncoding" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -466,7 +466,7 @@
         }
       }
     },
-    "Text.ThePluginPackageNameIsInvalid" : {
+    "PluginInstall.InvalidPackageName" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -483,7 +483,7 @@
         }
       }
     },
-    "Text.ThePluginReturnedAnInvalidPageAddress" : {
+    "Reader.InvalidPageURL" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -500,7 +500,7 @@
         }
       }
     },
-    "Text.TheSourceDidnTReturnALikeStatus" : {
+    "ComicActions.MissingLikeStatus" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -517,7 +517,7 @@
         }
       }
     },
-    "Text.TheSubscriptionAddressIsInvalid" : {
+    "Subscription.InvalidURL" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -534,7 +534,7 @@
         }
       }
     },
-    "Text.TheSubscriptionCatalogIsEmptyOrUsesAnUnsupportedFormat" : {
+    "Subscription.InvalidCatalog" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -551,7 +551,7 @@
         }
       }
     },
-    "Text.TheSubscriptionContainsAnInvalidOrDuplicatePluginUUID" : {
+    "Subscription.InvalidOrDuplicatePluginID" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -568,7 +568,7 @@
         }
       }
     },
-    "Text.TheSubscriptionDoesnTIncludeADownloadablePluginFile" : {
+    "Subscription.NoDownloadablePlugin" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -585,7 +585,7 @@
         }
       }
     },
-    "Text.ThisFileIsnTAValidBreezePlugin" : {
+    "PluginInstall.InvalidPluginFile" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -602,7 +602,7 @@
         }
       }
     },
-    "Text.ThisPluginIsDisabled" : {
+    "Plugin.Disabled" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -619,7 +619,7 @@
         }
       }
     },
-    "Text.ThisReleaseDoesnTIncludeABreezePluginFile" : {
+    "PluginInstall.MissingReleaseAsset" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -636,7 +636,7 @@
         }
       }
     },
-    "Text.UpdatedAt" : {
+    "ComicMetadata.UpdatedAt" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

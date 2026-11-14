@@ -60,6 +60,6 @@ package enum LocalTagStore {
 
     private enum TagError: LocalizedError {
         case emptyName
-        var errorDescription: String? { L10n.text("Message.EnterTagName") }
+        var errorDescription: String? { L10n.text("LocalTags.NameRequired") }
     }
 }

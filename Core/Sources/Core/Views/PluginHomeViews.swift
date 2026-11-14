@@ -24,7 +24,7 @@ struct PluginHomePagesView: View {
                                 .accessibilityAddTraits(selected == tab.id ? .isSelected : [])
                         }
                         if includesCloudFavorites && plugin.supportsCloudFavorites {
-                            Button(L10n.text("Text.CloudFavorites")) { selection = favoritesID }
+                            Button(L10n.text("CloudFavorites.Title")) { selection = favoritesID }
                                 .buttonStyle(.bordered)
                                 .buttonBorderShape(.roundedRectangle(radius: 10))
                                 .tint(selected == favoritesID ? WillowTheme.accent : .secondary)
@@ -43,7 +43,7 @@ struct PluginHomePagesView: View {
                 PluginHomePageView(plugin: plugin, tab: tab, embedded: true)
                     .id(tab.id)
             } else {
-                ContentUnavailableView(L10n.text("Text.ThePluginDoesNotProvideAHomePage"), systemImage: "safari")
+                ContentUnavailableView(L10n.text("PluginHome.EmptyTitle"), systemImage: "safari")
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -70,7 +70,7 @@ struct PluginHomePageView: View {
             LazyVStack(alignment: .leading, spacing: 20) {
                 ForEach(model.tab.actions.indices, id: \.self) { index in
                     let item = model.tab.actions[index]
-                    Button(item["title"].string.isEmpty ? L10n.text("Text.PageActions") : item["title"].string) { model.route(item) }
+                    Button(item["title"].string.isEmpty ? L10n.text("PluginHome.PageActions") : item["title"].string) { model.route(item) }
                         .buttonStyle(.bordered)
                             .buttonBorderShape(.roundedRectangle(radius: 10))
                 }
@@ -83,11 +83,11 @@ struct PluginHomePageView: View {
                 if state.loading {
                     ProgressView().frame(maxWidth: .infinity)
                 } else if let error = state.error {
-                    RetryView(title: L10n.text("Text.UnableToLoadPage"), message: error) { Task { await model.load() } }
+                    RetryView(title: L10n.text("PluginHome.LoadFailed"), message: error) { Task { await model.load() } }
                 } else if state.hasMore {
                     PaginationTrigger(itemCount: state.comics.count) { Task { await model.loadMore() } }
                 } else if state.loaded && state.comics.isEmpty && state.blocks.isEmpty {
-                    ContentUnavailableView(L10n.text("Text.NoContent"), systemImage: "books.vertical")
+                    ContentUnavailableView(L10n.text("PluginHome.NoContent"), systemImage: "books.vertical")
                 }
             }
             .padding()
@@ -114,7 +114,7 @@ struct PluginHomePageView: View {
             case .comic(let comic): ComicDetailView(sourceID: model.plugin.uuid, summary: comic)
             case .favorites: PluginCloudHomeView(plugin: model.plugin)
             case .web(let url):
-                Link(L10n.text("Text.OpenWebpage"), destination: url)
+                Link(L10n.text("PluginHome.OpenWebpage"), destination: url)
                     .onAppear { openURL(url) }
             }
         }
@@ -188,12 +188,12 @@ struct PluginCloudHomeView: View {
             if state.loading {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error = state.error {
-                RetryView(title: L10n.text("Text.UnableToLoadCloudFavorites"), message: error) { Task { await model.load(plugin: plugin) } }
+                RetryView(title: L10n.text("CloudFavorites.LoadFailed"), message: error) { Task { await model.load(plugin: plugin) } }
             } else if state.loaded {
                 PluginHomePagesView(plugin: plugin, tabs: state.tabs, includesCloudFavorites: false)
             }
         }
-        .modifier(PluginPageTitle(title: embedded ? nil : L10n.text("NavigationTitle.CloudFavorites", defaultValue: "云端收藏 · \(plugin.name)")))
+        .modifier(PluginPageTitle(title: embedded ? nil : L10n.text("CloudFavorites.TitleWithSource", defaultValue: "云端收藏 · \(plugin.name)")))
         .task { if !state.loaded { await model.load(plugin: plugin) } }
     }
 }
@@ -227,10 +227,10 @@ struct PluginActionDestinationView: View {
         case .page(let tab): PluginHomePageView(plugin: plugin, tab: tab)
         case .comic(let comic): ComicDetailView(sourceID: plugin.uuid, summary: comic)
         case .favorites: PluginCloudHomeView(plugin: plugin)
-        case .web(let url): Link(L10n.text("Text.OpenWebpage"), destination: url).onAppear { openURL(url) }
+        case .web(let url): Link(L10n.text("PluginHome.OpenWebpage"), destination: url).onAppear { openURL(url) }
         case nil:
-            ContentUnavailableView(L10n.text("Text.UnableToOpenPage"), systemImage: "exclamationmark.circle",
-                description: Text(router.viewModel.actionError ?? L10n.text("Message.PluginActionUnavailable")))
+            ContentUnavailableView(L10n.text("PluginHome.OpenPageFailed"), systemImage: "exclamationmark.circle",
+                description: Text(router.viewModel.actionError ?? L10n.text("PluginHome.ActionUnavailable")))
         }
     }
 }

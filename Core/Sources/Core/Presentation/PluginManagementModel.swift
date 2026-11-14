@@ -60,7 +60,7 @@ final class PluginManagementModel {
     private func submitAddress(_ operation: @escaping (URL) async throws -> Void) {
         let input = viewModel.address.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: input), url.scheme == "https", url.host != nil else {
-            viewModel.error = L10n.text("Text.EnterAValidHTTPSLink")
+            viewModel.error = L10n.text("PluginManagement.InvalidURL")
             return
         }
         perform { try await operation(url) }
@@ -214,8 +214,8 @@ final class PluginLoginModel {
         fileprivate(set) var submitting = false
 
         init(form: PluginLoginForm) {
-            title = form.title.isEmpty ? L10n.text("Text.SignIn") : form.title
-            submitTitle = form.submitTitle.isEmpty ? L10n.text("Text.SignIn") : form.submitTitle
+            title = form.title.isEmpty ? L10n.text("PluginSettings.SignIn") : form.title
+            submitTitle = form.submitTitle.isEmpty ? L10n.text("PluginSettings.SignIn") : form.submitTitle
             fields = form.fields.map {
                 Field(id: $0.id, title: $0.title, isPassword: $0.kind == "password")
             }

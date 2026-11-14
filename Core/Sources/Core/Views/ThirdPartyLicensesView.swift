@@ -11,7 +11,7 @@ struct ThirdPartyLicensesView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         Text(entry.version).font(.caption).foregroundStyle(.secondary)
-                        Link(L10n.text("Text.LicenseSourceCode"), destination: entry.source)
+                        Link(L10n.text("Licenses.SourceCode"), destination: entry.source)
                         Text(verbatim: entry.text).font(.footnote).textSelection(.enabled)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -26,7 +26,7 @@ struct ThirdPartyLicensesView: View {
             }
         }
         .overlay { if state.loading { ProgressView() } }
-        .navigationTitle(L10n.text("Text.OpenSourceLicenses"))
+        .navigationTitle(L10n.text("Licenses.Title"))
         .task { await model.load() }
         .modifier(ErrorAlert(error: $state.error))
     }

@@ -40,19 +40,19 @@ struct DiscoverView: View {
                 ProgressView(L10n.text("Text.Loading"))
             } else {
                 ContentUnavailableView {
-                    Label(L10n.text("Text.NoAvailableSources"), systemImage: "puzzlepiece.extension")
+                    Label(L10n.text("Discover.NoSourcesTitle"), systemImage: "puzzlepiece.extension")
                 } description: {
-                    Text(L10n.text("Text.InstallAndEnableAPluginToBrowseAndSearchForComics"))
+                    Text(L10n.text("Discover.NoSourcesDescription"))
                 } actions: {
-                    Button(L10n.text("Text.ManagePlugins")) { showingPlugins = true }
+                    Button(L10n.text("Discover.ManagePlugins")) { showingPlugins = true }
                         .buttonStyle(.glassProminent)
                             .buttonBorderShape(.roundedRectangle(radius: 10))
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .navigationTitle(plugin.map { L10n.text("NavigationTitle.Discover", defaultValue: "发现 · \($0.name)") } ?? L10n.text("Text.Discover"))
-        .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always), prompt: L10n.text("Text.SearchComics"))
+        .navigationTitle(plugin.map { L10n.text("Discover.TitleWithSource", defaultValue: "发现 · \($0.name)") } ?? L10n.text("Discover.Title"))
+        .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always), prompt: L10n.text("Discover.SearchPrompt"))
         .onSubmit(of: .search) { model.submit(search) }
         .onChange(of: search) { _, value in
             if value.isEmpty { model.clearSearch() }
@@ -67,14 +67,14 @@ struct DiscoverView: View {
                         ForEach(plugins, id: \.uuid) { Text($0.name).tag($0.uuid) }
                     }
                     if plugin.supportsCloudFavorites {
-                        Button(L10n.text("Text.SourceFavoritesAlternative"), systemImage: "bookmark") {
+                        Button(L10n.text("CloudFavorites.OpenSourceFavorites"), systemImage: "bookmark") {
                             destination = .favorites(plugin)
                         }
                     }
-                    Button(L10n.text("Text.AdvancedSearch"), systemImage: "line.3.horizontal.decrease") {
+                    Button(L10n.text("AdvancedSearch.Title"), systemImage: "line.3.horizontal.decrease") {
                         destination = .advancedSearch(plugin, search)
                     }
-                    Button(L10n.text("Text.ManagePlugins"), systemImage: "puzzlepiece.extension") {
+                    Button(L10n.text("Discover.ManagePlugins"), systemImage: "puzzlepiece.extension") {
                         showingPlugins = true
                     }
                 } label: {
@@ -88,7 +88,7 @@ struct DiscoverView: View {
                             }
                         }
                     } label: {
-                        Label(L10n.text("ButtonTitle.PluginFunctions"), systemImage: "square.grid.2x2")
+                        Label(L10n.text("Discover.PluginFunctions"), systemImage: "square.grid.2x2")
                     }
                 }
             }
@@ -139,12 +139,12 @@ private struct DiscoverResults: View {
             if loading {
                 ProgressView(L10n.text("Text.Loading"))
             } else if let error {
-                RetryView(title: L10n.text("Text.CouldnTLoadComics"), message: error, retry: load)
+                RetryView(title: L10n.text("Discover.LoadFailed"), message: error, retry: load)
             } else if !query.isEmpty {
                 ContentUnavailableView.search(text: query)
             } else {
-                ContentUnavailableView(L10n.text("Text.NoComicsToDisplay"), systemImage: "books.vertical",
-                                       description: Text(L10n.text("Text.SearchThisSourceToFindComics")))
+                ContentUnavailableView(L10n.text("Discover.EmptyTitle"), systemImage: "books.vertical",
+                                       description: Text(L10n.text("Discover.EmptyDescription")))
             }
         } else {
             ScrollView {
@@ -165,9 +165,9 @@ private struct DiscoverResults: View {
                         if loading {
                             ProgressView().frame(maxWidth: .infinity)
                         } else if let error {
-                            RetryView(title: L10n.text("Text.CouldnTLoadMoreResults"), message: error, retry: load)
+                            RetryView(title: L10n.text("Discover.LoadMoreFailed"), message: error, retry: load)
                         } else if hasMore {
-                            Button(L10n.text("ButtonTitle.LoadMore"), action: load)
+                            Button(L10n.text("Pagination.LoadMore"), action: load)
                                 .buttonStyle(.glass)
                             .buttonBorderShape(.roundedRectangle(radius: 10))
                                 .frame(maxWidth: .infinity)

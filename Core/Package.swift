@@ -37,10 +37,7 @@ let package = Package(
         .target(
             name: "Core",
             dependencies: ["CoreStorage", "BreezeRuntime", "BreezePlugins", "CoreToast"],
-            resources: [
-                .process("Resources/Colors.xcassets"),
-                .process("Resources/Localizable.xcstrings"),
-            ]
+            resources: [.process("Resources")]
         )
     ])
 )

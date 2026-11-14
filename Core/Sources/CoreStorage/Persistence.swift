@@ -77,9 +77,9 @@ package struct WillowPersistence {
 
     private static var localOnlyReason: String {
         #if targetEnvironment(simulator)
-        L10n.text("Message.SimulatorLocalStorage")
+        L10n.text("Persistence.SimulatorLocalStorage")
         #else
-        L10n.text("Message.CloudContainerUnavailable")
+        L10n.text("Persistence.CloudContainerUnavailable")
         #endif
     }
 

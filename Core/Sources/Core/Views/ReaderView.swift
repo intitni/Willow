@@ -9,9 +9,9 @@ enum ReaderMode: String, CaseIterable, Identifiable {
     var id: Self { self }
     var label: String {
         switch self {
-        case .vertical: L10n.text("Text.VerticalScrolling")
-        case .leftToRight: L10n.text("Text.LeftToRight")
-        case .rightToLeft: L10n.text("Text.RightToLeft")
+        case .vertical: L10n.text("ReadingDirection.VerticalScrolling")
+        case .leftToRight: L10n.text("ReadingDirection.LeftToRight")
+        case .rightToLeft: L10n.text("ReadingDirection.RightToLeft")
         }
     }
 }
@@ -48,10 +48,10 @@ struct ReaderView: View {
                 ZStack {
                     Color.black
                     if let loadError = state.loadError {
-                        RetryView(title: L10n.text("Text.CouldnTOpenChapter"), message: loadError) { model.retry() }
+                        RetryView(title: L10n.text("Reader.OpenChapterFailed"), message: loadError) { model.retry() }
                             .padding(.horizontal, 24)
                     } else if !state.isLoaded || state.pages.isEmpty {
-                        ProgressView(L10n.text("Text.LoadingChapter"))
+                        ProgressView(L10n.text("Reader.LoadingChapter"))
                     } else {
                         ReaderPages(urls: state.pages, mode: mode, layout: layout,
                                     pageIndex: pageIndex, toggleControls: toggleControls)
@@ -65,15 +65,15 @@ struct ReaderView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(L10n.text("Text.CloseReader"), systemImage: "xmark") { dismiss() }
+                    Button(L10n.text("Reader.Close"), systemImage: "xmark") { dismiss() }
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button(L10n.text("Text.ChooseChapter"), systemImage: "list.bullet") { showsChapters = true }
-                    Menu(L10n.text("Text.ReaderSettings"), systemImage: "slider.horizontal.3") {
-                        Picker(L10n.text("Text.ReadingDirection"), selection: $mode) {
+                    Button(L10n.text("Reader.ChooseChapter"), systemImage: "list.bullet") { showsChapters = true }
+                    Menu(L10n.text("Reader.Settings"), systemImage: "slider.horizontal.3") {
+                        Picker(L10n.text("ReadingDirection.Title"), selection: $mode) {
                             ForEach(ReaderMode.allCases) { value in Text(value.label).tag(value) }
                         }
-                        Toggle(L10n.text("Text.TwoPagesInWideLandscapeWindows"), isOn: $spreads)
+                        Toggle(L10n.text("Reader.TwoPagesInWideWindows"), isOn: $spreads)
                     }
                 }
                 if state.isLoaded && !state.pages.isEmpty {
@@ -135,7 +135,7 @@ private struct ReaderPageBar: View {
 
     var body: some View {
         HStack {
-            Button(L10n.text("Text.PreviousChapter"), systemImage: "backward.end") {
+            Button(L10n.text("Reader.PreviousChapter"), systemImage: "backward.end") {
                 if let previous { select(previous) }
             }
             .disabled(previous == nil)
@@ -145,13 +145,13 @@ private struct ReaderPageBar: View {
                     get: { Double(pageIndex) },
                     set: { pageIndex = Int($0) }
                 ), in: 0...Double(pageCount - 1), step: 1)
-                .accessibilityLabel(L10n.text("Text.PageNumber"))
-                .accessibilityValue(L10n.text("Accessibility.PageProgress", defaultValue: "第 \(pageIndex + 1) 页，共 \(pageCount) 页"))
+                .accessibilityLabel(L10n.text("Reader.PageNumber"))
+                .accessibilityValue(L10n.text("Reader.PageProgressAccessibilityLabel", defaultValue: "第 \(pageIndex + 1) 页，共 \(pageCount) 页"))
             }
             Text(L10n.resource("Text.PageProgress", defaultValue: "\(pageIndex + 1) / \(pageCount)"))
                 .font(.caption.monospacedDigit())
-                .accessibilityLabel(L10n.text("Accessibility.PageProgress", defaultValue: "第 \(pageIndex + 1) 页，共 \(pageCount) 页"))
-            Button(L10n.text("Text.NextChapter"), systemImage: "forward.end") {
+                .accessibilityLabel(L10n.text("Reader.PageProgressAccessibilityLabel", defaultValue: "第 \(pageIndex + 1) 页，共 \(pageCount) 页"))
+            Button(L10n.text("Reader.NextChapter"), systemImage: "forward.end") {
                 if let next { select(next) }
             }
             .disabled(next == nil)
@@ -292,12 +292,12 @@ private struct ReaderPage: View {
                     offset = .zero
                 }
                 .onTapGesture(perform: toggleControls)
-                .accessibilityAction(named: Text(L10n.text("Text.ShowOrHideReaderControls")), toggleControls)
+                .accessibilityAction(named: Text(L10n.text("Reader.ToggleControlsAccessibilityAction")), toggleControls)
         } placeholder: { error in
             VStack(spacing: 10) {
                 if error != nil {
                     Image(systemName: "arrow.clockwise.circle").font(.title)
-                    Text(L10n.text("Text.TapToRetryAlternative")).font(.footnote)
+                    Text(L10n.text("Reader.RetryPage")).font(.footnote)
                 } else {
                     ProgressView()
                 }

@@ -48,7 +48,7 @@ actor CachedImageModel {
             } else { decoded = UIImage(data: data) }
             try Task.checkCancellation()
             await viewModel.finish(current, image: decoded,
-                error: decoded == nil ? L10n.text("Text.UnsupportedImageFormat") : nil)
+                error: decoded == nil ? L10n.text("Cover.UnsupportedImageFormat") : nil)
         } catch {
             if !Task.isCancelled { await viewModel.finish(current, image: nil, error: error.localizedDescription) }
         }

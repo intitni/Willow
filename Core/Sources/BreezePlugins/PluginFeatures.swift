@@ -147,7 +147,7 @@ extension PluginService {
             "comicId": .string(comicID), "currentLiked": .bool(liked)
         ])).pluginData
         guard case .bool(let next) = data["liked"] else {
-            throw PluginError.message(L10n.text("Text.TheSourceDidnTReturnALikeStatus"))
+            throw PluginError.message(L10n.text("ComicActions.MissingLikeStatus"))
         }
         return next
     }

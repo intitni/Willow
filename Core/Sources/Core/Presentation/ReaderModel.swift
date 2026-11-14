@@ -91,12 +91,12 @@ final class ReaderModel {
             } else if let plugin = plugins.first(where: \.enabled) {
                 urls = try await PluginService.shared.pages(plugin: plugin, comicID: comicID, chapterID: chapterID)
             } else {
-                viewModel.loadError = L10n.text("Message.ThisSourceIsUnavailableAndThisChapterHasnTBeenDownloaded")
+                viewModel.loadError = L10n.text("Reader.SourceAndDownloadUnavailable")
                 return
             }
             guard !Task.isCancelled, self.request == request else { return }
             guard !urls.isEmpty else {
-                viewModel.loadError = L10n.text("Text.TheSourceDidnTProvideAnyPages")
+                viewModel.loadError = L10n.text("Reader.NoPages")
                 return
             }
             let record = try ComicRecord.findOrCreate(in: context, sourceID: sourceID, comicID: comicID,

@@ -10,7 +10,7 @@ struct PaginationTrigger: View {
         ProgressView()
             .frame(maxWidth: .infinity)
             .padding()
-            .accessibilityLabel(L10n.text("Text.LoadingMore"))
+            .accessibilityLabel(L10n.text("Pagination.LoadingMore"))
             .onScrollVisibilityChange(threshold: 0.1) { visible in
                 if visible { load() }
             }

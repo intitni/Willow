@@ -86,7 +86,7 @@ package actor PluginRuntime {
         let result = try await Task.detached(priority: .userInitiated) {
             let text = String(decoding: data, as: UTF8.self)
             let response = text.withCString { willow_request($0) }
-            guard let response else { throw PluginError.message(L10n.text("RuntimeError.NoResult")) }
+            guard let response else { throw PluginError.message(L10n.text("PluginRuntime.NoResult")) }
             defer { willow_free(response) }
             let result = try JSONValue.decode(Data(String(cString: response).utf8))
             guard result["ok"].bool else { throw PluginError.message(result["error"].string) }
@@ -99,13 +99,13 @@ package actor PluginRuntime {
     package nonisolated static func resolveBundlePath(_ storedPath: String) throws -> String {
         let name = URL(fileURLWithPath: storedPath).lastPathComponent
         guard !name.isEmpty, name.hasSuffix(".cjs") else {
-            throw PluginError.message(L10n.text("RuntimeError.InvalidFileIdentifier"))
+            throw PluginError.message(L10n.text("PluginRuntime.InvalidFileIdentifier"))
         }
         let current = try storageDirectory().appendingPathComponent(name)
         if FileManager.default.fileExists(atPath: current.path) { return current.path }
         // Keep explicit existing file paths usable for imported development bundles.
         if storedPath.hasPrefix("/"), FileManager.default.fileExists(atPath: storedPath) { return storedPath }
-        throw PluginError.message(L10n.text("RuntimeError.MissingPluginFile"))
+        throw PluginError.message(L10n.text("PluginRuntime.MissingPluginFile"))
     }
 
     package nonisolated static func storageDirectory() throws -> URL {
@@ -151,17 +151,17 @@ package actor PluginImageGateway {
     }
     package func data(for url: URL) async throws -> Data {
         let key = url.lastPathComponent
-        guard key.count == 64, key.allSatisfy({ $0.isHexDigit }) else { throw PluginError.message(L10n.text("RuntimeError.InvalidImageIdentifier")) }
+        guard key.count == 64, key.allSatisfy({ $0.isHexDigit }) else { throw PluginError.message(L10n.text("PluginImage.InvalidImageIdentifier")) }
         let file = try PluginRuntime.storageDirectory().appendingPathComponent("Images/" + key + ".json")
         let descriptorData = try url.fragment.flatMap { Data(base64Encoded: $0) } ?? Data(contentsOf: file)
         let descriptor = try JSONDecoder().decode(Descriptor.self, from: descriptorData)
-        guard PluginIdentity.isValid(descriptor.sourceID) else { throw PluginError.message(L10n.text("RuntimeError.InvalidSourceIdentifier")) }
+        guard PluginIdentity.isValid(descriptor.sourceID) else { throw PluginError.message(L10n.text("PluginImage.InvalidSourceIdentifier")) }
         let registry = try PluginRuntime.storageDirectory().appendingPathComponent(descriptor.sourceID + ".path")
         guard let currentPath = try? String(contentsOf: registry, encoding: .utf8) else {
-            throw PluginError.message(L10n.text("RuntimeError.InstallSourceFirst"))
+            throw PluginError.message(L10n.text("PluginImage.InstallSourceFirst"))
         }
         let result = try await PluginRuntime.shared.call(id: descriptor.sourceID, path: currentPath, function: "fetchImageBytes", args: descriptor.payload, binary: true)
-        guard let data = Data(base64Encoded: result.string), !data.isEmpty else { throw PluginError.message(L10n.text("RuntimeError.EmptyImage")) }
+        guard let data = Data(base64Encoded: result.string), !data.isEmpty else { throw PluginError.message(L10n.text("PluginImage.EmptyImage")) }
         return data
     }
 }

@@ -9,7 +9,7 @@ struct LibraryView: View {
         case history
 
         var title: String {
-            self == .favorites ? L10n.text("Text.Library") : L10n.text("Text.ReadingHistory")
+            self == .favorites ? L10n.text("Shelf.Title") : L10n.text("History.Title")
         }
     }
 
@@ -39,15 +39,15 @@ struct LibraryView: View {
         VStack(spacing: 0) {
             if viewModel.isEmpty {
                 if kind == .favorites {
-                    ContentUnavailableView(L10n.text("Text.YourLibraryIsEmpty"), systemImage: "books.vertical",
-                                           description: Text(L10n.text("Text.BookmarkAComicToKeepItInYourLibrary")))
+                    ContentUnavailableView(L10n.text("Shelf.EmptyTitle"), systemImage: "books.vertical",
+                                           description: Text(L10n.text("Shelf.EmptyDescription")))
                 } else {
-                    ContentUnavailableView(L10n.text("Text.NoReadingHistory"), systemImage: "clock",
-                                           description: Text(L10n.text("Text.OpenAChapterToStartTrackingYourProgress")))
+                    ContentUnavailableView(L10n.text("History.EmptyTitle"), systemImage: "clock",
+                                           description: Text(L10n.text("History.EmptyDescription")))
                 }
             } else if viewModel.items.isEmpty {
-                ContentUnavailableView(L10n.text("Text.NoMatchingComics"), systemImage: "line.3.horizontal.decrease",
-                                       description: Text(L10n.text("Text.TryAnotherSearchCollectionOrTag")))
+                ContentUnavailableView(L10n.text("Library.NoMatchesTitle"), systemImage: "line.3.horizontal.decrease",
+                                       description: Text(L10n.text("Library.NoMatchesDescription")))
             } else {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 112, maximum: 192), spacing: 14)], spacing: 18) {
@@ -72,25 +72,25 @@ struct LibraryView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .searchable(text: Binding(get: { viewModel.search }, set: model.search), prompt: L10n.text("Text.FindComics"))
+        .searchable(text: Binding(get: { viewModel.search }, set: model.search), prompt: L10n.text("Library.SearchPrompt"))
         .navigationTitle(kind.title)
         .toolbar {
             if kind == .favorites && !viewModel.tags.isEmpty {
                 LocalTagFilterMenu(tags: viewModel.tags, selected: viewModel.selectedTags, select: model.selectTags)
             }
             if kind == .history {
-                Menu(L10n.text("Text.Sort"), systemImage: "arrow.up.arrow.down") {
-                    Picker(L10n.text("Text.Sort"), selection: Binding(get: { viewModel.sort }, set: model.selectSort)) {
-                        Text(L10n.text("Text.RecentlyRead")).tag(LibrarySort.recentlyRead)
-                        Text(L10n.text("Text.OldestRead")).tag(LibrarySort.oldestRead)
-                        Text(L10n.text("Text.Title")).tag(LibrarySort.title)
+                Menu(L10n.text("History.Sort"), systemImage: "arrow.up.arrow.down") {
+                    Picker(L10n.text("History.Sort"), selection: Binding(get: { viewModel.sort }, set: model.selectSort)) {
+                        Text(L10n.text("History.SortRecentlyRead")).tag(LibrarySort.recentlyRead)
+                        Text(L10n.text("History.SortOldestRead")).tag(LibrarySort.oldestRead)
+                        Text(L10n.text("History.SortTitle")).tag(LibrarySort.title)
                     }
                 }
             }
             if kind == .favorites && !viewModel.collections.isEmpty {
-                Menu(L10n.text("Text.Collections"), systemImage: "folder") {
-                    Picker(L10n.text("Text.Collections"), selection: Binding(get: { viewModel.collection }, set: model.selectCollection)) {
-                        Text(L10n.text("Text.All")).tag(nil as String?)
+                Menu(L10n.text("Shelf.Collections"), systemImage: "folder") {
+                    Picker(L10n.text("Shelf.Collections"), selection: Binding(get: { viewModel.collection }, set: model.selectCollection)) {
+                        Text(L10n.text("Shelf.AllCollections")).tag(nil as String?)
                         ForEach(viewModel.collections, id: \.self) { name in
                             Text(name).tag(Optional(name))
                         }
@@ -103,17 +103,17 @@ struct LibraryView: View {
         .onChange(of: comics.map(LibraryItem.init), initial: true) { _, items in
             model.update(context: context, items: items)
         }
-        .alert(L10n.text("Text.MoveToCollection"), isPresented: Binding(
+        .alert(L10n.text("Shelf.MoveToCollection"), isPresented: Binding(
             get: { movingComic != nil },
             set: { if !$0 { movingComic = nil } }
         ), presenting: movingComic) { comic in
-            TextField(L10n.text("Text.CollectionName"), text: $collectionName)
-            Button(L10n.text("Text.Move")) {
+            TextField(L10n.text("Shelf.CollectionName"), text: $collectionName)
+            Button(L10n.text("Shelf.MoveComic")) {
                 model.move(comic, to: collectionName)
             }
             Button(L10n.text("Text.Cancel"), role: .cancel) {}
         } message: { _ in
-            Text(L10n.text("Message.EnterAnExistingOrNewCollectionNameLeaveItBlankToRemoveTheComicFromItsCollection"))
+            Text(L10n.text("Shelf.MoveToCollectionDescription"))
         }
         .modifier(ErrorAlert(error: $viewModel.error))
     }
@@ -145,11 +145,11 @@ private struct LibraryGridTile: View {
         .buttonStyle(.plain)
         .contextMenu {
             if !isHistory {
-                Button(L10n.text("Text.EditLocalTags"), systemImage: "tag", action: editTags)
-                Button(L10n.text("Text.MoveToCollection"), systemImage: "folder", action: move)
+                Button(L10n.text("LocalTags.Edit"), systemImage: "tag", action: editTags)
+                Button(L10n.text("Shelf.MoveToCollection"), systemImage: "folder", action: move)
             }
             Button(role: .destructive, action: remove) {
-                Label(isHistory ? L10n.text("Text.RemoveFromHistory") : L10n.text("Text.RemoveBookmark"), systemImage: "trash")
+                Label(isHistory ? L10n.text("History.RemoveComic") : L10n.text("Shelf.RemoveBookmark"), systemImage: "trash")
             }
         }
     }

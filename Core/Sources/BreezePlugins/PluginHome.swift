@@ -94,7 +94,7 @@ extension PluginService {
                 return [PluginHomeBlock(id: path, title: node["title"].string, kind: kind, comics: [], links: links, action: node["action"])]
             }
             if kind.isEmpty { return [] }
-            throw PluginError.message(L10n.text("PluginError.UnsupportedComponent", defaultValue: "暂不支持的插件页面组件：\(kind)"))
+            throw PluginError.message(L10n.text("PluginHome.UnsupportedComponent", defaultValue: "暂不支持的插件页面组件：\(kind)"))
         }
         return try await render(page["scheme"]["body"], path: "body")
     }

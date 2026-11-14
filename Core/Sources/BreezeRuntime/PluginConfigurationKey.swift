@@ -23,19 +23,19 @@ package enum PluginConfigurationKey {
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecSuccess {
             guard let data = result as? Data, data.count == 32 else {
-                throw PluginError.message(L10n.text("SecurityError.InvalidKey"))
+                throw PluginError.message(L10n.text("PluginConfiguration.InvalidKey"))
             }
             return data
         }
         guard status == errSecItemNotFound else {
-            throw PluginError.message(L10n.text("SecurityError.AccessKey", defaultValue: "无法访问插件配置密钥，请解锁设备后重试（Keychain \(status)）。"))
+            throw PluginError.message(L10n.text("PluginConfiguration.KeyAccessFailed", defaultValue: "无法访问插件配置密钥，请解锁设备后重试（Keychain \(status)）。"))
         }
         guard !encryptedFileExists else {
-            throw PluginError.message(L10n.text("SecurityError.MissingKey"))
+            throw PluginError.message(L10n.text("PluginConfiguration.MissingKey"))
         }
         var bytes = [UInt8](repeating: 0, count: 32)
         guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else {
-            throw PluginError.message(L10n.text("SecurityError.GenerateKey"))
+            throw PluginError.message(L10n.text("PluginConfiguration.KeyGenerationFailed"))
         }
         let key = Data(bytes)
         var item = identity
@@ -44,7 +44,7 @@ package enum PluginConfigurationKey {
         let added = SecItemAdd(item as CFDictionary, nil)
         if added == errSecDuplicateItem { return try load(encryptedFileExists: encryptedFileExists) }
         guard added == errSecSuccess else {
-            throw PluginError.message(L10n.text("SecurityError.SaveKey", defaultValue: "无法保存插件配置密钥（Keychain \(added)）。"))
+            throw PluginError.message(L10n.text("PluginConfiguration.KeySaveFailed", defaultValue: "无法保存插件配置密钥（Keychain \(added)）。"))
         }
         return key
     }

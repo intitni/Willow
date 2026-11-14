@@ -273,7 +273,7 @@ final class PluginComicActionsModel {
 
     private func applyFavorite(_ result: JSONValue) async throws {
         steps += 1
-        guard steps <= 16 else { throw PluginError.message(L10n.text("Text.TheSourceRequestedTooManyStepsToManageThisFavorite")) }
+        guard steps <= 16 else { throw PluginError.message(L10n.text("CloudFavorites.TooManySteps")) }
         if case .bool(let value) = result["favorited"] {
             viewModel.state?.favorited = value
         }
@@ -283,7 +283,7 @@ final class PluginComicActionsModel {
             let token = result["continuationToken"].string
             let payload = result["input"]
             guard !token.isEmpty, ["select", "text", "confirm", "form"].contains(payload["type"].string) else {
-                throw PluginError.message(L10n.text("Text.TheSourceRequestedAnUnsupportedFavoritesOption"))
+                throw PluginError.message(L10n.text("CloudFavorites.UnsupportedOption"))
             }
             viewModel.prompt = PluginFavoritePrompt(payload: payload, token: token, folders: [])
         case "" where !result["favorited"].isNull:
@@ -295,13 +295,13 @@ final class PluginComicActionsModel {
                     JSONValue.object(["id": folder["id"], "label": folder["name"]])
                 }
                 let payload: JSONValue = .object([
-                    "type": .string("select"), "title": .string(L10n.text("Text.ChooseASourceFavoritesFolder")), "options": .array(options)
+                    "type": .string("select"), "title": .string(L10n.text("CloudFavorites.ChooseFolder")), "options": .array(options)
                 ])
                 viewModel.prompt = PluginFavoritePrompt(payload: payload, token: "", folders: folders)
             }
         default:
             let message = result["message"].string
-            throw PluginError.message(message.isEmpty ? L10n.text("Text.TheSourceCouldnTUpdateThisFavorite") : message)
+            throw PluginError.message(message.isEmpty ? L10n.text("CloudFavorites.UpdateFailed") : message)
         }
     }
 }

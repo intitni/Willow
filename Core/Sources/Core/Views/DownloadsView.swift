@@ -14,21 +14,21 @@ struct DownloadsView: View {
         @Bindable var viewModel = model.viewModel
         Group {
             if viewModel.isEmpty {
-                ContentUnavailableView(L10n.text("Text.NoDownloads"), systemImage: "arrow.down.circle",
-                                       description: Text(L10n.text("Message.DownloadChaptersForOfflineReading")))
+                ContentUnavailableView(L10n.text("Downloads.EmptyTitle"), systemImage: "arrow.down.circle",
+                                       description: Text(L10n.text("Downloads.EmptyDescription")))
             } else if viewModel.items.isEmpty {
-                ContentUnavailableView(L10n.text("Text.NoMatchingDownloads"), systemImage: "tag", description: Text(L10n.text("Text.TryOtherTagsOrClearTheTagFilter")))
+                ContentUnavailableView(L10n.text("Downloads.NoMatchesTitle"), systemImage: "tag", description: Text(L10n.text("Downloads.NoMatchesDescription")))
             } else {
                 List(viewModel.items) { item in
                     DownloadRow(item: item) { model.activate(item) }
-                        .contextMenu { Button(L10n.text("Text.EditLocalTags"), systemImage: "tag") { editingTags = item } }
+                        .contextMenu { Button(L10n.text("LocalTags.Edit"), systemImage: "tag") { editingTags = item } }
                         .swipeActions {
-                            Button(L10n.text("Text.DeleteDownload"), systemImage: "trash", role: .destructive) { model.delete(item) }
+                            Button(L10n.text("Downloads.Delete"), systemImage: "trash", role: .destructive) { model.delete(item) }
                         }
                 }
             }
         }
-        .navigationTitle(L10n.text("Text.Downloads"))
+        .navigationTitle(L10n.text("Downloads.Title"))
         .toolbar {
             if !viewModel.tags.isEmpty {
                 LocalTagFilterMenu(tags: viewModel.tags, selected: viewModel.selectedTags, select: model.selectTags)
@@ -66,7 +66,7 @@ private struct DownloadRow: View {
                 if item.status == .downloading {
                     ProgressView(value: Double(item.completedPages),
                                  total: Double(max(1, item.totalPages)))
-                        .accessibilityLabel(L10n.text("Text.DownloadProgress"))
+                        .accessibilityLabel(L10n.text("DownloadStatus.InProgress"))
                 }
                 Text(statusLabel).font(.caption).foregroundStyle(.secondary)
                 if let message = item.error, item.status == .failed {
@@ -82,19 +82,19 @@ private struct DownloadRow: View {
 
     private var statusLabel: String {
         switch item.status {
-        case .queued: L10n.text("Text.Queued")
-        case .downloading: L10n.text("Text.DownloadingProgress", defaultValue: "正在下载 \(item.completedPages) / \(item.totalPages)")
-        case .paused: L10n.text("Text.Paused")
-        case .completed: L10n.text("Text.Downloaded")
-        case .failed: L10n.text("Text.DownloadFailed")
+        case .queued: L10n.text("DownloadStatus.Queued")
+        case .downloading: L10n.text("Downloads.Progress", defaultValue: "正在下载 \(item.completedPages) / \(item.totalPages)")
+        case .paused: L10n.text("DownloadStatus.Paused")
+        case .completed: L10n.text("DownloadStatus.Completed")
+        case .failed: L10n.text("DownloadStatus.Failed")
         }
     }
 
     private var actionLabel: String {
         switch item.status {
-        case .queued, .downloading: L10n.text("Text.Pause")
-        case .paused: L10n.text("Text.ResumeDownload")
-        case .completed: L10n.text("Text.Reading")
+        case .queued, .downloading: L10n.text("Downloads.Pause")
+        case .paused: L10n.text("DownloadStatus.Resume")
+        case .completed: L10n.text("Downloads.Read")
         case .failed: L10n.text("Text.Retry")
         }
     }

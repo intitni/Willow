@@ -14,7 +14,7 @@
     "%lld 条回复" : {
 
     },
-    "Accessibility.PageProgress" : {
+    "Reader.PageProgressAccessibilityLabel" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -31,7 +31,7 @@
         }
       }
     },
-    "ButtonTitle.LoadMore" : {
+    "Pagination.LoadMore" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -48,7 +48,7 @@
         }
       }
     },
-    "ButtonTitle.PluginFunctions" : {
+    "Discover.PluginFunctions" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -65,7 +65,7 @@
         }
       }
     },
-    "ButtonTitle.RemoveSubscription" : {
+    "PluginManagement.RemoveNamedSubscription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -82,7 +82,7 @@
         }
       }
     },
-    "ButtonTitle.UninstallPlugin" : {
+    "PluginManagement.UninstallNamedPlugin" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -99,7 +99,7 @@
         }
       }
     },
-    "Message.BiometricUnlock" : {
+    "Settings.BiometricUnlockDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -116,7 +116,7 @@
         }
       }
     },
-    "Message.ChapterHasNoPages" : {
+    "ComicDetail.EmptyChapter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -133,7 +133,7 @@
         }
       }
     },
-    "Message.DownloadChaptersForOfflineReading" : {
+    "Downloads.EmptyDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -150,7 +150,7 @@
         }
       }
     },
-    "Message.DownloadChaptersFromAComicSDetailPageToReadThemOffline" : {
+    "Downloads.OfflineReadingDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -167,7 +167,7 @@
         }
       }
     },
-    "Message.EnterAnExistingOrNewCollectionNameLeaveItBlankToRemoveTheComicFromItsCollection" : {
+    "Shelf.MoveToCollectionDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -184,7 +184,7 @@
         }
       }
     },
-    "Message.EnterTheLinkToThePluginFilePluginsCanAccessTheNetworkSoOnlyInstallPluginsFromSourcesYouTrust" : {
+    "PluginManagement.InstallURLPrompt" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -201,7 +201,7 @@
         }
       }
     },
-    "Message.ICloudSyncScope" : {
+    "Settings.ICloudSyncDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -218,7 +218,7 @@
         }
       }
     },
-    "Message.LocalPagesAreMissingDeleteThisDownloadAndDownloadTheComicAgain" : {
+    "Downloads.MissingPages" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -235,7 +235,7 @@
         }
       }
     },
-    "Message.PluginActionUnavailable" : {
+    "PluginHome.ActionUnavailable" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -252,7 +252,7 @@
         }
       }
     },
-    "Message.TagsSyncWithICloud" : {
+    "LocalTags.SyncDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -269,7 +269,7 @@
         }
       }
     },
-    "Message.TheDownloadedPagesAreMissingDeleteThisDownloadThenDownloadTheChapterAgain" : {
+    "Downloads.MissingChapterPages" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -286,7 +286,7 @@
         }
       }
     },
-    "Message.ThisSourceIsUnavailableAndThisChapterHasnTBeenDownloaded" : {
+    "Reader.SourceAndDownloadUnavailable" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -303,7 +303,7 @@
         }
       }
     },
-    "NavigationTitle.CloudFavorites" : {
+    "CloudFavorites.TitleWithSource" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -320,7 +320,7 @@
         }
       }
     },
-    "NavigationTitle.Discover" : {
+    "Discover.TitleWithSource" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -337,7 +337,7 @@
         }
       }
     },
-    "NavigationTitle.SourceCloudFavorites" : {
+    "CloudFavorites.SourceTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -354,7 +354,7 @@
         }
       }
     },
-    "Text.AboutOpenSourceLicenses" : {
+    "Settings.AboutAndLicenses" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -371,7 +371,7 @@
         }
       }
     },
-    "Text.AboutWillow" : {
+    "About.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -405,7 +405,7 @@
         }
       }
     },
-    "Text.AddBreezePluginDirectory" : {
+    "PluginManagement.AddBreezePluginDirectory" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -422,7 +422,7 @@
         }
       }
     },
-    "Text.AddedToDownloadQueue" : {
+    "DownloadStatus.AddedToQueue" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -439,7 +439,7 @@
         }
       }
     },
-    "Text.AddSubscription" : {
+    "PluginManagement.AddSubscription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -456,7 +456,7 @@
         }
       }
     },
-    "Text.AddTag" : {
+    "LocalTags.Add" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -473,7 +473,7 @@
         }
       }
     },
-    "Text.AddToSourceFavorites" : {
+    "CloudFavorites.AddFavorite" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -490,7 +490,7 @@
         }
       }
     },
-    "Text.AdvancedSearch" : {
+    "AdvancedSearch.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -507,7 +507,7 @@
         }
       }
     },
-    "Text.All" : {
+    "Shelf.AllCollections" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -524,7 +524,7 @@
         }
       }
     },
-    "Text.AllTags" : {
+    "LocalTags.AllTags" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -541,7 +541,7 @@
         }
       }
     },
-    "Text.Anonymous" : {
+    "Comments.Anonymous" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -558,7 +558,7 @@
         }
       }
     },
-    "Text.AppLock" : {
+    "Settings.AppLock" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -626,7 +626,7 @@
         }
       }
     },
-    "Text.BookmarkAComicToKeepItInYourLibrary" : {
+    "Shelf.EmptyDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -660,7 +660,7 @@
         }
       }
     },
-    "Text.BreezeRevision" : {
+    "About.BreezeRevision" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -677,7 +677,7 @@
         }
       }
     },
-    "Text.BreezeSourceCode" : {
+    "About.BreezeSourceCode" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -694,8 +694,22 @@
         }
       }
     },
-    "Text.BundledLicenseNotices" : {
-
+    "About.BundledLicenseNotices" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundled License Notices"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "随附许可声明"
+          }
+        }
+      }
     },
     "Text.Cancel" : {
       "extractionState" : "manual",
@@ -731,7 +745,7 @@
         }
       }
     },
-    "Text.ChooseASourceFavoritesFolder" : {
+    "CloudFavorites.ChooseFolder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -748,7 +762,7 @@
         }
       }
     },
-    "Text.ChooseChapter" : {
+    "Reader.ChooseChapter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -765,7 +779,7 @@
         }
       }
     },
-    "Text.CloseReader" : {
+    "Reader.Close" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -782,7 +796,7 @@
         }
       }
     },
-    "Text.CloudFavorites" : {
+    "CloudFavorites.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -799,7 +813,7 @@
         }
       }
     },
-    "Text.CollectionName" : {
+    "Shelf.CollectionName" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -816,7 +830,7 @@
         }
       }
     },
-    "Text.Collections" : {
+    "Shelf.Collections" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -833,7 +847,7 @@
         }
       }
     },
-    "Text.ComicDetails" : {
+    "ComicDetail.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -850,7 +864,7 @@
         }
       }
     },
-    "Text.ComicInformation" : {
+    "ComicDetail.Information" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -867,7 +881,7 @@
         }
       }
     },
-    "Text.CommentActionFailed" : {
+    "Comments.ActionFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -884,7 +898,7 @@
         }
       }
     },
-    "Text.Comments" : {
+    "ComicActions.Comments" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -901,7 +915,7 @@
         }
       }
     },
-    "Text.Configured" : {
+    "ICloudSync.Configured" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -935,7 +949,7 @@
         }
       }
     },
-    "Text.ContinueReading" : {
+    "ComicDetail.ContinueReading" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -952,7 +966,7 @@
         }
       }
     },
-    "Text.CouldnTLoad" : {
+    "Text.LoadFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -969,7 +983,7 @@
         }
       }
     },
-    "Text.CouldnTLoadComics" : {
+    "Discover.LoadFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -986,7 +1000,7 @@
         }
       }
     },
-    "Text.CouldnTLoadMoreResults" : {
+    "Discover.LoadMoreFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1003,7 +1017,7 @@
         }
       }
     },
-    "Text.CouldnTLoadSourceActions" : {
+    "ComicActions.LoadFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1020,7 +1034,7 @@
         }
       }
     },
-    "Text.CouldnTLoadSubscription" : {
+    "Subscription.LoadFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1037,7 +1051,7 @@
         }
       }
     },
-    "Text.CouldnTOpenChapter" : {
+    "Reader.OpenChapterFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1054,7 +1068,7 @@
         }
       }
     },
-    "Text.CouldnTOpenWillow" : {
+    "App.StartupFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1071,7 +1085,7 @@
         }
       }
     },
-    "Text.CouldnTUpdateComicDetails" : {
+    "ComicDetail.UpdateFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1088,7 +1102,7 @@
         }
       }
     },
-    "Text.CoverFailedToLoadTapToRetry" : {
+    "Cover.RetryAccessibilityLabel" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1105,7 +1119,7 @@
         }
       }
     },
-    "Text.CreateAndAdd" : {
+    "LocalTags.CreateAndAdd" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1122,7 +1136,7 @@
         }
       }
     },
-    "Text.DeleteDownload" : {
+    "Downloads.Delete" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1139,7 +1153,7 @@
         }
       }
     },
-    "Text.Disabled" : {
+    "PluginManagement.Disabled" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1156,7 +1170,7 @@
         }
       }
     },
-    "Text.Discover" : {
+    "Discover.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1190,7 +1204,7 @@
         }
       }
     },
-    "Text.DownloadChapter" : {
+    "ComicDetail.DownloadChapter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1207,7 +1221,7 @@
         }
       }
     },
-    "Text.DownloadChapterProgress" : {
+    "Downloads.ChapterProgress" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1224,7 +1238,7 @@
         }
       }
     },
-    "Text.DownloadComic" : {
+    "ComicDetail.DownloadComic" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1241,7 +1255,7 @@
         }
       }
     },
-    "Text.Downloaded" : {
+    "DownloadStatus.Completed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1258,7 +1272,7 @@
         }
       }
     },
-    "Text.DownloadFailed" : {
+    "DownloadStatus.Failed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1275,7 +1289,7 @@
         }
       }
     },
-    "Text.DownloadFailedCheckTheAddressAndTryAgain" : {
+    "Downloads.RetryDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1292,7 +1306,7 @@
         }
       }
     },
-    "Text.Downloading" : {
+    "Downloads.Downloading" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1309,7 +1323,7 @@
         }
       }
     },
-    "Text.DownloadingProgress" : {
+    "Downloads.Progress" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1326,7 +1340,7 @@
         }
       }
     },
-    "Text.DownloadProgress" : {
+    "DownloadStatus.InProgress" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1343,7 +1357,7 @@
         }
       }
     },
-    "Text.Downloads" : {
+    "Downloads.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1360,7 +1374,7 @@
         }
       }
     },
-    "Text.EditLocalTags" : {
+    "LocalTags.Edit" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1377,7 +1391,7 @@
         }
       }
     },
-    "Text.EditSetting" : {
+    "PluginSettings.EditSetting" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1394,7 +1408,7 @@
         }
       }
     },
-    "Text.Enable" : {
+    "PluginSettings.Enable" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1411,7 +1425,7 @@
         }
       }
     },
-    "Text.EnterAValidHTTPSLink" : {
+    "PluginManagement.InvalidURL" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1428,7 +1442,7 @@
         }
       }
     },
-    "Text.EnterTheLinkToTheSubscriptionCatalog" : {
+    "PluginManagement.SubscriptionURLPrompt" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1445,7 +1459,7 @@
         }
       }
     },
-    "Text.ExistingTags" : {
+    "LocalTags.Existing" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1462,7 +1476,7 @@
         }
       }
     },
-    "Text.FavoriteFolders" : {
+    "CloudFavorites.FavoriteFolders" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1479,7 +1493,7 @@
         }
       }
     },
-    "Text.FilterTags" : {
+    "LocalTags.Filter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1496,7 +1510,7 @@
         }
       }
     },
-    "Text.FindComics" : {
+    "Library.SearchPrompt" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1513,7 +1527,7 @@
         }
       }
     },
-    "Text.History" : {
+    "History.TabTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1530,7 +1544,7 @@
         }
       }
     },
-    "Text.Https" : {
+    "PluginManagement.URLPlaceholder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1547,7 +1561,7 @@
         }
       }
     },
-    "Text.ICloudSync" : {
+    "Settings.ICloudSync" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1564,7 +1578,7 @@
         }
       }
     },
-    "Text.ImportPluginFile" : {
+    "PluginManagement.ImportPluginFile" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1581,7 +1595,7 @@
         }
       }
     },
-    "Text.Install" : {
+    "PluginManagement.Install" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1598,7 +1612,7 @@
         }
       }
     },
-    "Text.InstallAndEnableAPluginToBrowseAndSearchForComics" : {
+    "Discover.NoSourcesDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1615,7 +1629,7 @@
         }
       }
     },
-    "Text.Installed" : {
+    "PluginManagement.Installed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1632,7 +1646,7 @@
         }
       }
     },
-    "Text.InstallFromLink" : {
+    "PluginManagement.InstallFromLink" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1649,7 +1663,7 @@
         }
       }
     },
-    "Text.Installing" : {
+    "Subscription.Installing" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1666,7 +1680,7 @@
         }
       }
     },
-    "Text.Keyword" : {
+    "AdvancedSearch.Keyword" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1683,7 +1697,7 @@
         }
       }
     },
-    "Text.LeftToRight" : {
+    "ReadingDirection.LeftToRight" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1700,7 +1714,7 @@
         }
       }
     },
-    "Text.Library" : {
+    "Shelf.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1717,10 +1731,24 @@
         }
       }
     },
-    "Text.LicenseSourceCode" : {
-
+    "Licenses.SourceCode" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source Code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "源代码"
+          }
+        }
+      }
     },
-    "Text.Like" : {
+    "ComicActions.Like" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1737,7 +1765,7 @@
         }
       }
     },
-    "Text.LikeComic" : {
+    "ComicActions.LikeComic" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1754,7 +1782,7 @@
         }
       }
     },
-    "Text.Liked" : {
+    "ComicActions.Liked" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1788,7 +1816,7 @@
         }
       }
     },
-    "Text.LoadingChapter" : {
+    "Reader.LoadingChapter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1805,7 +1833,7 @@
         }
       }
     },
-    "Text.LoadingCover" : {
+    "Cover.Loading" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1822,7 +1850,7 @@
         }
       }
     },
-    "Text.LoadingDetails" : {
+    "ComicDetail.Loading" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1839,7 +1867,7 @@
         }
       }
     },
-    "Text.LoadingMore" : {
+    "Pagination.LoadingMore" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1856,7 +1884,7 @@
         }
       }
     },
-    "Text.LoadingSettings" : {
+    "PluginSettings.Loading" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1873,7 +1901,7 @@
         }
       }
     },
-    "Text.LoadingSubscription" : {
+    "Subscription.Loading" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1890,7 +1918,7 @@
         }
       }
     },
-    "Text.LoadMoreComments" : {
+    "Comments.LoadMore" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1907,7 +1935,7 @@
         }
       }
     },
-    "Text.LocalTags" : {
+    "LocalTags.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1924,7 +1952,7 @@
         }
       }
     },
-    "Text.ManagePlugins" : {
+    "Discover.ManagePlugins" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1941,7 +1969,7 @@
         }
       }
     },
-    "Text.MatchAnySelectedTag" : {
+    "LocalTags.MatchAny" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1975,7 +2003,7 @@
         }
       }
     },
-    "Text.Move" : {
+    "Shelf.MoveComic" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -1992,7 +2020,7 @@
         }
       }
     },
-    "Text.MoveToCollection" : {
+    "Shelf.MoveToCollection" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2009,7 +2037,7 @@
         }
       }
     },
-    "Text.MozillaPublicLicense20" : {
+    "About.MozillaPublicLicense20" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2026,7 +2054,7 @@
         }
       }
     },
-    "Text.NewFavoriteFolderName" : {
+    "CloudFavorites.NewFolderName" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2043,7 +2071,7 @@
         }
       }
     },
-    "Text.NewTag" : {
+    "LocalTags.New" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2060,7 +2088,7 @@
         }
       }
     },
-    "Text.NextChapter" : {
+    "Reader.NextChapter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2077,7 +2105,7 @@
         }
       }
     },
-    "Text.NoAvailableSources" : {
+    "Discover.NoSourcesTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2094,7 +2122,7 @@
         }
       }
     },
-    "Text.NoChaptersAvailable" : {
+    "ComicDetail.NoChapters" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2128,7 +2156,7 @@
         }
       }
     },
-    "Text.NoComicsToDisplay" : {
+    "Discover.EmptyTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2145,7 +2173,7 @@
         }
       }
     },
-    "Text.NoComments" : {
+    "Comments.EmptyTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2162,7 +2190,7 @@
         }
       }
     },
-    "Text.NoContent" : {
+    "PluginHome.NoContent" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2179,7 +2207,7 @@
         }
       }
     },
-    "Text.NoDownloads" : {
+    "Downloads.EmptyTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2196,7 +2224,7 @@
         }
       }
     },
-    "Text.NoInstalledPlugins" : {
+    "PluginManagement.EmptyPlugins" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2213,7 +2241,7 @@
         }
       }
     },
-    "Text.NoMatchingComics" : {
+    "Library.NoMatchesTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2230,7 +2258,7 @@
         }
       }
     },
-    "Text.NoMatchingDownloads" : {
+    "Downloads.NoMatchesTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2247,7 +2275,7 @@
         }
       }
     },
-    "Text.NoReadingHistory" : {
+    "History.EmptyTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2264,7 +2292,7 @@
         }
       }
     },
-    "Text.NoSourceFavoritesFolders" : {
+    "CloudFavorites.NoFolders" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2281,7 +2309,7 @@
         }
       }
     },
-    "Text.NoSubscriptions" : {
+    "PluginManagement.EmptySubscriptions" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2315,7 +2343,7 @@
         }
       }
     },
-    "Text.OldestRead" : {
+    "History.SortOldestRead" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2332,7 +2360,7 @@
         }
       }
     },
-    "Text.OnThisDevice" : {
+    "ICloudSync.OnThisDevice" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2349,7 +2377,7 @@
         }
       }
     },
-    "Text.OpenAChapterToStartTrackingYourProgress" : {
+    "History.EmptyDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2366,7 +2394,7 @@
         }
       }
     },
-    "Text.OpenSourceLicenses" : {
+    "Licenses.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2383,7 +2411,7 @@
         }
       }
     },
-    "Text.OpenWebpage" : {
+    "PluginHome.OpenWebpage" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2400,7 +2428,7 @@
         }
       }
     },
-    "Text.PageActions" : {
+    "PluginHome.PageActions" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2417,7 +2445,7 @@
         }
       }
     },
-    "Text.PageNumber" : {
+    "Reader.PageNumber" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2434,7 +2462,7 @@
         }
       }
     },
-    "Text.PageOf" : {
+    "Reader.PageOf" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2468,7 +2496,7 @@
         }
       }
     },
-    "Text.Password" : {
+    "PluginSettings.Password" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2485,7 +2513,7 @@
         }
       }
     },
-    "Text.Pause" : {
+    "Downloads.Pause" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2502,7 +2530,7 @@
         }
       }
     },
-    "Text.Paused" : {
+    "DownloadStatus.Paused" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2519,7 +2547,7 @@
         }
       }
     },
-    "Text.PluginInformation" : {
+    "PluginSettings.Information" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2536,7 +2564,7 @@
         }
       }
     },
-    "Text.PluginSettings" : {
+    "PluginSettings.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2553,7 +2581,7 @@
         }
       }
     },
-    "Text.PluginsSubscriptions" : {
+    "PluginManagement.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2570,7 +2598,7 @@
         }
       }
     },
-    "Text.PostComment" : {
+    "Comments.Post" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2587,7 +2615,7 @@
         }
       }
     },
-    "Text.PreparingDownload" : {
+    "DownloadStatus.Preparing" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2604,7 +2632,7 @@
         }
       }
     },
-    "Text.PreviousChapter" : {
+    "Reader.PreviousChapter" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2621,7 +2649,7 @@
         }
       }
     },
-    "Text.Privacy" : {
+    "Settings.Privacy" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2638,7 +2666,7 @@
         }
       }
     },
-    "Text.Queued" : {
+    "DownloadStatus.Queued" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2655,7 +2683,7 @@
         }
       }
     },
-    "Text.ReaderSettings" : {
+    "Reader.Settings" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2672,7 +2700,7 @@
         }
       }
     },
-    "Text.Reading" : {
+    "Downloads.Read" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2689,7 +2717,7 @@
         }
       }
     },
-    "Text.ReadingDirection" : {
+    "ReadingDirection.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2706,7 +2734,7 @@
         }
       }
     },
-    "Text.ReadingHistory" : {
+    "History.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2723,7 +2751,7 @@
         }
       }
     },
-    "Text.RecentlyRead" : {
+    "History.SortRecentlyRead" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2740,7 +2768,7 @@
         }
       }
     },
-    "Text.RefreshSubscription" : {
+    "Subscription.Refresh" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2774,7 +2802,7 @@
         }
       }
     },
-    "Text.RemoveAlternative" : {
+    "Text.RemoveAction" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2791,7 +2819,7 @@
         }
       }
     },
-    "Text.RemoveBookmark" : {
+    "Shelf.RemoveBookmark" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2808,7 +2836,7 @@
         }
       }
     },
-    "Text.RemoveFromHistory" : {
+    "History.RemoveComic" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2825,7 +2853,7 @@
         }
       }
     },
-    "Text.RemoveFromSourceFavorites" : {
+    "CloudFavorites.RemoveFavorite" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2842,7 +2870,7 @@
         }
       }
     },
-    "Text.RemoveSubscription" : {
+    "PluginManagement.RemoveSubscriptionTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2859,7 +2887,7 @@
         }
       }
     },
-    "Text.ReplyAlternative" : {
+    "Comments.Reply" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2876,7 +2904,7 @@
         }
       }
     },
-    "Text.ReplyCount" : {
+    "Comments.ReplyCount" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2905,7 +2933,7 @@
         }
       }
     },
-    "Text.ResumeDownload" : {
+    "DownloadStatus.Resume" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2939,7 +2967,7 @@
         }
       }
     },
-    "Text.RetryLoadingImage" : {
+    "Cover.RetryLoading" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2956,7 +2984,7 @@
         }
       }
     },
-    "Text.RetryLoadingSettings" : {
+    "PluginSettings.RetryLoading" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2973,7 +3001,7 @@
         }
       }
     },
-    "Text.ReverseChapterOrder" : {
+    "ComicDetail.ReverseChapterOrder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2990,7 +3018,7 @@
         }
       }
     },
-    "Text.RightToLeft" : {
+    "ReadingDirection.RightToLeft" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3024,7 +3052,7 @@
         }
       }
     },
-    "Text.Search" : {
+    "AdvancedSearch.Search" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3041,7 +3069,7 @@
         }
       }
     },
-    "Text.SearchComics" : {
+    "Discover.SearchPrompt" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3058,7 +3086,7 @@
         }
       }
     },
-    "Text.SearchFilters" : {
+    "AdvancedSearch.Filters" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3075,7 +3103,7 @@
         }
       }
     },
-    "Text.SearchResults" : {
+    "PluginHome.SearchResults" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3092,7 +3120,7 @@
         }
       }
     },
-    "Text.SearchThisSourceToFindComics" : {
+    "Discover.EmptyDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3109,7 +3137,7 @@
         }
       }
     },
-    "Text.SelectAnOption" : {
+    "PluginField.SelectOption" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3143,7 +3171,7 @@
         }
       }
     },
-    "Text.Settings" : {
+    "Settings.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3160,7 +3188,7 @@
         }
       }
     },
-    "Text.ShowOrHideReaderControls" : {
+    "Reader.ToggleControlsAccessibilityAction" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3177,7 +3205,7 @@
         }
       }
     },
-    "Text.SignIn" : {
+    "PluginSettings.SignIn" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3211,7 +3239,7 @@
         }
       }
     },
-    "Text.Sort" : {
+    "History.Sort" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3245,7 +3273,7 @@
         }
       }
     },
-    "Text.SourceComments" : {
+    "Comments.Title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3262,7 +3290,7 @@
         }
       }
     },
-    "Text.SourceFavorites" : {
+    "CloudFavorites.PromptTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3279,7 +3307,7 @@
         }
       }
     },
-    "Text.SourceFavoritesAlternative" : {
+    "CloudFavorites.OpenSourceFavorites" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3313,7 +3341,7 @@
         }
       }
     },
-    "Text.StartReading" : {
+    "ComicDetail.StartReading" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3330,7 +3358,7 @@
         }
       }
     },
-    "Text.Subscriptions" : {
+    "PluginManagement.Subscriptions" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3347,7 +3375,7 @@
         }
       }
     },
-    "Text.TagName" : {
+    "LocalTags.Name" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3381,7 +3409,7 @@
         }
       }
     },
-    "Text.TapToRetry" : {
+    "Cover.TapToRetry" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3398,7 +3426,7 @@
         }
       }
     },
-    "Text.TapToRetryAlternative" : {
+    "Reader.RetryPage" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3415,7 +3443,7 @@
         }
       }
     },
-    "Text.TemporaryStorage" : {
+    "ICloudSync.TemporaryStorage" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3432,7 +3460,7 @@
         }
       }
     },
-    "Text.ThePluginDoesNotProvideAHomePage" : {
+    "PluginHome.EmptyTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3449,7 +3477,7 @@
         }
       }
     },
-    "Text.TheSourceCouldnTUpdateThisFavorite" : {
+    "CloudFavorites.UpdateFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3466,7 +3494,7 @@
         }
       }
     },
-    "Text.TheSourceDidnTProvideAnyPages" : {
+    "Reader.NoPages" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3483,7 +3511,7 @@
         }
       }
     },
-    "Text.TheSourceRequestedAnUnsupportedFavoritesOption" : {
+    "CloudFavorites.UnsupportedOption" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3500,7 +3528,7 @@
         }
       }
     },
-    "Text.TheSourceRequestedTooManyStepsToManageThisFavorite" : {
+    "CloudFavorites.TooManySteps" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3517,7 +3545,7 @@
         }
       }
     },
-    "Text.ThisPluginActionIsNotSupportedYet" : {
+    "PluginHome.UnsupportedAction" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3534,7 +3562,7 @@
         }
       }
     },
-    "Text.ThisPluginHasNoEditableSettings" : {
+    "PluginSettings.NoEditableSettings" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3551,7 +3579,7 @@
         }
       }
     },
-    "Text.ThisSettingIsCurrentlyUnsupported" : {
+    "PluginSettings.UnsupportedSetting" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3568,7 +3596,7 @@
         }
       }
     },
-    "Text.ThisSourceIsDisabledOrHasnTBeenInstalled" : {
+    "ComicDetail.SourceUnavailable" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3585,7 +3613,7 @@
         }
       }
     },
-    "Text.ThisSubscriptionHasNoPlugins" : {
+    "Subscription.EmptyTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3602,7 +3630,7 @@
         }
       }
     },
-    "Text.Title" : {
+    "History.SortTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3619,7 +3647,7 @@
         }
       }
     },
-    "Text.TryAnotherSearchCollectionOrTag" : {
+    "Library.NoMatchesDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3636,7 +3664,7 @@
         }
       }
     },
-    "Text.TryOtherTagsOrClearTheTagFilter" : {
+    "Downloads.NoMatchesDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3653,7 +3681,7 @@
         }
       }
     },
-    "Text.TwoPagesInWideLandscapeWindows" : {
+    "Reader.TwoPagesInWideWindows" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3670,7 +3698,7 @@
         }
       }
     },
-    "Text.TwoPagesInWideWindows" : {
+    "Settings.TwoPagesInWideWindows" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3687,7 +3715,7 @@
         }
       }
     },
-    "Text.UnableToLoadCloudFavorites" : {
+    "CloudFavorites.LoadFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3704,7 +3732,7 @@
         }
       }
     },
-    "Text.UnableToLoadPage" : {
+    "PluginHome.LoadFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3721,7 +3749,7 @@
         }
       }
     },
-    "Text.UnableToOpenPage" : {
+    "PluginHome.OpenPageFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3738,7 +3766,7 @@
         }
       }
     },
-    "Text.Uninstall" : {
+    "PluginManagement.Uninstall" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3755,7 +3783,7 @@
         }
       }
     },
-    "Text.UninstallAlternative" : {
+    "PluginManagement.UninstallAction" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3772,7 +3800,7 @@
         }
       }
     },
-    "Text.UninstallPlugin" : {
+    "PluginManagement.UninstallTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3789,7 +3817,7 @@
         }
       }
     },
-    "Text.Unlike" : {
+    "ComicActions.Unlike" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3806,7 +3834,7 @@
         }
       }
     },
-    "Text.Unlock" : {
+    "AppLock.Unlock" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3823,7 +3851,7 @@
         }
       }
     },
-    "Text.UnsupportedImageFormat" : {
+    "Cover.UnsupportedImageFormat" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3840,7 +3868,7 @@
         }
       }
     },
-    "Text.Update" : {
+    "Subscription.Update" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3891,7 +3919,7 @@
         }
       }
     },
-    "Text.VerticalScrolling" : {
+    "ReadingDirection.VerticalScrolling" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3908,7 +3936,7 @@
         }
       }
     },
-    "Text.WillowIsLocked" : {
+    "AppLock.LockedTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3925,7 +3953,7 @@
         }
       }
     },
-    "Text.WillowNative" : {
+    "About.AppName" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3942,7 +3970,7 @@
         }
       }
     },
-    "Text.WillowNativeUsesTheBreezePluginRuntime" : {
+    "About.BreezeDescription" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3959,7 +3987,7 @@
         }
       }
     },
-    "Text.Working" : {
+    "PluginManagement.Working" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3976,7 +4004,7 @@
         }
       }
     },
-    "Text.WriteAComment" : {
+    "Comments.WritePrompt" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -3993,7 +4021,7 @@
         }
       }
     },
-    "Text.YourLibraryIsEmpty" : {
+    "Shelf.EmptyTitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

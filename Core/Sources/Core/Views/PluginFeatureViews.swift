@@ -32,20 +32,20 @@ struct PluginCloudFavoritesView: View {
             if state.isLoading {
                 ProgressView().padding()
             } else if let error = state.error {
-                RetryView(title: L10n.text("Text.CouldnTLoad"), message: error) { Task { await model.retry() } }
+                RetryView(title: L10n.text("Text.LoadFailed"), message: error) { Task { await model.retry() } }
             } else if state.hasMore {
                 PaginationTrigger(itemCount: state.comics.count) { Task { await model.loadNextPage() } }
             } else if state.loaded && state.tabs.isEmpty {
-                ContentUnavailableView(L10n.text("Text.NoSourceFavoritesFolders"), systemImage: "star")
+                ContentUnavailableView(L10n.text("CloudFavorites.NoFolders"), systemImage: "star")
             } else if state.searched && state.comics.isEmpty {
                 ContentUnavailableView(L10n.text("Text.NoComics"), systemImage: "books.vertical")
             }
         }
-        .navigationTitle(L10n.text("NavigationTitle.SourceCloudFavorites"))
+        .navigationTitle(L10n.text("CloudFavorites.SourceTitle"))
         .toolbar {
             if state.tabs.count > 1 {
-                Menu(L10n.text("Text.FavoriteFolders"), systemImage: "folder") {
-                    Picker(L10n.text("Text.FavoriteFolders"), selection: Binding(get: { state.selectedTab }, set: { value in
+                Menu(L10n.text("CloudFavorites.FavoriteFolders"), systemImage: "folder") {
+                    Picker(L10n.text("CloudFavorites.FavoriteFolders"), selection: Binding(get: { state.selectedTab }, set: { value in
                         Task { await model.selectTab(value) }
                     })) {
                         ForEach(state.tabs) { tab in Text(tab.title).tag(Optional(tab.id)) }
@@ -116,12 +116,12 @@ struct PluginAdvancedSearchView: View {
         @Bindable var state = model.viewModel
         Form {
             if state.loaded {
-                Section(L10n.text("Text.SearchFilters")) {
-                    TextField(L10n.text("Text.Keyword"), text: $state.keyword)
+                Section(L10n.text("AdvancedSearch.Filters")) {
+                    TextField(L10n.text("AdvancedSearch.Keyword"), text: $state.keyword)
                     ForEach(state.fields) { field in
                         PluginFeatureFieldView(field: field, values: $state.values)
                     }
-                    Button(L10n.text("Text.Search"), systemImage: "magnifyingglass") { Task { await model.search() } }
+                    Button(L10n.text("AdvancedSearch.Search"), systemImage: "magnifyingglass") { Task { await model.search() } }
                 }
                 .disabled(state.isLoading)
             }
@@ -129,7 +129,7 @@ struct PluginAdvancedSearchView: View {
                 PluginFeatureResults(model: model, pluginID: plugin.uuid)
             }
         }
-        .navigationTitle(L10n.text("Text.AdvancedSearch"))
+        .navigationTitle(L10n.text("AdvancedSearch.Title"))
         .task { if !state.loaded { await model.load() } }
     }
 }
@@ -156,11 +156,11 @@ private struct PluginFeatureResults: View {
         if state.isLoading {
             ProgressView().frame(maxWidth: .infinity)
         } else if let error = state.error {
-            RetryView(title: L10n.text("Text.CouldnTLoad"), message: error) {
+            RetryView(title: L10n.text("Text.LoadFailed"), message: error) {
                 Task { await model.retry() }
             }
         } else if state.hasMore {
-            Button(L10n.text("ButtonTitle.LoadMore")) { Task { await model.fetch() } }
+            Button(L10n.text("Pagination.LoadMore")) { Task { await model.fetch() } }
         } else if state.searched && state.comics.isEmpty {
             ContentUnavailableView(L10n.text("Text.NoComics"), systemImage: "books.vertical")
         }
@@ -206,7 +206,7 @@ struct PluginComicActionsView: View {
                         Task { await model.like() }
                     } label: {
                         VStack(spacing: 4) {
-                            Label(state.liked ? L10n.text("Text.Liked") : L10n.text("Text.Like"),
+                            Label(state.liked ? L10n.text("ComicActions.Liked") : L10n.text("ComicActions.Like"),
                                   systemImage: state.liked ? "hand.thumbsup.fill" : "hand.thumbsup")
                             Text(state.totalLikes.map { $0.formatted() } ?? "—")
                                 .font(.caption).foregroundStyle(.secondary)
@@ -219,7 +219,7 @@ struct PluginComicActionsView: View {
                 if state.allowComments {
                     Button { showingComments = true } label: {
                         VStack(spacing: 4) {
-                            Label(L10n.text("Text.Comments"), systemImage: "bubble")
+                            Label(L10n.text("ComicActions.Comments"), systemImage: "bubble")
                             Text(state.totalComments.map { $0.formatted() } ?? "—")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
@@ -227,7 +227,7 @@ struct PluginComicActionsView: View {
                     .frame(maxWidth: .infinity, minHeight: 44)
                 }
             } else if let error = viewModel.error {
-                RetryView(title: L10n.text("Text.CouldnTLoadSourceActions"), message: error) { Task { await model.load() } }
+                RetryView(title: L10n.text("ComicActions.LoadFailed"), message: error) { Task { await model.load() } }
             }
         }
         .labelStyle(CompactActionLabelStyle())
@@ -276,9 +276,9 @@ struct PluginCommentsView: View {
         List {
             if state.canPost {
                 Section {
-                    TextField(L10n.text("Text.WriteAComment"), text: $state.draft, axis: .vertical)
+                    TextField(L10n.text("Comments.WritePrompt"), text: $state.draft, axis: .vertical)
                         .lineLimit(2...5)
-                    Button(L10n.text("Text.PostComment"), systemImage: "paperplane") { Task { await model.post() } }
+                    Button(L10n.text("Comments.Post"), systemImage: "paperplane") { Task { await model.post() } }
                         .disabled(!state.canSend)
                 }
             }
@@ -293,8 +293,8 @@ struct PluginCommentsView: View {
                             PluginCommentsView(plugin: model.plugin, comicID: model.comicID, parent: item,
                                                embedded: state.embedsReplies, canReply: state.canReply)
                         } label: {
-                            if item.replyCount > 0 { Text(L10n.resource("Text.ReplyCount", defaultValue: "\(item.replyCount) 条回复")) }
-                            else { Text(L10n.text("Text.ReplyAlternative")) }
+                            if item.replyCount > 0 { Text(L10n.resource("Comments.ReplyCount", defaultValue: "\(item.replyCount) 条回复")) }
+                            else { Text(L10n.text("Comments.Reply")) }
                         }
                     }
                 }
@@ -302,23 +302,23 @@ struct PluginCommentsView: View {
             if state.isLoading {
                 ProgressView().frame(maxWidth: .infinity)
             } else if let error = state.error {
-                RetryView(title: L10n.text("Text.CommentActionFailed"), message: error) {
+                RetryView(title: L10n.text("Comments.ActionFailed"), message: error) {
                     Task { await model.fetch(reset: true) }
                 }
             } else if state.hasMore {
-                Button(L10n.text("Text.LoadMoreComments")) { Task { await model.fetch() } }
+                Button(L10n.text("Comments.LoadMore")) { Task { await model.fetch() } }
             } else if state.items.isEmpty {
-                ContentUnavailableView(L10n.text("Text.NoComments"), systemImage: "bubble")
+                ContentUnavailableView(L10n.text("Comments.EmptyTitle"), systemImage: "bubble")
             }
         }
-        .navigationTitle(model.parent == nil ? L10n.text("Text.SourceComments") : L10n.text("Text.ReplyAlternative"))
+        .navigationTitle(model.parent == nil ? L10n.text("Comments.Title") : L10n.text("Comments.Reply"))
         .task { if state.items.isEmpty { await model.fetch() } }
         .refreshable { await model.fetch(reset: true) }
     }
 
     private func comment(_ item: PluginComment) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(item.author.isEmpty ? L10n.text("Text.Anonymous") : item.author).font(.headline)
+            Text(item.author.isEmpty ? L10n.text("Comments.Anonymous") : item.author).font(.headline)
             Text(item.content)
             if !item.createdAt.isEmpty { Text(item.createdAt).font(.caption).foregroundStyle(.secondary) }
         }
@@ -354,7 +354,7 @@ private struct PluginFeatureFieldView: View {
                 get: { values[field.id] ?? .null },
                 set: { values[field.id] = $0 }
             )) {
-                Text(L10n.text("Text.SelectAnOption")).tag(JSONValue.null)
+                Text(L10n.text("PluginField.SelectOption")).tag(JSONValue.null)
                 ForEach(field.options) { option in Text(option.label).tag(option.id) }
             }
         case "password":
@@ -411,10 +411,10 @@ private struct PluginFavoritePromptView: View {
                 }
                 if prompt.payload["allowCreate"].bool {
                     let label = prompt.payload["createField"]["label"].string
-                    TextField(label.isEmpty ? L10n.text("Text.NewFavoriteFolderName") : label, text: $created)
+                    TextField(label.isEmpty ? L10n.text("CloudFavorites.NewFolderName") : label, text: $created)
                 }
             }
-            .navigationTitle(prompt.payload["title"].string.isEmpty ? L10n.text("Text.SourceFavorites") : prompt.payload["title"].string)
+            .navigationTitle(prompt.payload["title"].string.isEmpty ? L10n.text("CloudFavorites.PromptTitle") : prompt.payload["title"].string)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.text("Text.Cancel")) { submit(.object(["cancelled": .bool(true)])) }

@@ -52,13 +52,13 @@ struct ComicCover: View {
                     if let error {
                         VStack(spacing: 6) {
                             Image(systemName: "arrow.clockwise")
-                            Text(L10n.text("Text.TapToRetry")).font(.caption)
+                            Text(L10n.text("Cover.TapToRetry")).font(.caption)
                         }
                         .foregroundStyle(.secondary)
-                        .accessibilityLabel(L10n.text("Text.CoverFailedToLoadTapToRetry"))
+                        .accessibilityLabel(L10n.text("Cover.RetryAccessibilityLabel"))
                         .accessibilityHint(error)
                     } else if url != nil {
-                        ProgressView().accessibilityLabel(L10n.text("Text.LoadingCover"))
+                        ProgressView().accessibilityLabel(L10n.text("Cover.Loading"))
                     } else {
                         Image(systemName: "book.closed").foregroundStyle(.secondary)
                     }
@@ -95,7 +95,7 @@ struct CachedImage<ImageContent: View, Placeholder: View>: View {
                     .onTapGesture {
                         if error != nil { attempt += 1 }
                     }
-                    .accessibilityAction(named: Text(L10n.text("Text.RetryLoadingImage"))) {
+                    .accessibilityAction(named: Text(L10n.text("Cover.RetryLoading"))) {
                         if error != nil { attempt += 1 }
                     }
             }

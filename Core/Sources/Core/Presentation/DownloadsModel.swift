@@ -106,7 +106,7 @@ final class DownloadsModel {
     }
     private func open(_ record: DownloadRecord, manager: DownloadManager) {
         guard manager.localPageURLs(sourceID: record.sourceID, comicID: record.comicID, chapterID: record.chapterID) != nil else {
-            viewModel.error = L10n.text("Message.LocalPagesAreMissingDeleteThisDownloadAndDownloadTheComicAgain")
+            viewModel.error = L10n.text("Downloads.MissingPages")
             return
         }
         let comic = comics[ComicRecord.identifier(sourceID: record.sourceID, comicID: record.comicID)]

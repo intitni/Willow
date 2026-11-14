@@ -97,7 +97,7 @@ final class PluginHomeModel {
                 "fnPath": .string("searchComic"), "core": .object(["keyword": .string(keyword), "isSearchAggregate": .bool(false)]),
                 "extern": .object(extern)
             ])])])
-            viewModel.destination = .page(PluginHomeTab(id: "search", title: keyword.isEmpty ? L10n.text("Text.SearchResults") : keyword, scene: scene))
+            viewModel.destination = .page(PluginHomeTab(id: "search", title: keyword.isEmpty ? L10n.text("PluginHome.SearchResults") : keyword, scene: scene))
         case "openComicList":
             viewModel.destination = .page(PluginHomeTab(id: "list", title: title.isEmpty ? payload["scene"]["title"].string : title, scene: payload["scene"]))
         case "openPluginFunction":
@@ -111,7 +111,7 @@ final class PluginHomeModel {
             if let url = URL(string: payload["url"].string), ["https", "http"].contains(url.scheme) {
                 viewModel.destination = .web(url)
             }
-        default: viewModel.actionError = L10n.text("Text.ThisPluginActionIsNotSupportedYet")
+        default: viewModel.actionError = L10n.text("PluginHome.UnsupportedAction")
         }
     }
 }

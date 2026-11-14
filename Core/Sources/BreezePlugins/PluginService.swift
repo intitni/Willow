@@ -26,7 +26,7 @@ package final class PluginService {
     }
 
     package func refresh(subscription: SubscriptionRecord, context: ModelContext) async throws {
-        guard let url = URL(string: subscription.url) else { throw PluginError.message(L10n.text("Text.TheSubscriptionAddressIsInvalid")) }
+        guard let url = URL(string: subscription.url) else { throw PluginError.message(L10n.text("Subscription.InvalidURL")) }
         catalogs[subscription.url] = try await PluginTransfer.shared.fetchCatalog(url)
         subscription.updatedAt = .now
         try context.save()
@@ -34,7 +34,7 @@ package final class PluginService {
 
     package func subscriptionCandidates(subscription: SubscriptionRecord) async throws -> [PluginCandidate] {
         if let cached = catalogs[subscription.url] { return cached }
-        guard let url = URL(string: subscription.url) else { throw PluginError.message(L10n.text("Text.TheSubscriptionAddressIsInvalid")) }
+        guard let url = URL(string: subscription.url) else { throw PluginError.message(L10n.text("Subscription.InvalidURL")) }
         let result = try await PluginTransfer.shared.fetchCatalog(url)
         catalogs[subscription.url] = result
         return result
@@ -60,8 +60,8 @@ package final class PluginService {
             }
         }
         guard let source else {
-            throw PluginError.message(failures.isEmpty ? L10n.text("PluginError.NoDownloadableFiles") :
-                L10n.text("PluginError.DownloadFailures", defaultValue: "插件下载失败：\n\(Array(Set(failures)).sorted().joined(separator: "\n"))"))
+            throw PluginError.message(failures.isEmpty ? L10n.text("PluginInstall.NoDownloadableFiles") :
+                L10n.text("PluginInstall.DownloadFailures", defaultValue: "插件下载失败：\n\(Array(Set(failures)).sorted().joined(separator: "\n"))"))
         }
         try await install(source: source, expectedID: candidate.id, subscriptionURL: candidate.subscriptionURL, context: context)
     }
@@ -75,7 +75,7 @@ package final class PluginService {
               name.utf8.allSatisfy({ (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) || [64, 47, 45, 95, 46].contains($0) }),
               !candidate.version.isEmpty,
               candidate.version.allSatisfy({ $0.isLetter || $0.isNumber || ".-_+".contains($0) }) else {
-            throw PluginError.message(L10n.text("PluginError.InvalidPackage"))
+            throw PluginError.message(L10n.text("PluginInstall.InvalidPackage"))
         }
         // Breeze publishes compressed bundles too. Use both formats and the
         // CDN's alternate provider before falling back to GitHub Releases.
@@ -186,7 +186,7 @@ package final class PluginService {
         var urls: [URL] = []
         for page in pages {
             let url = page["url"].string.isEmpty ? page["fileServer"].string : page["url"].string
-            guard !url.isEmpty else { throw PluginError.message(L10n.text("Text.ThePluginReturnedAnInvalidPageAddress")) }
+            guard !url.isEmpty else { throw PluginError.message(L10n.text("Reader.InvalidPageURL")) }
             var imageExtern = page["extern"].object
             imageExtern["comicId"] = .string(comicID)
             imageExtern["chapterId"] = .string(requestID)
@@ -195,12 +195,12 @@ package final class PluginService {
                 "url": .string(url), "timeoutMs": .number(30_000), "extern": .object(imageExtern)
             ])))
         }
-        guard !urls.isEmpty else { throw PluginError.message(L10n.text("Text.ThePluginDidnTReturnAnyReadablePagesForThisChapter")) }
+        guard !urls.isEmpty else { throw PluginError.message(L10n.text("Reader.NoPages")) }
         return urls
     }
 
     package func settings(plugin: PluginRecord) async throws -> PluginSettings {
-        guard plugin.enabled else { throw PluginError.message(L10n.text("Text.ThisPluginIsDisabled")) }
+        guard plugin.enabled else { throw PluginError.message(L10n.text("Plugin.Disabled")) }
         // Settings must be accessible even when init requires credentials.
         let result = try await PluginRuntime.shared.call(id: plugin.uuid, path: plugin.bundlePath, function: "getSettingsBundle")
         let values = result["data"]["values"]
@@ -213,7 +213,7 @@ package final class PluginService {
     }
 
     package func saveSetting(plugin: PluginRecord, setting: PluginSetting, value: String) async throws {
-        guard plugin.enabled else { throw PluginError.message(L10n.text("Text.ThisPluginIsDisabled")) }
+        guard plugin.enabled else { throw PluginError.message(L10n.text("Plugin.Disabled")) }
         let payload: JSONValue = setting.kind == "switch" ? .bool(value == "true") : .string(value)
         _ = try await PluginRuntime.shared.call(id: plugin.uuid, path: plugin.bundlePath, function: setting.function,
             args: .object(["key": .string(setting.id), "value": payload, "values": .object([setting.id: payload])]))
@@ -221,11 +221,11 @@ package final class PluginService {
     }
 
     package func loginForm(plugin: PluginRecord) async throws -> PluginLoginForm {
-        guard plugin.enabled else { throw PluginError.message(L10n.text("Text.ThisPluginIsDisabled")) }
+        guard plugin.enabled else { throw PluginError.message(L10n.text("Plugin.Disabled")) }
         let result = try await PluginRuntime.shared.call(id: plugin.uuid, path: plugin.bundlePath, function: "getLoginBundle")
         let scheme = result["scheme"]
         let function = scheme["action"]["fnPath"].string
-        guard !function.isEmpty else { throw PluginError.message(L10n.text("Text.ThePluginDidnTProvideASupportedSignInForm")) }
+        guard !function.isEmpty else { throw PluginError.message(L10n.text("PluginSignIn.UnsupportedForm")) }
         loginFunctions[plugin.uuid] = function
         let values = result["data"]["values"]
         let fields = scheme["fields"].array.map { field in
@@ -236,20 +236,20 @@ package final class PluginService {
     }
 
     package func submitLogin(plugin: PluginRecord, values: [String: String]) async throws {
-        guard plugin.enabled else { throw PluginError.message(L10n.text("Text.ThisPluginIsDisabled")) }
-        guard let function = loginFunctions[plugin.uuid] else { throw PluginError.message(L10n.text("Text.OpenTheSignInFormFirst")) }
+        guard plugin.enabled else { throw PluginError.message(L10n.text("Plugin.Disabled")) }
+        guard let function = loginFunctions[plugin.uuid] else { throw PluginError.message(L10n.text("PluginSignIn.FormRequired")) }
         var payload = values.mapValues(JSONValue.string)
         payload["values"] = .object(values.mapValues(JSONValue.string))
         payload["extern"] = .object([:])
         let response = try await PluginRuntime.shared.call(id: plugin.uuid, path: plugin.bundlePath, function: function, args: .object(payload))
         if response["ok"] == .bool(false) || response["data"]["ok"] == .bool(false) {
-            throw PluginError.message(response["message"].string.isEmpty ? L10n.text("PluginError.SignInFailed") : response["message"].string)
+            throw PluginError.message(response["message"].string.isEmpty ? L10n.text("PluginSignIn.Failed") : response["message"].string)
         }
         initialized.removeValue(forKey: plugin.uuid)
     }
 
     func call(_ plugin: PluginRecord, _ function: String, args: JSONValue = .object([:])) async throws -> JSONValue {
-        guard plugin.enabled else { throw PluginError.message(L10n.text("Text.ThisPluginIsDisabled")) }
+        guard plugin.enabled else { throw PluginError.message(L10n.text("Plugin.Disabled")) }
         let session = try await PluginRuntime.shared.sessionID(id: plugin.uuid, path: plugin.bundlePath)
         if session == nil || initialized[plugin.uuid] != session {
             do {
@@ -311,8 +311,8 @@ package final class PluginService {
                 groups.append(ComicMetadata(id: id, title: title.isEmpty ? id : title, values: values, actions: actions))
             }
         }
-        for (id, title) in [("author", L10n.text("Text.Author")), ("tags", L10n.text("Text.Tags")),
-                            ("categories", L10n.text("Text.Categories")), ("updatedAt", L10n.text("Text.UpdatedAt"))] {
+        for (id, title) in [("author", L10n.text("ComicMetadata.Author")), ("tags", L10n.text("ComicMetadata.Tags")),
+                            ("categories", L10n.text("ComicMetadata.Categories")), ("updatedAt", L10n.text("ComicMetadata.UpdatedAt"))] {
             guard !groups.contains(where: { $0.id == id }) else { continue }
             let value = item[id].isNull ? item["raw"][id] : item[id]
             let values = names(value)
@@ -322,7 +322,7 @@ package final class PluginService {
             let text = entry["name"].string.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { continue }
             let parts = text.split(maxSplits: 1, whereSeparator: { $0 == "：" || $0 == ":" })
-            let title = parts.count == 2 ? String(parts[0]) : L10n.text("Text.OtherInformation")
+            let title = parts.count == 2 ? String(parts[0]) : L10n.text("ComicMetadata.OtherInformation")
             let value = parts.count == 2 ? String(parts[1]).trimmingCharacters(in: .whitespaces) : text
             let formatted = ISO8601DateFormatter().date(from: value).map { $0.formatted(date: .abbreviated, time: .shortened) } ?? value
             groups.append(ComicMetadata(id: "titleMeta_\(index)", title: title, values: [formatted],
@@ -373,13 +373,13 @@ package final class PluginService {
     package nonisolated static func parseCatalog(_ data: Data, subscriptionURL url: URL) throws -> [PluginCandidate] {
         let value = try JSONValue.decode(data)
         let entries = value.array.isEmpty ? value["plugins"].array : value.array
-        guard !entries.isEmpty else { throw PluginError.message(L10n.text("Text.TheSubscriptionCatalogIsEmptyOrUsesAnUnsupportedFormat")) }
+        guard !entries.isEmpty else { throw PluginError.message(L10n.text("Subscription.InvalidCatalog")) }
         var seen: Set<String> = []
         return try entries.map { entry in
             let manifest = entry["manifest"].isNull ? entry : entry["manifest"]
             let id = manifest["uuid"].string
-            guard PluginIdentity.isValid(id) else { throw PluginError.message(L10n.text("PluginError.InvalidSubscriptionIdentifier", defaultValue: "订阅包含无效的插件标识：\(manifest["name"].string)。")) }
-            guard seen.insert(id.lowercased()).inserted else { throw PluginError.message(L10n.text("PluginError.DuplicateSubscriptionIdentifier", defaultValue: "订阅包含重复的插件标识：\(id)。")) }
+            guard PluginIdentity.isValid(id) else { throw PluginError.message(L10n.text("Subscription.InvalidPluginIdentifier", defaultValue: "订阅包含无效的插件标识：\(manifest["name"].string)。")) }
+            guard seen.insert(id.lowercased()).inserted else { throw PluginError.message(L10n.text("Subscription.DuplicatePluginIdentifier", defaultValue: "订阅包含重复的插件标识：\(id)。")) }
             let updateURL = manifest["updateUrl"].string
             return PluginCandidate(id: id, name: manifest["name"].string, version: manifest["version"].string,
                 description: manifest["describe"].string, downloadURL: URL(string: updateURL), subscriptionURL: url.absoluteString, npmName: manifest["npmName"].string)
@@ -402,12 +402,12 @@ private actor PluginTransfer {
         let accessed = url.startAccessingSecurityScopedResource()
         defer { if accessed { url.stopAccessingSecurityScopedResource() } }
         let data = try Data(contentsOf: url)
-        guard data.count <= 16 * 1024 * 1024 else { throw PluginError.message(L10n.text("Text.ThePluginFileIsTooLarge")) }
+        guard data.count <= 16 * 1024 * 1024 else { throw PluginError.message(L10n.text("PluginInstall.FileTooLarge")) }
         return url.pathExtension == "br" ? try await PluginRuntime.shared.decompress(data) : String(decoding: data, as: UTF8.self)
     }
 
     func prepare(source: String, expectedID: String?) async throws -> PreparedBundle {
-        guard source.contains("getInfo"), source.utf8.count <= 16 * 1024 * 1024 else { throw PluginError.message(L10n.text("Text.ThisFileIsnTAValidBreezePlugin")) }
+        guard source.contains("getInfo"), source.utf8.count <= 16 * 1024 * 1024 else { throw PluginError.message(L10n.text("PluginInstall.InvalidPluginFile")) }
         let temporaryID = "install-" + UUID().uuidString
         let root = try PluginRuntime.storageDirectory()
         let temporary = root.appendingPathComponent(temporaryID + ".cjs")
@@ -422,8 +422,8 @@ private actor PluginTransfer {
             throw error
         }
         let id = info["uuid"].string
-        guard PluginIdentity.isValid(id), !info["name"].string.isEmpty, !info["version"].string.isEmpty else { throw PluginError.message(L10n.text("Text.ThePluginIsMissingAValidUUIDNameOrVersion")) }
-        if let expectedID, expectedID != id { throw PluginError.message(L10n.text("Message.InstallationWasCanceledBecauseThePluginIDDidnTMatchTheSubscriptionCatalog")) }
+        guard PluginIdentity.isValid(id), !info["name"].string.isEmpty, !info["version"].string.isEmpty else { throw PluginError.message(L10n.text("PluginInstall.InvalidManifest")) }
+        if let expectedID, expectedID != id { throw PluginError.message(L10n.text("PluginInstall.SubscriptionIdentifierMismatch")) }
         // Versioned files allow rollback if saving the installation fails.
         let destination = root.appendingPathComponent(id + "-" + UUID().uuidString + ".cjs")
         try Data(source.utf8).write(to: destination, options: [.atomic, .completeFileProtection])
@@ -458,17 +458,17 @@ private actor PluginTransfer {
         let release = try JSONValue.decode(try await download(url, limit: 4 * 1024 * 1024))
         let assets = release["assets"].array
         let asset = assets.first { $0["name"].string.hasSuffix(".cjs.br") } ?? assets.first { $0["name"].string.hasSuffix(".cjs") }
-        guard let asset, let download = URL(string: asset["browser_download_url"].string) else { throw PluginError.message(L10n.text("Text.ThisReleaseDoesnTIncludeABreezePluginFile")) }
+        guard let asset, let download = URL(string: asset["browser_download_url"].string) else { throw PluginError.message(L10n.text("PluginInstall.MissingReleaseAsset")) }
         return try await downloadScript(download)
     }
     func downloadScript(_ url: URL) async throws -> String {
         let data = try await download(url, limit: 16 * 1024 * 1024)
         if url.pathExtension == "br" { return try await PluginRuntime.shared.decompress(data) }
-        guard let text = String(data: data, encoding: .utf8) else { throw PluginError.message(L10n.text("Text.ThePluginIsNotEncodedInUTF8")) }
+        guard let text = String(data: data, encoding: .utf8) else { throw PluginError.message(L10n.text("PluginInstall.InvalidEncoding")) }
         return text
     }
     private func validateRemote(_ url: URL) throws {
-        guard url.scheme == "https", url.host != nil else { throw PluginError.message(L10n.text("Text.EnterAValidHTTPSAddress")) }
+        guard url.scheme == "https", url.host != nil else { throw PluginError.message(L10n.text("Network.InvalidHTTPSURL")) }
     }
     private func download(_ url: URL, limit: Int) async throws -> Data {
         try validateRemote(url)
@@ -477,22 +477,22 @@ private actor PluginTransfer {
         request.setValue("Willow/1.0", forHTTPHeaderField: "User-Agent")
         let bytes: URLSession.AsyncBytes
         let response: URLResponse
-        let host = url.host ?? L10n.text("Text.DownloadServer")
+        let host = url.host ?? L10n.text("Network.DownloadServer")
         do { (bytes, response) = try await URLSession.shared.bytes(for: request) }
         catch {
             try Task.checkCancellation()
-            throw PluginError.message(L10n.text("NetworkError.ServerFailure", defaultValue: "\(host)：\(error.localizedDescription)"))
+            throw PluginError.message(L10n.text("Network.ServerFailure", defaultValue: "\(host)：\(error.localizedDescription)"))
         }
         guard let http = response as? HTTPURLResponse, http.url?.scheme == "https" else {
-            throw PluginError.message(L10n.text("NetworkError.InvalidResponse", defaultValue: "\(host)：服务器返回无效响应。"))
+            throw PluginError.message(L10n.text("Network.InvalidResponse", defaultValue: "\(host)：服务器返回无效响应。"))
         }
         guard (200..<300).contains(http.statusCode) else {
-            let hint = http.statusCode == 429 || (http.statusCode == 403 && http.value(forHTTPHeaderField: "X-RateLimit-Remaining") == "0") ? L10n.text("NetworkError.RateLimited") : ""
-            throw PluginError.message(L10n.text("NetworkError.HTTPStatus", defaultValue: "\(host)：HTTP \(http.statusCode)\(hint)。"))
+            let hint = http.statusCode == 429 || (http.statusCode == 403 && http.value(forHTTPHeaderField: "X-RateLimit-Remaining") == "0") ? L10n.text("Network.RateLimited") : ""
+            throw PluginError.message(L10n.text("Network.HTTPStatus", defaultValue: "\(host)：HTTP \(http.statusCode)\(hint)。"))
         }
         var data = Data()
         for try await byte in bytes {
-            if data.count >= limit { throw PluginError.message(L10n.text("Text.TheDownloadExceedsTheSizeLimit")) }
+            if data.count >= limit { throw PluginError.message(L10n.text("Network.DownloadTooLarge")) }
             data.append(byte)
         }
         return data

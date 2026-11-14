@@ -24,9 +24,9 @@ final class SettingsModel {
             self.appLock = appLock
             syncFailure = persistence.syncFailure
             syncStatus = switch persistence.syncStatus {
-            case .iCloud: L10n.resource("Text.Configured")
-            case .localOnly: L10n.resource("Text.OnThisDevice")
-            case .inMemory: L10n.resource("Text.TemporaryStorage")
+            case .iCloud: L10n.resource("ICloudSync.Configured")
+            case .localOnly: L10n.resource("ICloudSync.OnThisDevice")
+            case .inMemory: L10n.resource("ICloudSync.TemporaryStorage")
             }
         }
     }

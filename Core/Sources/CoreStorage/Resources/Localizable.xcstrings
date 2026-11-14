@@ -1,7 +1,7 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "Text.EnableBiometricProtectionForYourWillowLibrary": {
+    "AppLock.EnableReason": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -18,7 +18,7 @@
         }
       }
     },
-    "Text.TurnOffProtectionForYourWillowLibrary": {
+    "AppLock.DisableReason": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -35,7 +35,7 @@
         }
       }
     },
-    "Text.ThisBuildCanTAccessItsICloudContainer": {
+    "Persistence.BuildCannotAccessCloudContainer": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -52,7 +52,7 @@
         }
       }
     },
-    "Text.ThisChapterHasNoPagesToDownload": {
+    "Downloads.EmptyChapter": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -69,7 +69,7 @@
         }
       }
     },
-    "Text.Biometrics": {
+    "Biometrics.GenericName": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -86,7 +86,7 @@
         }
       }
     },
-    "Text.UnlockYourWillowLibrary": {
+    "AppLock.UnlockReason": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -103,7 +103,7 @@
         }
       }
     },
-    "Message.DownloadFileOperationInProgress": {
+    "Downloads.FileOperationInProgress": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -120,7 +120,7 @@
         }
       }
     },
-    "Message.EnterTagName": {
+    "LocalTags.NameRequired": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -137,7 +137,7 @@
         }
       }
     },
-    "Text.FaceID": {
+    "Biometrics.FaceID": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -154,7 +154,7 @@
         }
       }
     },
-    "Text.TouchID": {
+    "Biometrics.TouchID": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -171,7 +171,7 @@
         }
       }
     },
-    "Text.OpticID": {
+    "Biometrics.OpticID": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -188,7 +188,7 @@
         }
       }
     },
-    "Message.SimulatorLocalStorage": {
+    "Persistence.SimulatorLocalStorage": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -205,7 +205,7 @@
         }
       }
     },
-    "Message.CloudContainerUnavailable": {
+    "Persistence.CloudContainerUnavailable": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -222,7 +222,7 @@
         }
       }
     },
-    "Text.LicenseSourceCode": {
+    "Licenses.SourceCode": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -239,7 +239,7 @@
         }
       }
     },
-    "Text.BundledLicenseNotices": {
+    "Licenses.BundledLicenseNotices": {
       "extractionState": "manual",
       "localizations": {
         "en": {

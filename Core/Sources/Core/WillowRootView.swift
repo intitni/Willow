@@ -61,7 +61,7 @@ public struct WillowRootView: View {
                 .environment(model.appLock)
                 .tint(WillowTheme.accent)
         case .failure(let error):
-            RetryView(title: L10n.text("Text.CouldnTOpenWillow"), message: error.localizedDescription, retry: model.retry)
+            RetryView(title: L10n.text("App.StartupFailed"), message: error.localizedDescription, retry: model.retry)
                 .tint(WillowTheme.accent)
         }
     }
@@ -105,19 +105,19 @@ private struct WillowTabs: View {
     var body: some View {
         @Bindable var notices = PluginNoticeModel.shared.viewModel
         TabView {
-            Tab(L10n.text("Text.Library"), systemImage: "books.vertical") {
+            Tab(L10n.text("Shelf.Title"), systemImage: "books.vertical") {
                 NavigationStack { LibraryView(kind: .favorites) }
             }
-            Tab(L10n.text("Text.History"), systemImage: "clock") {
+            Tab(L10n.text("History.TabTitle"), systemImage: "clock") {
                 NavigationStack { LibraryView(kind: .history) }
             }
-            Tab(L10n.text("Text.Downloads"), systemImage: "arrow.down.circle") {
+            Tab(L10n.text("Downloads.Title"), systemImage: "arrow.down.circle") {
                 NavigationStack { DownloadsView() }
             }
-            Tab(L10n.text("Text.Discover"), systemImage: "safari") {
+            Tab(L10n.text("Discover.Title"), systemImage: "safari") {
                 NavigationStack { DiscoverView() }
             }
-            Tab(L10n.text("Text.Settings"), systemImage: "gearshape") {
+            Tab(L10n.text("Settings.Title"), systemImage: "gearshape") {
                 NavigationStack { SettingsView(persistence: persistence) }
             }
         }
@@ -130,13 +130,13 @@ private struct LockedView: View {
 
     var body: some View {
         ContentUnavailableView {
-            Label(L10n.text("Text.WillowIsLocked"), systemImage: "lock")
+            Label(L10n.text("AppLock.LockedTitle"), systemImage: "lock")
         } description: {
             if let error = appLock.errorMessage {
                 Text(error)
             }
         } actions: {
-            Button(L10n.text("Text.Unlock")) {
+            Button(L10n.text("AppLock.Unlock")) {
                 Task { await appLock.unlock() }
             }
             .buttonStyle(.glassProminent)

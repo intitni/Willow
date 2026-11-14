@@ -1,7 +1,7 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "RuntimeError.EmptyImage" : {
+    "PluginImage.EmptyImage" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -18,7 +18,7 @@
         }
       }
     },
-    "RuntimeError.InstallSourceFirst" : {
+    "PluginImage.InstallSourceFirst" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -35,7 +35,7 @@
         }
       }
     },
-    "RuntimeError.InvalidFileIdentifier" : {
+    "PluginRuntime.InvalidFileIdentifier" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -52,7 +52,7 @@
         }
       }
     },
-    "RuntimeError.InvalidImageIdentifier" : {
+    "PluginImage.InvalidImageIdentifier" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -69,7 +69,7 @@
         }
       }
     },
-    "RuntimeError.InvalidSourceIdentifier" : {
+    "PluginImage.InvalidSourceIdentifier" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -86,7 +86,7 @@
         }
       }
     },
-    "RuntimeError.MissingPluginFile" : {
+    "PluginRuntime.MissingPluginFile" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -103,7 +103,7 @@
         }
       }
     },
-    "RuntimeError.NoResult" : {
+    "PluginRuntime.NoResult" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -120,7 +120,7 @@
         }
       }
     },
-    "SecurityError.AccessKey" : {
+    "PluginConfiguration.KeyAccessFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -137,7 +137,7 @@
         }
       }
     },
-    "SecurityError.GenerateKey" : {
+    "PluginConfiguration.KeyGenerationFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -154,7 +154,7 @@
         }
       }
     },
-    "SecurityError.InvalidKey" : {
+    "PluginConfiguration.InvalidKey" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -171,7 +171,7 @@
         }
       }
     },
-    "SecurityError.MissingKey" : {
+    "PluginConfiguration.MissingKey" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -188,7 +188,7 @@
         }
       }
     },
-    "SecurityError.SaveKey" : {
+    "PluginConfiguration.KeySaveFailed" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -205,7 +205,7 @@
         }
       }
     },
-    "Text.InstallThisImageSourceSPluginOnThisDeviceFirst" : {
+    "PluginImage.SourceNotInstalled" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -222,7 +222,7 @@
         }
       }
     },
-    "Text.TheImageIdentifierIsInvalid" : {
+    "PluginImage.InvalidImageID" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -239,7 +239,7 @@
         }
       }
     },
-    "Text.TheImageSourceIdentifierIsInvalid" : {
+    "PluginImage.InvalidSourceID" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -256,7 +256,7 @@
         }
       }
     },
-    "Text.ThePluginReturnedAnEmptyImage" : {
+    "PluginImage.NoImageData" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -273,7 +273,7 @@
         }
       }
     },
-    "Text.ThePluginRuntimeDidnTReturnAResult" : {
+    "PluginRuntime.MissingResult" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

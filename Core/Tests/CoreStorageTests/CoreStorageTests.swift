@@ -11,8 +11,8 @@ struct CoreStorageTests {
         let englishBundle = try #require(Bundle(url: englishURL))
         let chineseURL = try #require(L10n.bundle.url(forResource: "zh-Hans", withExtension: "lproj"))
         let chineseBundle = try #require(Bundle(url: chineseURL))
-        #expect(String(localized: "Message.EnterTagName", bundle: englishBundle) == "Enter a tag name.")
-        #expect(String(localized: "Message.EnterTagName", bundle: chineseBundle) == "请输入标签名称。")
+        #expect(String(localized: "LocalTags.NameRequired", bundle: englishBundle) == "Enter a tag name.")
+        #expect(String(localized: "LocalTags.NameRequired", bundle: chineseBundle) == "请输入标签名称。")
     }
 
     @Test func `Library merges records and protects cloud fields`() throws {

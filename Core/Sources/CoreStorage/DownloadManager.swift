@@ -282,8 +282,8 @@ private enum DownloadError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .emptyChapter: L10n.text("Text.ThisChapterHasNoPagesToDownload")
-        case .operationInProgress: L10n.text("Message.DownloadFileOperationInProgress")
+        case .emptyChapter: L10n.text("Downloads.EmptyChapter")
+        case .operationInProgress: L10n.text("Downloads.FileOperationInProgress")
         }
     }
 }

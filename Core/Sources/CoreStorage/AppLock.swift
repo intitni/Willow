@@ -26,10 +26,10 @@ package final class AppLock {
         let context = LAContext()
         _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
         switch context.biometryType {
-        case .faceID: return L10n.text("Text.FaceID")
-        case .touchID: return L10n.text("Text.TouchID")
-        case .opticID: return L10n.text("Text.OpticID")
-        default: return L10n.text("Text.Biometrics")
+        case .faceID: return L10n.text("Biometrics.FaceID")
+        case .touchID: return L10n.text("Biometrics.TouchID")
+        case .opticID: return L10n.text("Biometrics.OpticID")
+        default: return L10n.text("Biometrics.GenericName")
         }
     }
 
@@ -46,7 +46,7 @@ package final class AppLock {
         guard isLocked else { return }
         await authenticate(
             policy: .deviceOwnerAuthentication,
-            reason: L10n.text("Text.UnlockYourWillowLibrary")
+            reason: L10n.text("AppLock.UnlockReason")
         ) {
             isLocked = false
         }
@@ -56,8 +56,8 @@ package final class AppLock {
         guard enabled != isEnabled, !isLocked else { return }
         let policy: LAPolicy = enabled ? .deviceOwnerAuthenticationWithBiometrics : .deviceOwnerAuthentication
         let reason = enabled
-            ? L10n.text("Text.EnableBiometricProtectionForYourWillowLibrary")
-            : L10n.text("Text.TurnOffProtectionForYourWillowLibrary")
+            ? L10n.text("AppLock.EnableReason")
+            : L10n.text("AppLock.DisableReason")
         await authenticate(policy: policy, reason: reason) {
             defaults.set(enabled, forKey: Self.preferenceKey)
             isEnabled = enabled

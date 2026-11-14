@@ -19,11 +19,11 @@ struct ChapterDownloadPresentation: Equatable {
 
     var title: String {
         switch status {
-        case .queued: L10n.text("Text.Queued")
-        case .downloading: L10n.text("Text.DownloadProgress")
-        case .paused: L10n.text("Text.Paused")
-        case .completed: L10n.text("Text.Downloaded")
-        case .failed: L10n.text("Text.DownloadFailed")
+        case .queued: L10n.text("DownloadStatus.Queued")
+        case .downloading: L10n.text("DownloadStatus.InProgress")
+        case .paused: L10n.text("DownloadStatus.Paused")
+        case .completed: L10n.text("DownloadStatus.Completed")
+        case .failed: L10n.text("DownloadStatus.Failed")
         }
     }
 
@@ -171,7 +171,7 @@ final class ComicDetailModel {
         viewModel.loadError = nil
         updatePresentation(inputs)
         guard let plugin = inputs.plugin else {
-            viewModel.loadError = L10n.text("Text.ThisSourceIsDisabledOrHasnTBeenInstalled")
+            viewModel.loadError = L10n.text("ComicDetail.SourceUnavailable")
             return
         }
         do {
@@ -221,7 +221,7 @@ final class ComicDetailModel {
                 for chapter in chapters where viewModel.downloadStatuses[chapter.id] != .completed {
                     viewModel.pendingDownloads.insert(chapter.id)
                     let urls = try await PluginService.shared.pages(plugin: plugin, comicID: comicID, chapterID: chapter.id)
-                    guard !urls.isEmpty else { throw PluginError.message(L10n.text("Message.ChapterHasNoPages", defaultValue: "章节“\(chapter.title)”没有可下载的页面。")) }
+                    guard !urls.isEmpty else { throw PluginError.message(L10n.text("ComicDetail.EmptyChapter", defaultValue: "章节“\(chapter.title)”没有可下载的页面。")) }
                     prepared.append((chapter, urls))
                 }
                 let record = try findRecord(context: context)
@@ -231,7 +231,7 @@ final class ComicDetailModel {
                     try await downloads.enqueue(sourceID: sourceID, comicID: comicID, chapterID: chapter.id,
                         title: chapter.title, pageURLs: urls)
                 }
-                Toast.info(L10n.text("Text.AddedToDownloadQueue"))
+                Toast.info(L10n.text("DownloadStatus.AddedToQueue"))
             } catch { Toast.error(error.localizedDescription) }
         }
     }

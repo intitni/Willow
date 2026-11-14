@@ -69,7 +69,7 @@ struct ComicDetailView: View {
                 .listRowBackground(Color(uiColor: .secondarySystemBackground))
 
                 if !state.metadata.isEmpty {
-                    Section(L10n.text("Text.ComicInformation")) {
+                    Section(L10n.text("ComicDetail.Information")) {
                         ForEach(state.metadata) { group in
                             if group.actions?.isEmpty != false {
                                 ForEach(Array(group.values.enumerated()), id: \.offset) { _, value in
@@ -102,7 +102,7 @@ struct ComicDetailView: View {
                     .listRowBackground(Color(uiColor: .secondarySystemBackground))
                 }
                 if state.detail == nil && state.loadError == nil {
-                    Section { ProgressView(L10n.text("Text.LoadingDetails")).frame(maxWidth: .infinity) }
+                    Section { ProgressView(L10n.text("ComicDetail.Loading")).frame(maxWidth: .infinity) }
                         .listRowBackground(Color(uiColor: .secondarySystemBackground))
                 }
 
@@ -137,7 +137,7 @@ struct ComicDetailView: View {
                 Button {
                     model.enqueueComic(plugin: inputs.plugin, context: context, downloads: downloads)
                 } label: {
-                    Label(state.preparingDownload ? L10n.text("Text.PreparingDownload") : L10n.text("Text.DownloadComic"), systemImage: "arrow.down.circle")
+                    Label(state.preparingDownload ? L10n.text("DownloadStatus.Preparing") : L10n.text("ComicDetail.DownloadComic"), systemImage: "arrow.down.circle")
                 }
                 .disabled(!state.allowsDownload || state.chapters.isEmpty || state.preparingDownload)
 
@@ -151,13 +151,13 @@ struct ComicDetailView: View {
                 Button {
                     reader = state.startingChapter
                 } label: {
-                    Label(state.activeChapterID != nil ? L10n.text("Text.ContinueReading") : L10n.text("Text.StartReading"), systemImage: "book")
+                    Label(state.activeChapterID != nil ? L10n.text("ComicDetail.ContinueReading") : L10n.text("ComicDetail.StartReading"), systemImage: "book")
                 }
                 .disabled(state.chapters.isEmpty)
                 .buttonStyle(.glassProminent)
             }
         }
-        .navigationTitle(L10n.text("Text.ComicDetails"))
+        .navigationTitle(L10n.text("ComicDetail.Title"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: inputs, initial: true) { _, inputs in model.updatePresentation(inputs) }
         .refreshable { await model.loadDetail(inputs: inputs, context: context) }
@@ -217,7 +217,7 @@ private struct ChapterList: View {
     var body: some View {
         Section {
             if chapters.isEmpty {
-                Text(L10n.text("Text.NoChaptersAvailable")).foregroundStyle(.secondary)
+                Text(L10n.text("ComicDetail.NoChapters")).foregroundStyle(.secondary)
             }
             ForEach(chapters, id: \.id) { chapter in
                 let downloadState = downloads[chapter.id]
@@ -231,7 +231,7 @@ private struct ChapterList: View {
                                 Text(chapter.title)
                                     .foregroundStyle(chapter.id == activeChapterID ? WillowTheme.accent : .primary)
                                 if pendingDownloads.contains(chapter.id) {
-                                    Text(L10n.text("Text.PreparingDownload"))
+                                    Text(L10n.text("DownloadStatus.Preparing"))
                                         .font(.caption).foregroundStyle(.secondary)
                                 } else if let downloadState {
                                     HStack {
@@ -255,14 +255,14 @@ private struct ChapterList: View {
                     } else if status == .queued || status == .downloading {
                         Image(systemName: "clock.arrow.circlepath")
                             .foregroundStyle(.secondary)
-                            .accessibilityLabel(L10n.text("Text.AddedToDownloadQueue"))
+                            .accessibilityLabel(L10n.text("DownloadStatus.AddedToQueue"))
                     } else if status == .completed {
                         Image(systemName: "checkmark.circle")
                             .foregroundStyle(.secondary)
-                            .accessibilityLabel(L10n.text("Text.Downloaded"))
+                            .accessibilityLabel(L10n.text("DownloadStatus.Completed"))
                     } else {
-                        Button(status == .paused ? L10n.text("Text.ResumeDownload") :
-                               status == .failed ? L10n.text("Text.Retry") : L10n.text("Text.DownloadChapter"),
+                        Button(status == .paused ? L10n.text("DownloadStatus.Resume") :
+                               status == .failed ? L10n.text("Text.Retry") : L10n.text("ComicDetail.DownloadChapter"),
                                systemImage: status == .failed ? "arrow.clockwise" : "arrow.down.circle") { download(chapter) }
                             .labelStyle(CompactActionLabelStyle())
                             .font(.subheadline)
@@ -277,7 +277,7 @@ private struct ChapterList: View {
             HStack {
                 Text(L10n.text("Text.Chapters"))
                 Spacer()
-                Button(L10n.text("Text.ReverseChapterOrder"), systemImage: "arrow.up.arrow.down", action: reverse)
+                Button(L10n.text("ComicDetail.ReverseChapterOrder"), systemImage: "arrow.up.arrow.down", action: reverse)
                     .labelStyle(.iconOnly)
             }
         }
