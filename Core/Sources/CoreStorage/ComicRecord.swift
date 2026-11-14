@@ -11,6 +11,7 @@ package final class ComicRecord {
     @Attribute(.allowsCloudEncryption) package var author: String = ""
     @Attribute(.allowsCloudEncryption) package var summary: String = ""
     @Attribute(.allowsCloudEncryption) package var isFavorite: Bool = false
+    // Retain the legacy field for existing SwiftData stores and CloudKit records.
     @Attribute(.allowsCloudEncryption) package var collectionName: String = ""
     @Attribute(.allowsCloudEncryption) package var lastReadAt: Date?
     @Attribute(.allowsCloudEncryption) package var chapterID: String?

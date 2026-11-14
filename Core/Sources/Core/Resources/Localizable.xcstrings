@@ -167,23 +167,6 @@
         }
       }
     },
-    "Shelf.MoveToCollectionDescription" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter an existing or new collection name. Leave it blank to remove the comic from its collection."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "填写现有或新的分组名称。留空会移出分组。"
-          }
-        }
-      }
-    },
     "PluginManagement.InstallURLPrompt" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -507,23 +490,6 @@
         }
       }
     },
-    "Shelf.AllCollections" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部"
-          }
-        }
-      }
-    },
     "LocalTags.AllTags" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -809,40 +775,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "云端收藏"
-          }
-        }
-      }
-    },
-    "Shelf.CollectionName" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collection Name"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "分组名称"
-          }
-        }
-      }
-    },
-    "Shelf.Collections" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collections"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "收藏分组"
           }
         }
       }
@@ -1999,40 +1931,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更多"
-          }
-        }
-      }
-    },
-    "Shelf.MoveComic" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "移动"
-          }
-        }
-      }
-    },
-    "Shelf.MoveToCollection" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Move to Collection"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "移到收藏分组"
           }
         }
       }
@@ -3670,13 +3568,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Try another search, collection, or tag."
+            "value" : "Try another search or change the tag filter."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "试试其他搜索条件、收藏分组或标签。"
+            "value" : "试试其他搜索词，或调整标签筛选。"
           }
         }
       }

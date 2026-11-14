@@ -18,8 +18,6 @@ struct LibraryView: View {
     @Query(sort: \LocalTagRecord.name) private var localTags: [LocalTagRecord]
     @State private var editingTags: LibraryItem?
     @State private var model: LibraryModel
-    @State private var movingComic: LibraryItem?
-    @State private var collectionName = ""
     let kind: Kind
 
     init(kind: Kind) {
@@ -54,10 +52,6 @@ struct LibraryView: View {
                         ForEach(viewModel.items) { comic in
                             LibraryGridTile(comic: comic, isHistory: kind == .history,
                                 editTags: { editingTags = comic },
-                                move: {
-                                    collectionName = comic.collectionName
-                                    movingComic = comic
-                                },
                                 remove: { model.remove(comic, fromFavorites: kind == .favorites) })
                         }
                     }
@@ -87,33 +81,11 @@ struct LibraryView: View {
                     }
                 }
             }
-            if kind == .favorites && !viewModel.collections.isEmpty {
-                Menu(L10n.text("Shelf.Collections"), systemImage: "folder") {
-                    Picker(L10n.text("Shelf.Collections"), selection: Binding(get: { viewModel.collection }, set: model.selectCollection)) {
-                        Text(L10n.text("Shelf.AllCollections")).tag(nil as String?)
-                        ForEach(viewModel.collections, id: \.self) { name in
-                            Text(name).tag(Optional(name))
-                        }
-                    }
-                }
-            }
         }
         .sheet(item: $editingTags) { comic in LocalTagEditor(comicKey: comic.id).modifier(AppLockShield()) }
         .onChange(of: localTags.map(LocalTagSnapshot.init), initial: true) { _, tags in model.updateTags(tags) }
         .onChange(of: comics.map(LibraryItem.init), initial: true) { _, items in
             model.update(context: context, items: items)
-        }
-        .alert(L10n.text("Shelf.MoveToCollection"), isPresented: Binding(
-            get: { movingComic != nil },
-            set: { if !$0 { movingComic = nil } }
-        ), presenting: movingComic) { comic in
-            TextField(L10n.text("Shelf.CollectionName"), text: $collectionName)
-            Button(L10n.text("Shelf.MoveComic")) {
-                model.move(comic, to: collectionName)
-            }
-            Button(L10n.text("Text.Cancel"), role: .cancel) {}
-        } message: { _ in
-            Text(L10n.text("Shelf.MoveToCollectionDescription"))
         }
         .modifier(ErrorAlert(error: $viewModel.error))
     }
@@ -124,7 +96,6 @@ private struct LibraryGridTile: View {
     let comic: LibraryItem
     let isHistory: Bool
     let editTags: () -> Void
-    let move: () -> Void
     let remove: () -> Void
 
     var body: some View {
@@ -136,9 +107,6 @@ private struct LibraryGridTile: View {
                 if isHistory, let date = comic.lastReadAt {
                     Text(date, format: .dateTime.month().day().hour().minute())
                         .font(.caption).foregroundStyle(.secondary)
-                } else if !isHistory, !comic.collectionName.isEmpty {
-                    Label(comic.collectionName, systemImage: "folder")
-                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
@@ -146,7 +114,6 @@ private struct LibraryGridTile: View {
         .contextMenu {
             if !isHistory {
                 Button(L10n.text("LocalTags.Edit"), systemImage: "tag", action: editTags)
-                Button(L10n.text("Shelf.MoveToCollection"), systemImage: "folder", action: move)
             }
             Button(role: .destructive, action: remove) {
                 Label(isHistory ? L10n.text("History.RemoveComic") : L10n.text("Shelf.RemoveBookmark"), systemImage: "trash")

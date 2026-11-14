@@ -8,7 +8,6 @@ struct LibraryItem: Identifiable, Equatable {
     let id: String
     let sourceID: String
     let comic: ComicSummary
-    let collectionName: String
     let lastReadAt: Date?
     let detailJSON: Data?
 
@@ -17,7 +16,6 @@ struct LibraryItem: Identifiable, Equatable {
         sourceID = record.sourceID
         comic = ComicSummary(id: record.comicID, title: record.title, coverURL: URL(string: record.coverURL),
                              author: record.author, summary: record.summary)
-        collectionName = record.collectionName
         lastReadAt = record.lastReadAt
         detailJSON = record.detailJSON
     }
@@ -30,10 +28,8 @@ enum LibrarySort: String, CaseIterable {
 @MainActor @Observable
 final class LibraryViewModel {
     fileprivate(set) var items: [LibraryItem] = []
-    fileprivate(set) var collections: [String] = []
     fileprivate(set) var isEmpty = true
     fileprivate(set) var search = ""
-    fileprivate(set) var collection: String?
     fileprivate(set) var sort: LibrarySort = .recentlyRead
     fileprivate(set) var hasMore = false
     fileprivate(set) var tags: [LocalTagSnapshot] = []
@@ -76,13 +72,10 @@ final class LibraryModel {
         allItems = items.filter { seen.insert($0.id).inserted }
         updateSearchMetadata()
         viewModel.isEmpty = allItems.isEmpty
-        viewModel.collections = Set(allItems.map(\.collectionName).filter { !$0.isEmpty }).sorted()
-        if let current = viewModel.collection, !viewModel.collections.contains(current) { viewModel.collection = nil }
         filter()
     }
 
     func search(_ value: String) { viewModel.search = value; visibleCount = 40; filter() }
-    func selectCollection(_ value: String?) { viewModel.collection = value; visibleCount = 40; filter() }
 
     func updateTags(_ tags: [LocalTagSnapshot]) {
         viewModel.tags = tags
@@ -96,26 +89,24 @@ final class LibraryModel {
         filter()
     }
 
-    func move(_ item: LibraryItem, to name: String) {
-        mutate(item) { $0.collectionName = name.trimmingCharacters(in: .whitespacesAndNewlines) }
-    }
     func remove(_ item: LibraryItem, fromFavorites: Bool) {
-        mutate(item) { record in
-            if fromFavorites { record.isFavorite = false }
-            else { record.lastReadAt = nil; record.chapterID = nil; record.pageIndex = 0 }
-        }
-    }
-    private func mutate(_ item: LibraryItem, change: (ComicRecord) -> Void) {
         guard let context else { return }
         do {
             let id = item.id
             let records = try context.fetch(FetchDescriptor<ComicRecord>(predicate: #Predicate { $0.id == id }))
-            for record in records { change(record) }
+            for record in records {
+                if fromFavorites {
+                    record.isFavorite = false
+                } else {
+                    record.lastReadAt = nil
+                    record.chapterID = nil
+                    record.pageIndex = 0
+                }
+            }
             try context.save()
         } catch { context.rollback(); viewModel.error = error.localizedDescription }
     }
     private func filter() {
-        let collection = viewModel.collection
         let search = viewModel.search.trimmingCharacters(in: .whitespacesAndNewlines)
         var matchingTagComicKeys: Set<String> = []
         if !search.isEmpty {
@@ -124,8 +115,7 @@ final class LibraryModel {
             }
         }
         filteredItems = allItems.filter { item in
-            guard collection == nil || item.collectionName == collection,
-                  LocalTagSnapshot.matches(comicKey: item.id, selected: viewModel.selectedTags, tags: viewModel.tags)
+            guard LocalTagSnapshot.matches(comicKey: item.id, selected: viewModel.selectedTags, tags: viewModel.tags)
             else { return false }
 
             return search.isEmpty
