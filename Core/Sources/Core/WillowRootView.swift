@@ -113,7 +113,7 @@ private struct WillowTabs: View {
 
     var body: some View {
         @Bindable var notices = PluginNoticeModel.shared.viewModel
-        let updateBadge: String? = updates.isUpdateAvailable == true ? "" : nil
+        let updateBadge = updates.isUpdateAvailable == true ? Text(verbatim: "") : nil
         TabView {
             Tab(L10n.text("Shelf.Title"), systemImage: "books.vertical") {
                 NavigationStack { LibraryView(kind: .favorites) }

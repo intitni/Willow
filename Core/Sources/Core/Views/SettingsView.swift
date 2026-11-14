@@ -22,6 +22,8 @@ private struct SettingsForm: View {
     var body: some View {
         @Bindable var viewModel = model.viewModel
         Form {
+            UpdateSettingsSection(model: updates)
+
             Section(L10n.text("Text.Sources")) {
                 NavigationLink {
                     PluginManagementView()
@@ -55,18 +57,6 @@ private struct SettingsForm: View {
 
             Section {
                 NavigationLink {
-                    UpdatesView(model: updates)
-                } label: {
-                    HStack {
-                        Label(L10n.text("About.Updates"), systemImage: "arrow.triangle.2.circlepath")
-                        if updates.isUpdateAvailable == true {
-                            Spacer()
-                            Text(L10n.text("About.UpdateAvailable"))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                NavigationLink {
                     AboutView()
                 } label: {
                     Label(L10n.text("Settings.AboutAndLicenses"), systemImage: "info.circle")
@@ -78,6 +68,48 @@ private struct SettingsForm: View {
             model.reloadReaderPreferences()
         }
         .modifier(ErrorAlert(error: $viewModel.error))
+    }
+}
+
+private struct UpdateSettingsSection: View {
+    let model: UpdateModel
+
+    var body: some View {
+        Section {
+            NavigationLink {
+                UpdatesView(model: model)
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(L10n.resource("About.Updates"))
+                        if let status {
+                            Text(status)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } icon: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                }
+            }
+
+            Link(destination: URL(string: "https://github.com/intitni/Willow")!) {
+                Label {
+                    Text(verbatim: "GitHub")
+                } icon: {
+                    Image(systemName: "arrow.up.right.square")
+                }
+            }
+        }
+    }
+
+    private var status: LocalizedStringResource? {
+        if model.isUpdateAvailable == true { return L10n.resource("About.UpdateAvailable") }
+        if model.isCheckingUpdates { return L10n.resource("About.CheckingForUpdates") }
+        if model.updateCheckFailed { return L10n.resource("About.UpdateCheckFailed") }
+        if model.noPublishedRelease { return L10n.resource("About.NoPublishedReleaseYet") }
+        if model.isUpdateAvailable == false { return L10n.resource("About.UpToDate") }
+        return nil
     }
 }
 
@@ -124,11 +156,14 @@ private struct UpdatesView: View {
                 }
             }
 
-            if let notes = model.latestRelease?.notes,
-               !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Section(L10n.text("About.ReleaseNotes")) {
-                    Text(notes)
+            Section(L10n.text("About.ReleaseNotes")) {
+                if let notes = model.latestRelease?.notes,
+                   !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(verbatim: notes)
                         .textSelection(.enabled)
+                } else {
+                    Text(L10n.resource("About.NoReleaseNotes"))
+                        .foregroundStyle(.secondary)
                 }
             }
         }
