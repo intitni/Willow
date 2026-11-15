@@ -1,4 +1,5 @@
 import BreezePlugins
+import CorePresentation
 import CoreStorage
 import SwiftData
 import SwiftUI
@@ -21,21 +22,36 @@ struct ReaderView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.modelContext) private var context
     @Environment(DownloadManager.self) private var downloads
+    @Environment(\.hiddenNSFWSources) private var hiddenSources
     @Query private var plugins: [PluginRecord]
     @AppStorage("reader.mode") private var mode = ReaderMode.vertical
     @AppStorage("reader.spreads") private var spreads = true
+    @State private var pairsFromSecondPage = false
     @State private var model: ReaderModel
     @State private var showsControls = true
     @State private var showsChapters = false
+    private let sourceID: String
 
     init(sourceID: String, comicID: String, comic: ComicSummary, chapters: [ComicChapter], initialChapter: ComicChapter,
          detail: ComicDetail?) {
+        self.sourceID = sourceID
         _model = State(initialValue: ReaderModel(sourceID: sourceID, comicID: comicID, comic: comic,
                                                 chapters: chapters, initialChapter: initialChapter, detail: detail))
         _plugins = Query(filter: #Predicate<PluginRecord> { $0.uuid == sourceID })
     }
 
     var body: some View {
+        let hidden = hiddenSources.contains(sourceID)
+        Group {
+            if !hidden { reader }
+        }
+        .modifier(AppLockShield())
+        .onChange(of: hidden, initial: true) { _, hidden in
+            if hidden { dismiss() }
+        }
+    }
+
+    @ViewBuilder private var reader: some View {
         @Bindable var state = model.viewModel
         let request = model.request
         let pageIndex = Binding(
@@ -44,7 +60,11 @@ struct ReaderView: View {
         )
         NavigationStack {
             GeometryReader { geometry in
-                let layout = ReaderLayout(viewport: geometry.size, horizontalReading: mode != .vertical, spreadsEnabled: spreads, regularWidth: horizontalSizeClass == .regular)
+                let layout = ReaderLayout(
+                    viewport: geometry.size, horizontalReading: mode != .vertical,
+                    spreadsEnabled: spreads, regularWidth: horizontalSizeClass == .regular,
+                    pairsFromSecondPage: pairsFromSecondPage
+                )
                 ZStack {
                     Color.black
                     if let loadError = state.loadError {
@@ -74,6 +94,8 @@ struct ReaderView: View {
                             ForEach(ReaderMode.allCases) { value in Text(value.label).tag(value) }
                         }
                         Toggle(L10n.text("Reader.TwoPagesInWideWindows"), isOn: $spreads)
+                        Toggle(L10n.text("Reader.PairFromSecondPage"), isOn: $pairsFromSecondPage)
+                            .disabled(mode == .vertical || !spreads)
                     }
                 }
                 if state.isLoaded && !state.pages.isEmpty {
@@ -184,15 +206,15 @@ private struct ReaderPages: View {
     private struct LayoutID: Hashable {
         let mode: ReaderMode
         let spread: Bool
+        let spreadOffset: Bool
         let width: CGFloat
         let height: CGFloat
     }
 
-    private var groupSize: Int { layout.groupSize }
-
     var body: some View {
         let groups = layout.starts(pageCount: urls.count, reversed: mode == .rightToLeft)
-        let layoutID = LayoutID(mode: mode, spread: layout.usesSpread, width: viewport.width, height: viewport.height)
+        let layoutID = LayoutID(mode: mode, spread: layout.usesSpread, spreadOffset: layout.usesSpreadOffset,
+                                width: viewport.width, height: viewport.height)
         Group {
             if mode == .vertical {
                 ScrollView {
@@ -214,24 +236,29 @@ private struct ReaderPages: View {
                     LazyHStack(spacing: 0) {
                         ForEach(groups, id: \.self) { start in
                             let indices = layout.slots(start: start, reversed: mode == .rightToLeft)
+                            let slotSize = CGSize(width: viewport.width / CGFloat(indices.count), height: viewport.height)
+                            let hasTwoPages = indices.count == 2 && start + 1 < urls.count
                             HStack(spacing: 0) {
                                 ForEach(indices, id: \.self) { index in
                                     if urls.indices.contains(index) {
+                                        let innerEdge: Alignment = index == indices.first ? .trailing : .leading
                                         ReaderPage(
                                             url: urls[index],
-                                            viewport: CGSize(width: viewport.width / CGFloat(groupSize), height: viewport.height),
+                                            viewport: slotSize,
                                             vertical: false,
+                                            imageAlignment: hasTwoPages ? innerEdge : .center,
                                             toggleControls: toggleControls
                                         )
                                     } else {
                                         Color.clear
-                                            .frame(width: viewport.width / CGFloat(groupSize), height: viewport.height)
+                                            .frame(width: slotSize.width, height: slotSize.height)
                                             .contentShape(.rect)
                                             .onTapGesture(perform: toggleControls)
                                     }
                                 }
                             }
                             .frame(width: viewport.width, height: viewport.height)
+                            .contentShape(.rect)
                             .id(start)
                         }
                     }
@@ -264,6 +291,7 @@ private struct ReaderPages: View {
 
     private func commitPosition() {
         guard let position, urls.indices.contains(position),
+              position == layout.anchor(for: position),
               position != layout.anchor(for: pageIndex) else { return }
         pageIndex = position
     }
@@ -273,6 +301,7 @@ private struct ReaderPage: View {
     let url: URL
     let viewport: CGSize
     let vertical: Bool
+    var imageAlignment: Alignment = .center
     let toggleControls: () -> Void
     @State private var scale: CGFloat = 1
     @State private var offset = CGSize.zero
@@ -281,31 +310,19 @@ private struct ReaderPage: View {
 
     var body: some View {
         CachedImage(url: url) { image in
-            image.resizable().scaledToFit()
-                .frame(width: viewport.width, height: vertical ? nil : viewport.height)
-                .scaleEffect(renderedScale)
-                .offset(clampedOffset(x: offset.width + drag.width, y: offset.height + drag.height,
-                                      scale: renderedScale))
-                .clipped()
-                .contentShape(.rect)
-                .gesture(MagnifyGesture()
-                    .updating($pinch) { value, state, _ in state = value.magnification }
-                    .onEnded { value in
-                        scale = min(4, max(1, scale * value.magnification))
-                        if scale == 1 { offset = .zero }
-                    })
-                .gesture(DragGesture()
-                    .updating($drag) { value, state, _ in state = value.translation }
-                    .onEnded { value in
-                        offset = clampedOffset(x: offset.width + value.translation.width,
-                                               y: offset.height + value.translation.height, scale: scale)
-                    }, including: scale > 1 ? .all : .none)
-                .onTapGesture(count: 2) {
-                    scale = scale > 1 ? 1 : 2
-                    offset = .zero
-                }
-                .onTapGesture(perform: toggleControls)
-                .accessibilityAction(named: Text(L10n.text("Reader.ToggleControlsAccessibilityAction")), toggleControls)
+            let fittedImage = Image(uiImage: image).resizable().scaledToFit()
+                .frame(width: viewport.width, height: vertical ? nil : viewport.height, alignment: imageAlignment)
+            if imageAlignment != .center && ReaderLayout.isNarrowImage(image.size, in: viewport) {
+                fittedImage.allowsHitTesting(false)
+            } else {
+                fittedImage
+                    .scaleEffect(renderedScale)
+                    .offset(clampedOffset(x: offset.width + drag.width, y: offset.height + drag.height,
+                                          scale: renderedScale))
+                    .clipped()
+                    .overlay { pageInteraction }
+                    .accessibilityAction(named: Text(L10n.text("Reader.ToggleControlsAccessibilityAction")), toggleControls)
+            }
         } placeholder: { error in
             VStack(spacing: 10) {
                 if error != nil {
@@ -322,6 +339,33 @@ private struct ReaderPage: View {
             })
         }
     }
+
+    private var pageInteraction: some View {
+        // Keep gesture input in the page's clipping frame as the image moves underneath it.
+        Color.clear
+            .contentShape(.rect)
+            .highPriorityGesture(DragGesture(coordinateSpace: .global)
+                .updating($drag) { value, state, transaction in
+                    transaction.animation = nil
+                    state = value.translation
+                }
+                .onEnded { value in
+                    offset = clampedOffset(x: offset.width + value.translation.width,
+                                           y: offset.height + value.translation.height, scale: scale)
+                }, isEnabled: scale > 1)
+            .gesture(MagnifyGesture()
+                .updating($pinch) { value, state, _ in state = value.magnification }
+                .onEnded { value in
+                    scale = min(4, max(1, scale * value.magnification))
+                    if scale == 1 { offset = .zero }
+                })
+            .onTapGesture(count: 2) {
+                scale = scale > 1 ? 1 : 2
+                offset = .zero
+            }
+            .onTapGesture(perform: toggleControls)
+    }
+
     private var renderedScale: CGFloat { min(4, max(1, scale * pinch)) }
 
     private func clampedOffset(x: CGFloat, y: CGFloat, scale: CGFloat) -> CGSize {

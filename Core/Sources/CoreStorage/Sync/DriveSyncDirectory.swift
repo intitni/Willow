@@ -48,19 +48,28 @@ struct SyncRevision: Codable, Sendable {
         self.seed = seed
     }
 
-    init(_ record: PreferenceSyncRecord) {
-        self.init(revision: record.revision, key: record.key, payload: record.payload,
-                  modifiedAt: record.modifiedAt, deleted: record.deleted)
-    }
-
     var orderingDate: Date {
-        if seed == true { return .distantPast }
+        if seed == true && !isPluginRating { return .distantPast }
         // Legacy reading files used their publication time. Recover the actual
         // reading time from the payload, while old tombstones use their saved time.
-        guard !deleted, key.hasPrefix("reading/"), let payload,
+        guard !deleted, !isReadChapter, key.hasPrefix("reading/"), let payload,
               case .reading(let reading) = try? JSONDecoder().decode(PreferencePayload.self, from: payload)
         else { return modifiedAt }
         return reading.lastReadAt
+    }
+
+    var isReadChapter: Bool { key.hasPrefix(PreferencePayload.ReadChapter.keyPrefix) }
+    var isPluginRating: Bool { key.hasPrefix(PreferencePayload.PluginRating.keyPrefix) }
+
+    // Older Drive clients only read .record files and reject unknown payloads.
+    static let chapterFileExtension = "chapter"
+    static let pluginRatingFileExtension = "rating"
+    var filename: String {
+        let fileExtension: String
+        if isReadChapter { fileExtension = Self.chapterFileExtension }
+        else if isPluginRating { fileExtension = Self.pluginRatingFileExtension }
+        else { fileExtension = "record" }
+        return revision + "." + fileExtension
     }
 
     func precedes(_ other: Self) -> Bool {
@@ -68,8 +77,8 @@ struct SyncRevision: Codable, Sendable {
     }
 
     func validated(filename: String) throws -> Self {
-        guard format == 1, let id = UUID(uuidString: revision),
-              filename == id.uuidString + ".record", modifiedAt.timeIntervalSinceReferenceDate.isFinite,
+        guard format == 1, let id = UUID(uuidString: revision), revision == id.uuidString,
+              filename == self.filename, modifiedAt.timeIntervalSinceReferenceDate.isFinite,
               let payload, try JSONDecoder().decode(PreferencePayload.self, from: payload).key == key else {
             throw CocoaError(.fileReadCorruptFile)
         }
@@ -157,17 +166,20 @@ struct DriveSyncDirectory: Sendable {
     func readRevisions(
         key: DriveSyncKey,
         readRecord: ((URL) throws -> Data?)? = nil
-    ) throws -> (revisions: [SyncRevision], isComplete: Bool, error: Error?) {
+    ) throws -> (revisions: [SyncRevision], isComplete: Bool, error: Error?, chapterError: Error?) {
         try withAccess {
             let entries = try coordinateRead(directory) { url in
                 try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
             }
             var revisions: [SyncRevision] = []
             var firstError: Error?
+            var chapterError: Error?
             var isComplete = true
             for url in entries {
                 try Task.checkCancellation()
-                guard url.pathExtension == "record", UUID(uuidString: url.deletingPathExtension().lastPathComponent) != nil else { continue }
+                let isChapterFile = url.pathExtension == SyncRevision.chapterFileExtension
+                guard url.pathExtension == "record" || isChapterFile || url.pathExtension == SyncRevision.pluginRatingFileExtension,
+                      UUID(uuidString: url.deletingPathExtension().lastPathComponent) != nil else { continue }
                 do {
                     let bytes = if let readRecord {
                         try readRecord(url)
@@ -175,18 +187,24 @@ struct DriveSyncDirectory: Sendable {
                         try read(url, limit: 4 * 1024 * 1024 + 28)
                     }
                     guard let data = bytes else {
-                        isComplete = false
+                        // Chapter records only add information. An unavailable
+                        // chapter cannot invalidate other records in the listing.
+                        if !isChapterFile { isComplete = false }
                         continue
                     }
                     let cleartext = try key.open(data, name: url.lastPathComponent)
                     let revision = try JSONDecoder().decode(SyncRevision.self, from: cleartext).validated(filename: url.lastPathComponent)
                     revisions.append(revision)
                 } catch {
-                    firstError = firstError ?? error
-                    isComplete = false
+                    if isChapterFile {
+                        chapterError = chapterError ?? error
+                    } else {
+                        firstError = firstError ?? error
+                        isComplete = false
+                    }
                 }
             }
-            return (revisions, isComplete, firstError)
+            return (revisions, isComplete, firstError, chapterError)
         }
     }
 
@@ -216,7 +234,7 @@ struct DriveSyncDirectory: Sendable {
             try Task.checkCancellation()
             let data = try JSONEncoder().encode(revision)
             guard data.count <= 4 * 1024 * 1024 else { throw CocoaError(.fileWriteUnknown) }
-            let name = revision.revision + ".record"
+            let name = revision.filename
             try coordinateWrite(directory.appending(path: name)) {
                 try key.seal(data, name: name).write(to: $0, options: .atomic)
             }

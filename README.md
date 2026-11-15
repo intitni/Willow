@@ -8,42 +8,41 @@
 
 本项目将专注于原生漫画阅读体验，充分利用 iOS 平台的特性，同时通过 Breeze 插件运行时实现灵活的内容扩展。
 
-## 使用
+## 功能列表
 
-1. 在「设置 → 插件与订阅」添加 Breeze 插件目录或自己的 HTTPS 订阅地址。
-2. 从订阅安装图源，也可以导入 `.cjs`、`.cjs.br`，或从 HTTPS 链接安装。
-3. 在「发现」选择图源，浏览、搜索，按源提供的登录表单登录。
-4. 收藏漫画到书架，打开章节阅读，或在详情页按章下载；toolbar 也提供整部下载。下载列表按章节管理。
-5. 在漫画详情中设置本地标签，并在书架和下载页按标签筛选。
+- **图源扩展**。支持 Breeze 插件目录和自定义 HTTPS 订阅，也可导入 `.cjs`、`.cjs.br` 或从 HTTPS 链接安装图源。
+- **发现与搜索**。按图源浏览、搜索漫画，并使用图源提供的表单登录。
+- **书架与阅读记录**。收藏漫画、查看阅读历史，并从上次读到的位置继续阅读。
+- **离线下载与标签**。可按章下载，也可在漫画详情页下载整部作品。书架和下载页支持按本地标签筛选。
+- **隐私设置**。使用设备验证保护应用，或开启「绿色出行」按来源调整内容的显示范围。
+- **加密同步**。通过 iCloud 云盘同步书架、阅读进度、插件、订阅和标签。
+- **版本检查**。启动时检查 GitHub Releases，有新版时在「设置」标签显示红点。「设置 → 更新」提供更新日志和发布页，安装新版需手动下载并签名。
 
-Willow 每次启动时检查 GitHub 的最新发布版本；有更新时「设置」标签显示红点。在「设置 → 更新」可查看更新日志和发布页，更新仍需自行下载并签名安装。
-
-### 自签安装 IPA
+## 自签安装 IPA
 
 从发布页下载 `Willow-<版本>-unsigned.ipa`，任选一种工具用自己的 Apple 账户签名安装。首次安装时，请按设备提示信任开发者并开启开发者模式。[GitHub Releases](https://github.com/intitni/Willow/releases)
 
 - **AltStore Classic**。在电脑上运行 AltServer，将 AltStore Classic 安装到设备，再把 IPA 保存到设备的「文件」App。通过 USB 或同一 Wi-Fi 网络连接 AltServer，在 AltStore 的「My Apps」中点按「+」导入 IPA。免费账户的签名有效期为 7 天，到期前可在「My Apps」中点按「Refresh All」。[macOS 安装步骤](https://faq.altstore.io/altstore-classic/how-to-install-altstore-macos) · [Windows 安装步骤](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows) · [续签说明](https://faq.altstore.io/altstore-classic/your-altstore)
 - **iLoader**。在电脑上安装 iLoader，通过 USB 连接 iPhone 或 iPad。在 iLoader 中登录 Apple 账户、选择设备，再导入电脑上的 IPA 进行签名和安装。[官方下载](https://iloader.app/) · [使用说明](https://github.com/nab138/iloader#how-to-use)
 
-### iCloud Drive 同步
+## 使用 iCloud 云盘同步
 
-Willow 默认不同步。使用 iCloud Drive 同步前，请在各设备上登录同一个 iCloud 账户并开启 iCloud 云盘。
+加密同步涵盖书架、阅读历史与进度、插件脚本与元数据、订阅、标签及其漫画关联。插件登录配置与下载图片只保存在本机。
 
-1. 在第一台设备的「设置 → 同步方式」选择 **iCloud Drive**，选择云盘中的文件夹，点按「创建加密同步文件夹」。
-2. 点按「复制恢复密钥」并妥善保存。同步内容经过加密，其他设备需要这份密钥才能读取。
-3. 在其他设备上选择同一个文件夹，输入恢复密钥，点按「连接已有同步文件夹」。
+先在各设备上登录同一个 iCloud 账户并开启 iCloud 云盘，确认「文件」App 可以访问准备使用的同步文件夹。Willow 默认不同步，需要在每台设备上分别选择同步方式和文件夹。
 
-之后打开 Willow 即可自动同步，也可以点按「立即同步」。如果数据暂未出现，请等待 iCloud 云盘完成传输后再试。恢复密钥仅保存在本机，重新安装后可能需要再次输入。
+1. 在第一台设备的「设置 → 同步方式」选择 **iCloud Drive**，在系统文件选择器中选择 iCloud 云盘下的文件夹，点按「创建加密同步文件夹」。
+2. 回到同步设置，点按「复制恢复密钥」并妥善保存。Willow 在上传前加密同步记录和插件脚本。恢复密钥仅保存在本机钥匙串。
+3. 在其他设备上选中同一个文件夹。Willow 会读取其中的验证文件并检查本机钥匙串。第一次连接时，请输入恢复密钥并点按「连接已有同步文件夹」。如果文件尚未到达，请等待 iCloud 云盘完成下载后再连接。使用免费 Apple 账户自签的安装也可以通过系统文件选择器访问 iCloud 云盘。
+4. 在「当前同步方式」显示 iCloud Drive 后，点按「立即同步」。在一台设备上收藏一部作品，再打开另一台设备上的 Willow 并同步，检查作品是否出现在书架中。状态中的上次检查时间表示 Willow 完成了一轮本机检查，文件传输还受 iCloud 云盘调度影响。
 
-### 使用 CloudKit 同步
+同步文件保存在所选文件夹内的 `Willow Sync v1` 子目录中。作品信息、标签、阅读记录和插件脚本均加密保存。请保持该目录及其中的验证文件完整，以便其他设备识别目录并验证密钥。
 
-建议直接使用 iCloud Drive 同步，按上文选择文件夹并保存恢复密钥即可。
+恢复密钥需要单独妥善保存。重新安装或更换签名身份后，可能需要再次输入密钥。复制密钥时，按钮会显示「正在读取密钥…」，完成后会弹出提示。
 
-如果你使用的是支持 CloudKit 的签名版本，也可以在「设置 → 同步方式」选择 **CloudKit**。各设备需登录同一个 iCloud 账户。
+升级时，Willow 会先验证旧密钥并保存到本机，再删除旧的 iCloud 钥匙串条目。删除会传播到其他设备。尚未保存本机副本的设备需要重新输入恢复密钥。
 
-自行签名使用 CloudKit 时，需要将 Bundle Identifier（`com.intii.Willow`）和 iCloud Container Identifier（`iCloud.intii.Willow`）调整为自己开发者团队可用的标识，并同步更新工程配置。
-
-切换到或离开 CloudKit 后，请完全退出并重新打开 Willow，使选择生效。
+首次连接云盘文件夹时会合并双方各自独有的项目。首次发现的本地项目作为低优先级版本发布，稍后到达的云盘正式记录和删除仍然生效。阅读进度与清除历史按实际操作时间合并，因此稍后读回前面的页码也会同步。Willow 发现同步记录仍在下载时会等待下一次同步。iCloud 可能尚未列出其他设备写入的文件，这些文件到达后仍会参与合并。切换到「不同步」会停止 Willow 的云盘同步任务，并保留本机数据和同步文件。文件提供方仍可完成已经提交的传输。
 
 ## 打开与构建
 
@@ -65,7 +64,7 @@ xcodebuild -project Willow.xcodeproj -scheme Willow -sdk iphonesimulator \
   -configuration Debug -derivedDataPath /tmp/WillowDerivedData CODE_SIGNING_ALLOWED=NO build
 ```
 
-真机运行前，将 `Config/Signing.example.xcconfig` 复制为 `Config/Signing.local.xcconfig`，并在该 Git 忽略的本地文件中填写自己的 Team ID。使用 CloudKit 时，请在 Xcode 中启用 iCloud / CloudKit，并将所选容器与 `Willow/Willow.entitlements`、`WillowPersistence.iCloudContainer` 保持一致。模拟器使用本地数据库。
+真机运行前，将 `Config/Signing.example.xcconfig` 复制为 `Config/Signing.local.xcconfig`，并在该 Git 忽略的本地文件中填写自己的 Team ID。
 
 主 App target 只有 `Willow/App/WillowApp.swift`，只负责创建 `CoreAppModel`、显示 `WillowRootView` 和转发生命周期。所有 Swift 功能代码都在本地 Swift Package `Core`。在 `Core/Sources` 的现有 target 中新增 Swift 文件会由 SwiftPM 自动发现，无需修改 Xcode 工程。新增功能 target 时只需维护 `Core/Package.swift` 的依赖关系。
 

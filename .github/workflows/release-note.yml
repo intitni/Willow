@@ -1,0 +1,68 @@
+name: Sync release manifest
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/release-note.yml]
+  release:
+    types: [published, edited, unpublished, deleted]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: willow-release-note
+      cancel-in-progress: false
+    steps:
+      - name: Update the app's release manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          cd "$(mktemp -d)"
+          # A queued job may supersede another, so query the latest release after acquiring the group.
+          status=$(curl --silent --show-error --retry 3 --max-time 20 \
+            --output response.json --write-out '%{http_code}' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "$GITHUB_API_URL/repos/$GH_REPO/releases/latest")
+          case "$status" in
+            200)
+              jq -ce '
+                if (.tag_name | test("^version/[0-9]+\\.[0-9]+\\.[0-9]+$")) then
+                  {tag_name, body, html_url}
+                else
+                  error("Unexpected Willow release tag")
+                end
+              ' response.json > release.json
+              ;;
+            404) printf 'null\n' > release.json ;;
+            *) echo "Could not read the latest GitHub Release (HTTP $status)." >&2; exit 1 ;;
+          esac
+
+          gh auth setup-git --hostname github.com
+          git init --quiet
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git remote add origin "https://github.com/$GH_REPO.git"
+          git add release.json
+          tree=$(git write-tree)
+          ref=refs/heads/release-note
+          if git ls-remote --exit-code origin "$ref" > /dev/null; then
+            git fetch --depth=1 origin "$ref"
+            if [[ "$tree" == "$(git rev-parse 'FETCH_HEAD^{tree}')" ]]; then
+              exit 0
+            fi
+            commit=$(git commit-tree "$tree" -p FETCH_HEAD -m 'Update app release manifest')
+          elif [[ $? == 2 ]]; then
+            commit=$(git commit-tree "$tree" -m 'Create app release manifest')
+          else
+            exit 1
+          fi
+          git push origin "$commit:$ref"

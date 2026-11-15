@@ -112,17 +112,24 @@ final class ReaderModel {
             viewModel.pageIndex = record.chapterID == chapterID ? min(max(0, record.pageIndex), urls.count - 1) : 0
             viewModel.pages = urls
             viewModel.loadedChapterID = chapterID
-            saveProgress(context: context)
+            let openedAt = Date.now
+            saveProgress(context: context, at: openedAt)
+            do {
+                try await ReadChapterStore.shared.recordOpen(comicKey: record.id, chapterID: chapterID,
+                                                            at: openedAt, in: context.container)
+            } catch {
+                if self.request == request { viewModel.saveError = error.localizedDescription }
+            }
         } catch {
             if !Task.isCancelled, self.request == request { viewModel.loadError = error.localizedDescription }
         }
     }
 
-    private func saveProgress(context: ModelContext) {
+    private func saveProgress(context: ModelContext, at date: Date = .now) {
         guard viewModel.isLoaded, let record else { return }
         record.chapterID = viewModel.chapter.id
         record.pageIndex = viewModel.pageIndex
-        record.lastReadAt = .now
+        record.lastReadAt = date
         record.historyClearedAt = nil
         do { try context.save() }
         catch { viewModel.saveError = error.localizedDescription }

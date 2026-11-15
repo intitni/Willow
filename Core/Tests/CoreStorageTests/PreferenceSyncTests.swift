@@ -6,29 +6,13 @@ import Testing
 @Suite("Preference sync", .serialized)
 @MainActor
 struct PreferenceSyncTests {
-    private func copyCloud(from source: ModelContainer, to destination: ModelContainer, assets: Bool = true) throws {
-        let input = ModelContext(source)
-        let output = ModelContext(destination)
-        let known = Set(try output.fetch(FetchDescriptor<PreferenceSyncRecord>()).map(\.revision))
-        for row in try input.fetch(FetchDescriptor<PreferenceSyncRecord>()) where !known.contains(row.revision) {
-            let copy = PreferenceSyncRecord(key: row.key, payload: row.payload, deleted: row.deleted, modifiedAt: row.modifiedAt)
-            copy.revision = row.revision
-            output.insert(copy)
-        }
-        if assets {
-            let knownAssets = Set(try output.fetch(FetchDescriptor<PluginSyncAsset>()).map(\.digest))
-            for row in try input.fetch(FetchDescriptor<PluginSyncAsset>()) where !knownAssets.contains(row.digest) {
-                if let data = row.data { output.insert(PluginSyncAsset(digest: row.digest, data: data)) }
-            }
-        }
-        try output.save()
-    }
-
     @Test func tagsAndSubscriptionsMergeAndDeleteAcrossDevices() async throws {
         let a = try WillowPersistence.make(inMemory: true).container
         let b = try WillowPersistence.make(inMemory: true).container
-        let syncA = PreferenceSyncModel(container: a)
-        let syncB = PreferenceSyncModel(container: b)
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let syncA = drive.worker(container: a)
+        let syncB = drive.worker(container: b)
         let context = ModelContext(a)
         let tag = LocalTagRecord(name: "Favorite")
         tag.comicKeys = ["comic/one"]
@@ -36,7 +20,6 @@ struct PreferenceSyncTests {
         context.insert(SubscriptionRecord(url: "https://example.com/plugins", name: "Sources"))
         try context.save()
         try await syncA.reconcile()
-        try copyCloud(from: a, to: b)
         try await syncB.reconcile()
         let bc = ModelContext(b)
         let bt = try #require(bc.fetch(FetchDescriptor<LocalTagRecord>()).first)
@@ -50,7 +33,6 @@ struct PreferenceSyncTests {
         bt.comicKeys.append("comic/three")
         try ac.save(); try bc.save()
         try await syncA.reconcile(); try await syncB.reconcile()
-        try copyCloud(from: a, to: b); try copyCloud(from: b, to: a)
         try await syncA.reconcile(); try await syncB.reconcile()
         for container in [a, b] {
             let fresh = ModelContext(container)
@@ -60,8 +42,8 @@ struct PreferenceSyncTests {
         deletion.delete(try #require(deletion.fetch(FetchDescriptor<LocalTagRecord>()).first))
         deletion.delete(try #require(deletion.fetch(FetchDescriptor<SubscriptionRecord>()).first))
         try deletion.save()
-        try await syncA.reconcile(); try copyCloud(from: a, to: b); try await syncB.reconcile()
-        try copyCloud(from: b, to: a); try await syncA.reconcile()
+        try await syncA.reconcile(); try await syncB.reconcile()
+        try await syncA.reconcile()
         for container in [a, b] {
             let fresh = ModelContext(container)
             #expect(try fresh.fetchCount(FetchDescriptor<LocalTagRecord>()) == 0)
@@ -69,7 +51,7 @@ struct PreferenceSyncTests {
         }
     }
 
-    @Test func pluginRestoresAfterAssetArrivesAndRepairsMissingFile() async throws {
+    @Test func pluginRepairsMissingFileAndAppliesRemoteUninstall() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: "WillowSync-\(UUID())")
         let dirA = directory.appending(path: "a")
         let dirB = directory.appending(path: "b")
@@ -79,16 +61,14 @@ struct PreferenceSyncTests {
         try script.write(to: dirA.appending(path: "fixture.cjs"))
         let a = try WillowPersistence.make(inMemory: true).container
         let b = try WillowPersistence.make(inMemory: true).container
-        let syncA = PreferenceSyncModel(container: a, files: PluginSyncFiles(directory: dirA))
-        let syncB = PreferenceSyncModel(container: b, files: PluginSyncFiles(directory: dirB))
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let syncA = drive.worker(container: a, files: PluginSyncFiles(directory: dirA))
+        let syncB = drive.worker(container: b, files: PluginSyncFiles(directory: dirB))
         let context = ModelContext(a)
         context.insert(PluginRecord(uuid: "fixture", name: "Fixture", version: "1", bundlePath: "fixture.cjs"))
         try context.save()
         try await syncA.reconcile()
-        try copyCloud(from: a, to: b, assets: false)
-        try await syncB.reconcile()
-        #expect(try ModelContext(b).fetchCount(FetchDescriptor<PluginRecord>()) == 0)
-        try copyCloud(from: a, to: b)
         try await syncB.reconcile()
         let fresh = ModelContext(b)
         let plugin = try #require(fresh.fetch(FetchDescriptor<PluginRecord>()).first)
@@ -102,17 +82,79 @@ struct PreferenceSyncTests {
         let deletion = ModelContext(a)
         deletion.delete(try #require(deletion.fetch(FetchDescriptor<PluginRecord>()).first))
         try deletion.save()
-        try await syncA.reconcile(); try copyCloud(from: a, to: b); try await syncB.reconcile()
+        try await syncA.reconcile(); try await syncB.reconcile()
         #expect(try ModelContext(b).fetchCount(FetchDescriptor<PluginRecord>()) == 0)
         #expect(!FileManager.default.fileExists(atPath: path.path))
     }
-    @Test func missingOldFileAppliesCompleteCloudVersion() async throws {
+
+    @Test func pluginRatingSyncsWithoutAnInstalledPlugin() async throws {
+        let a = try WillowPersistence.make(inMemory: true).container
+        let b = try WillowPersistence.make(inMemory: true).container
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let syncA = drive.worker(container: a)
+        let syncB = drive.worker(container: b)
+
+        a.mainContext.insert(PluginContentRating(sourceID: "fixture", isNSFW: true))
+        try a.mainContext.save()
+        try await syncA.reconcile()
+        try await syncB.reconcile()
+
+        let editor = ModelContext(b)
+        let rating = try #require(editor.fetch(FetchDescriptor<PluginContentRating>()).first)
+        #expect(rating.sourceID == "fixture")
+        #expect(rating.isNSFW)
+        #expect(try editor.fetchCount(FetchDescriptor<PluginRecord>()) == 0)
+        rating.isNSFW = false
+        rating.updatedAt = try #require(rating.updatedAt).addingTimeInterval(1)
+        try editor.save()
+
+        try await syncB.reconcile()
+        try await syncA.reconcile()
+        try await syncA.reconcile()
+        let imported = try #require(ModelContext(a).fetch(FetchDescriptor<PluginContentRating>()).first)
+        #expect(!imported.isNSFW)
+        let revisions = try drive.revisions()
+        #expect(revisions.count == 2)
+        #expect(revisions.allSatisfy { $0.filename.hasSuffix(".rating") })
+    }
+
+    @Test(arguments: [true, false])
+    func firstPluginRatingSyncUsesEditTime(localIsNewer: Bool) async throws {
+        let container = try WillowPersistence.make(inMemory: true).container
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let sync = drive.worker(container: container)
+        let cloudDate = Date(timeIntervalSinceReferenceDate: 10_000)
+        let localDate = cloudDate.addingTimeInterval(localIsNewer ? 60 : -60)
+        let payload = PreferencePayload.pluginRating(.init(sourceID: "fixture", isNSFW: false))
+        // Older clients published the first value as a seed with no edit time in the payload.
+        let cloud = SyncRevision(key: payload.key, payload: try payload.encoded(), modifiedAt: cloudDate,
+                                 deleted: false, seed: true)
+        try drive.directory.publish(cloud, asset: nil, key: drive.key)
+        container.mainContext.insert(PluginContentRating(sourceID: "fixture", isNSFW: true, updatedAt: localDate))
+        try container.mainContext.save()
+
+        try await sync.reconcile()
+        try await sync.reconcile()
+
+        let rating = try #require(ModelContext(container).fetch(FetchDescriptor<PluginContentRating>()).first)
+        #expect(rating.isNSFW == localIsNewer)
+        #expect(rating.updatedAt == max(localDate, cloudDate))
+        let revisions = try drive.revisions()
+        #expect(revisions.count == (localIsNewer ? 2 : 1))
+        #expect(revisions.max { $0.precedes($1) }?.modifiedAt == max(localDate, cloudDate))
+    }
+
+    @Test func missingOldFileAppliesCompleteRemoteVersion() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: "WillowVersion-\(UUID())")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let container = try WillowPersistence.make(inMemory: true).container
         let files = PluginSyncFiles(directory: directory)
-        let sync = PreferenceSyncModel(container: container, files: files)
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let sync = drive.worker(container: container, files: files)
         try Data("old".utf8).write(to: directory.appending(path: "old.cjs"))
         let context = ModelContext(container)
         context.insert(PluginRecord(uuid: "fixture", name: "Old", version: "1", bundlePath: "old.cjs"))
@@ -122,10 +164,9 @@ struct PreferenceSyncTests {
         try data.write(to: directory.appending(path: "new.cjs"))
         let digest = try await files.digest(path: "new.cjs")
         let payload = PreferencePayload.plugin(.init(id: "fixture", name: "New", version: "2", subscriptionURL: "https://example.com/new", enabled: false, info: Data("new info".utf8), digest: digest))
-        context.insert(PluginSyncAsset(digest: digest, data: data))
-        let remote = PreferenceSyncRecord(key: payload.key, payload: try payload.encoded(), modifiedAt: Date.now.addingTimeInterval(1))
-        context.insert(remote)
-        try context.save()
+        let remote = SyncRevision(key: payload.key, payload: try payload.encoded(),
+                                  modifiedAt: Date.now.addingTimeInterval(1), deleted: false)
+        try drive.directory.publish(remote, asset: (digest, data), key: drive.key)
         try FileManager.default.removeItem(at: directory.appending(path: "old.cjs"))
         try await sync.reconcile()
         try await sync.reconcile()
@@ -137,9 +178,9 @@ struct PreferenceSyncTests {
         #expect(plugin.subscriptionURL == "https://example.com/new")
         #expect(plugin.infoJSON == Data("new info".utf8))
         #expect(try Data(contentsOf: directory.appending(path: plugin.bundlePath)) == data)
-        let revisions = try fresh.fetch(FetchDescriptor<PreferenceSyncRecord>())
+        let revisions = try drive.revisions()
         #expect(revisions.count == 2)
-        #expect(revisions.max(by: { $0.modifiedAt < $1.modifiedAt })?.revision == remote.revision)
+        #expect(revisions.max(by: { $0.precedes($1) })?.revision == remote.revision)
     }
 
     @Test(arguments: [false, true])
@@ -155,8 +196,10 @@ struct PreferenceSyncTests {
         let context = ModelContext(container)
         context.insert(PluginRecord(uuid: "fixture", name: "Fixture", version: "1", bundlePath: "fixture.cjs"))
         try context.save()
-        let sync = PreferenceSyncModel(container: container, files: files, unloadPlugin: { @MainActor _ in
-            // Precisely reproduce a user toggle at the suspension point after removal.
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let sync = drive.worker(container: container, files: files, unloadPlugin: { @MainActor _ in
+            // Precisely reproduce a user toggle at the suspension point before deleting the script.
             let editor = ModelContext(container)
             let plugin = try #require(editor.fetch(FetchDescriptor<PluginRecord>()).first)
             plugin.enabled = false
@@ -164,9 +207,10 @@ struct PreferenceSyncTests {
             if throwDuringUnload { throw URLError(.cancelled) }
         })
         try await sync.reconcile()
-        let uploaded = try #require(context.fetch(FetchDescriptor<PreferenceSyncRecord>()).first)
-        context.insert(PreferenceSyncRecord(key: uploaded.key, payload: uploaded.payload, deleted: true, modifiedAt: Date.now.addingTimeInterval(1)))
-        try context.save()
+        let uploaded = try #require(drive.revisions().first)
+        let deletion = SyncRevision(key: uploaded.key, payload: uploaded.payload,
+                                    modifiedAt: Date.now.addingTimeInterval(1), deleted: true)
+        try drive.directory.publish(deletion, asset: nil, key: drive.key)
         do {
             try await sync.reconcile()
             #expect(!throwDuringUnload)
@@ -180,8 +224,8 @@ struct PreferenceSyncTests {
         #expect(!FileManager.default.fileExists(atPath: directory.appending(path: "fixture.path").path))
         // The surviving local change can be uploaded on the next pass.
         try await sync.reconcile()
-        let revisions = try ModelContext(container).fetch(FetchDescriptor<PreferenceSyncRecord>())
-        #expect(revisions.max(by: { $0.modifiedAt < $1.modifiedAt })?.deleted == false)
+        let revisions = try drive.revisions()
+        #expect(revisions.max(by: { $0.precedes($1) })?.deleted == false)
     }
 
     @Test func eventsDuringSyncAreRetained() async throws {
@@ -193,11 +237,13 @@ struct PreferenceSyncTests {
         try Data("module.exports = {};".utf8).write(to: directory.appending(path: "fixture.cjs"))
         source.mainContext.insert(PluginRecord(uuid: "fixture", name: "Fixture", version: "1", bundlePath: "fixture.cjs"))
         try source.mainContext.save()
-        let seed = PreferenceSyncModel(container: source, files: PluginSyncFiles(directory: directory))
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let files = PluginSyncFiles(directory: directory)
+        let seed = drive.worker(container: source, files: files)
         try await seed.reconcile()
-        try copyCloud(from: source, to: target)
         let gate = SyncGate()
-        let sync = PreferenceSyncModel(container: target, files: PluginSyncFiles(directory: directory), unloadPlugin: { _ in
+        let sync = drive.worker(container: target, files: files, unloadPlugin: { _ in
             await gate.pause()
         })
         let events = PreferenceSyncEvents()
@@ -225,7 +271,7 @@ struct PreferenceSyncTests {
         events.request()
         await gate.resume()
         while true {
-            let rows = try ModelContext(target).fetch(FetchDescriptor<PreferenceSyncRecord>())
+            let rows = try drive.revisions()
             if rows.contains(where: { $0.key == "tag/during sync" }) && rows.contains(where: { $0.key.hasPrefix("tag-link/") }) { break }
             try #require(ContinuousClock.now < deadline)
             try await Task.sleep(for: .milliseconds(10))
@@ -241,4 +287,34 @@ struct PreferenceSyncTests {
         func resume() { continuation?.resume(); continuation = nil }
     }
 
+}
+
+struct SyncTestFolder {
+    let directory: DriveSyncDirectory
+    let key: DriveSyncKey
+    private let keyData: Data
+
+    init() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "WillowSyncTests-\(UUID())", directoryHint: .isDirectory)
+        directory = DriveSyncDirectory(root: root)
+        keyData = DriveSyncKeychain.generate()
+        key = try DriveSyncKey(keyData)
+        try directory.create(key: key) { _ in }
+    }
+
+    func remove() {
+        try? FileManager.default.removeItem(at: directory.root)
+    }
+
+    func revisions() throws -> [SyncRevision] {
+        try directory.readRevisions(key: key).revisions
+    }
+
+    @MainActor
+    func worker(container: ModelContainer, files: PluginSyncFiles? = nil,
+                unloadPlugin: @escaping @Sendable (String) async throws -> Void = { _ in }) -> PreferenceSyncModel {
+        PreferenceSyncModel(container: container, drive: .success(directory),
+                            files: files ?? PluginSyncFiles(directory: directory.root.appending(path: "plugins")),
+                            driveKey: { [keyData] _ in keyData }, unloadPlugin: unloadPlugin)
+    }
 }

@@ -111,8 +111,9 @@ final class ComicDetailModel {
         let cachedDetail: Data?
         let statuses: [String: DownloadStatus]
         let chapterDownloads: [String: ChapterDownloadPresentation]
+        let readChapterIDs: Set<String>
 
-        init(records: [ComicRecord], plugins: [PluginRecord], downloads: [DownloadRecord]) {
+        init(records: [ComicRecord], plugins: [PluginRecord], downloads: [DownloadRecord], readChapters: [ReadChapterRecord]) {
             record = records.first
             plugin = plugins.first(where: \.enabled)
             favorite = record?.isFavorite == true
@@ -120,6 +121,7 @@ final class ComicDetailModel {
             cachedDetail = record?.detailJSON
             statuses = downloads.reduce(into: [:]) { $0[$1.chapterID] = $1.status }
             chapterDownloads = downloads.reduce(into: [:]) { $0[$1.chapterID] = ChapterDownloadPresentation($1) }
+            readChapterIDs = Set(readChapters.map(\.chapterID))
         }
     }
 

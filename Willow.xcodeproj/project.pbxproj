@@ -18,7 +18,6 @@
 		2752DB3CB346D6D84627EF75 /* Signing.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Signing.xcconfig; path = Config/Signing.xcconfig; sourceTree = "<group>"; };
 		53A5FF6C2E820B0D95737B47 /* Willow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Willow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		802C046D2A6322B6A6C7BB8A /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		B3ED8B8716D3AA76FE16B163 /* Willow.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = Willow.entitlements; sourceTree = "<group>"; };
 		EC63391B1BCB6F8A0CD39D37 /* Willow_icon.icon */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.icon; path = Willow_icon.icon; sourceTree = "<group>"; };
 		F9EB08F6A4AFE2F7A508AF1D /* WillowApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WillowApp.swift; path = App/WillowApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -41,7 +40,6 @@
 			children = (
 				F9EB08F6A4AFE2F7A508AF1D /* WillowApp.swift */,
 				802C046D2A6322B6A6C7BB8A /* Info.plist */,
-				B3ED8B8716D3AA76FE16B163 /* Willow.entitlements */,
 				EC63391B1BCB6F8A0CD39D37 /* Willow_icon.icon */,
 			);
 			path = Willow;
@@ -189,9 +187,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = Willow_icon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_OBJC_WEAK = NO;
-				CODE_SIGN_ENTITLEMENTS = Willow/Willow.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Willow/Info.plist;
@@ -202,7 +199,7 @@
 				);
 				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/Bridge/target/aarch64-apple-ios/release";
 				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/Bridge/target/aarch64-apple-ios-sim/release";
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lwillow_bridge",
@@ -349,9 +346,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = Willow_icon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_OBJC_WEAK = NO;
-				CODE_SIGN_ENTITLEMENTS = Willow/Willow.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Willow/Info.plist;
@@ -362,7 +358,7 @@
 				);
 				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/Bridge/target/aarch64-apple-ios/debug";
 				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/Bridge/target/aarch64-apple-ios-sim/debug";
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lwillow_bridge",

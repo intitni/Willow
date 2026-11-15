@@ -25,7 +25,7 @@ build_file.product_ref = product
 target.frameworks_build_phase.files << build_file
 project.root_object.known_regions = ['en', 'zh-Hans', 'Base']
 project.root_object.development_region = 'en'
-%w[Info.plist Willow.entitlements].each { |name| group.new_file(name) }
+group.new_file('Info.plist')
 phase = target.new_shell_script_build_phase('Build Breeze plugin runtime')
 phase.shell_script = '"${SRCROOT}/Scripts/build-rust.sh"'
 phase.always_out_of_date = '1'
@@ -37,15 +37,14 @@ target.build_configurations.each do |config|
   profile = config.name == 'Release' ? 'release' : 'debug'
   settings.merge!({
     'PRODUCT_BUNDLE_IDENTIFIER' => 'com.intii.Willow',
-    'MARKETING_VERSION' => '1.0.1',
-    'CURRENT_PROJECT_VERSION' => '2',
+    'MARKETING_VERSION' => '1.1.0',
+    'CURRENT_PROJECT_VERSION' => '3',
     'PRODUCT_NAME' => 'Willow',
     'ASSETCATALOG_COMPILER_APPICON_NAME' => 'Willow_icon',
     'INFOPLIST_FILE' => 'Willow/Info.plist',
     'GENERATE_INFOPLIST_FILE' => 'NO',
     'SWIFT_VERSION' => '6.0',
     'SWIFT_STRICT_CONCURRENCY' => 'complete',
-    'CODE_SIGN_ENTITLEMENTS' => 'Willow/Willow.entitlements',
     'CODE_SIGN_STYLE' => 'Automatic',
     'TARGETED_DEVICE_FAMILY' => '1,2',
     'SUPPORTED_PLATFORMS' => 'iphoneos iphonesimulator',

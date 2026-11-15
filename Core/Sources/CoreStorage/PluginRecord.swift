@@ -31,6 +31,19 @@ package final class PluginRecord {
 }
 
 @Model
+package final class PluginContentRating {
+    @Attribute(.unique) package var sourceID: String
+    package var isNSFW: Bool
+    package var updatedAt: Date?
+
+    package init(sourceID: String, isNSFW: Bool, updatedAt: Date? = .now) {
+        self.sourceID = sourceID
+        self.isNSFW = isNSFW
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
 package final class SubscriptionRecord {
     @Attribute(.unique) package var url: String
     package var name: String

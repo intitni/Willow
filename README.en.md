@@ -6,46 +6,43 @@ Willow is a native manga reader built with SwiftUI and SwiftData. It uses the [B
 
 Willow supports iPhone and iPad, adapts to changing window sizes on iPhone Duo, and follows native iOS design conventions. It requires iOS 26 or later.
 
-## Use Willow
+## Features
 
-1. In Settings → Plugins & Subscriptions, add the Breeze plugin catalog or your own HTTPS subscription URL.
-2. Install a source from a subscription, import a `.cjs` or `.cjs.br` file, or install from an HTTPS link.
-3. Select a source in Discover to browse or search. If the source requires an account, use its sign-in form.
-4. Bookmark manga to add them to your library, open a chapter to read, or download individual chapters from the details page. The toolbar also lets you download the entire work. The Downloads page lists downloads by chapter.
-5. Assign local tags on a manga's details page and use them to filter your library and downloads.
+- **Plugin sources.** Install sources from the Breeze catalog, a custom HTTPS subscription, a `.cjs` or `.cjs.br` file, or an HTTPS link.
+- **Discover and search.** Browse and search manga by source, and sign in through the source's own form when needed.
+- **Library and reading history.** Bookmark manga, revisit your reading history, and pick up where you left off.
+- **Offline downloads and tags.** Download individual chapters or entire works from the details page. Use local tags to filter your library and downloads.
+- **Privacy controls.** Protect the app with device authentication or use Green Travel to control which sources are visible.
+- **Encrypted sync.** Sync your library, reading progress, plugins, subscriptions, and tags through iCloud Drive.
+- **Update checks.** Willow checks GitHub Releases at launch and shows a red dot on the Settings tab when a newer version is available. Settings → Updates shows release notes and links to releases for manual download and signing.
 
-Willow checks the latest GitHub release at launch and shows a red dot on the Settings tab when an update is available. Open Settings → Updates to see the release notes and release page; updates must still be downloaded and signed manually.
-
-Third-party sources must be installed separately. Sync is off by default. Under **Settings → Sync Method**, choose iCloud Drive or CloudKit to sync bookmarks, reading history and progress, plugin scripts and metadata, subscriptions, tags, and tag assignments. Plugin login credentials, cookies, and tokens stay encrypted on the device, with their encryption key in Keychain. Manga images stay on the device and are excluded from backups.
-
-Sync runs in response to local changes, arrivals from the cloud, foreground activity, and system background refresh.
-
-### Sign and install the IPA
+## Sign and install the IPA
 
 Download `Willow-<version>-unsigned.ipa` and use either tool below to sign and install it with your Apple Account. Trust the developer and enable Developer Mode when your device prompts you. [GitHub Releases](https://github.com/intitni/Willow/releases)
 
 - **AltStore Classic.** Run AltServer on your computer, install AltStore Classic on your device, and save the IPA to the Files app. Connect to AltServer over USB or the same Wi-Fi network, then tap **+** in AltStore's **My Apps** tab to import the IPA. If you use a free account, tap **Refresh All** in **My Apps** before the seven-day signing period expires. [macOS setup](https://faq.altstore.io/altstore-classic/how-to-install-altstore-macos) · [Windows setup](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows) · [Refresh instructions](https://faq.altstore.io/altstore-classic/your-altstore)
 - **iLoader.** Install iLoader on your computer and connect your iPhone or iPad over USB. Sign in to your Apple Account in iLoader, select your device, and import the IPA from your computer to sign and install it. [Official download](https://iloader.app/) · [Usage instructions](https://github.com/nab138/iloader#how-to-use)
 
-### iCloud Drive sync
+## Use iCloud Drive sync
 
-Sync is off by default. Sign in to the same iCloud account and enable iCloud Drive on each device.
+iCloud Drive sync covers bookmarks, reading history and progress, plugin scripts and metadata, subscriptions, tags, and tag assignments. Plugin login credentials, cookies, and tokens stay encrypted on the device, with their encryption key in Keychain. Manga images stay on the device and are excluded from backups.
 
-1. On the first device, choose **iCloud Drive** under **Settings → Sync Method**, select a folder in iCloud Drive, and tap **Create Encrypted Sync Folder**.
-2. Tap **Copy Recovery Key** and save it somewhere safe. Sync data is encrypted, and other devices need this key to read it.
-3. On other devices, select the same folder, enter the recovery key, and tap **Connect Existing Folder**.
+Sync runs in response to local changes, arrivals from the cloud, foreground activity, and system background refresh.
 
-Willow syncs automatically when you open it. You can also tap **Sync Now**. If changes have not appeared yet, allow iCloud Drive time to transfer them and try again. The recovery key is stored only on your device, so you may need to enter it again after reinstalling Willow.
+Sign in to the same iCloud account and enable iCloud Drive on each device. Check that the Files app can access the folder you plan to use. Sync is off by default, so select the sync method and folder separately on each device.
 
-### Use CloudKit sync
+1. On the first device, choose **iCloud Drive** under **Settings → Sync Method**, pick a folder under iCloud Drive in the system picker, and tap **Create Encrypted Sync Folder**.
+2. Back in Settings, tap **Copy Recovery Key** and save it somewhere safe. Willow encrypts sync records and plugin scripts before writing them for upload and stores the recovery key in this device’s Keychain.
+3. On other devices, pick the same folder. Willow reads the verification file and checks the device’s Keychain. On the first connection, enter the recovery key and tap **Connect Existing Folder**. If the files are still arriving, allow iCloud Drive time to download them and try again. Builds signed with a free Apple Account can use the system picker to access iCloud Drive.
+4. Once **Active Sync Method** shows **iCloud Drive**, tap **Sync Now**. Bookmark a title on one device, then open Willow and sync on the other device to check that the title appears in its library. The last-checked time indicates that Willow completed a local sync pass. File transfers also depend on iCloud Drive scheduling.
 
-We recommend using iCloud Drive sync. Follow the steps above to select a folder and save your recovery key.
+Sync files are stored in a `Willow Sync v1` subfolder inside the selected folder. Comic information, tags, reading records, and plugin scripts are encrypted. Keep this subfolder and its verification file intact so other devices can identify it and verify the recovery key.
 
-If your build is signed to support CloudKit, you can also choose **CloudKit** under **Settings → Sync Method**. Sign in to the same iCloud account on each device.
+Save a separate copy of your recovery key somewhere safe. Reinstalling Willow or changing its signing identity may require you to enter the key again. While copying the key, the button shows **Reading recovery key…**, followed by a confirmation when copying finishes.
 
-When signing your own build for CloudKit, change the Bundle Identifier (`com.intii.Willow`) and iCloud Container Identifier (`iCloud.intii.Willow`) to identifiers available to your developer team, and update the project configuration accordingly.
+After an upgrade, Willow verifies a legacy recovery key and saves it to the current device before deleting the old iCloud Keychain item. The deletion propagates to other devices. A device that hasn’t saved its own copy will need the recovery key again.
 
-After switching to or from CloudKit, quit and reopen Willow for the change to take effect.
+The first connection merges items unique to either side. Newly discovered local items are published as lower-priority versions, so existing Drive edits and deletions still apply when they arrive later. Reading progress and history deletions are ordered by the time of the actual action, so a later reread can move the bookmark to an earlier page. When Willow finds sync records still downloading, it waits for the next sync. iCloud may still be discovering files uploaded by other devices, and those files join the merge when they appear. Switching to None stops Willow’s sync tasks and keeps local data and sync files. The file provider can finish transfers that Willow has already submitted.
 
 ## Open and build
 
@@ -67,7 +64,7 @@ xcodebuild -project Willow.xcodeproj -scheme Willow -sdk iphonesimulator \
   -configuration Debug -derivedDataPath /tmp/WillowDerivedData CODE_SIGNING_ALLOWED=NO build
 ```
 
-Before running on a device, copy `Config/Signing.example.xcconfig` to `Config/Signing.local.xcconfig` and enter your Team ID in that Git-ignored file. For CloudKit, enable iCloud / CloudKit in Xcode and keep the selected container consistent with `Willow/Willow.entitlements` and `WillowPersistence.iCloudContainer`. The simulator uses a local database.
+Before running on a device, copy `Config/Signing.example.xcconfig` to `Config/Signing.local.xcconfig` and enter your Team ID in that Git-ignored file.
 
 The host app target contains only `Willow/App/WillowApp.swift`. It creates `CoreAppModel`, displays `WillowRootView`, and forwards lifecycle events. The local Swift package `Core` contains the app's Swift feature code. SwiftPM automatically picks up new Swift files in existing targets under `Core/Sources`. When adding a feature target, update the target and its dependencies in `Core/Package.swift`.
 

@@ -184,23 +184,6 @@
         }
       }
     },
-    "Settings.ICloudSyncDescription" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your library, reading history, plugins, subscriptions, and tags sync through iCloud. Plugin sign-in settings and downloaded images stay on this device."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "书架、阅读历史、插件、订阅和标签通过 iCloud 同步。插件登录配置和下载图片仅保留在本机。"
-          }
-        }
-      }
-    },
     "Downloads.MissingPages" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -241,13 +224,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tags sync through iCloud. Turning off a tag only removes it from this comic."
+            "value" : "Turning off a tag only removes it from this comic."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "标签通过 iCloud 同步。关闭标签仅会移除此漫画的标签关联。"
+            "value" : "关闭标签仅会移除此漫画的标签关联。"
           }
         }
       }
@@ -932,6 +915,40 @@
         }
       }
     },
+    "Privacy.VerifyIdentityReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify your identity to change this setting."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证身份后可更改此设置。"
+          }
+        }
+      }
+    },
+    "Privacy.UnlockReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify your identity to unlock Willow."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证身份后可解锁 Willow。"
+          }
+        }
+      }
+    },
     "Reader.Close" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1030,23 +1047,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "评论"
-          }
-        }
-      }
-    },
-    "ICloudSync.Configured" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configured"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已配置"
           }
         }
       }
@@ -1680,23 +1680,6 @@
         }
       }
     },
-    "Settings.ICloudSync" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iCloud Sync"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iCloud 同步"
-          }
-        }
-      }
-    },
     "PluginManagement.ImportPluginFile" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2207,6 +2190,23 @@
         }
       }
     },
+    "ComicDetail.ChapterRead" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已读"
+          }
+        }
+      }
+    },
     "ComicDetail.NoChapters" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2441,23 +2441,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最早阅读"
-          }
-        }
-      }
-    },
-    "ICloudSync.OnThisDevice" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "On This Device"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅本机"
           }
         }
       }
@@ -2730,6 +2713,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上一章"
+          }
+        }
+      }
+    },
+    "Settings.GreenTravel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Green Travel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "绿色出行"
+          }
+        }
+      }
+    },
+    "Settings.ChangeGreenTravelReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify your identity to change Green Travel."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证身份后可更改绿色出行设置。"
+          }
+        }
+      }
+    },
+    "Settings.GreenTravelEnabled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Green Travel Is On"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "绿色出行已开启"
+          }
+        }
+      }
+    },
+    "Settings.GreenTravelExplanation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Green Travel hides NSFW plugins and their comics, reading history, and downloads while NSFW access is off. To view them temporarily, press and hold the Settings tab and verify your identity to allow NSFW content."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未临时允许 NSFW 时，绿色出行会隐藏标为 NSFW 的插件及其漫画、阅读历史和下载。若要临时查看，请长按「设置」标签，验证身份后允许显示 NSFW 内容。"
           }
         }
       }
@@ -3545,23 +3596,6 @@
         }
       }
     },
-    "ICloudSync.TemporaryStorage" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporary Storage"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "临时存储"
-          }
-        }
-      }
-    },
     "PluginHome.EmptyTitle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3660,6 +3694,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这个插件操作暂不支持。"
+          }
+        }
+      }
+    },
+    "PluginSettings.NSFW" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NSFW"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NSFW"
           }
         }
       }
@@ -3779,6 +3830,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "试试其他标签，或清除标签筛选。"
+          }
+        }
+      }
+    },
+    "Reader.PairFromSecondPage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair Pages Starting on Page 2"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从第 2 页开始配对"
           }
         }
       }
@@ -4447,23 +4515,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "恢复密钥"
-          }
-        }
-      }
-    },
-    "SyncSettings.Relaunch" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quit and reopen Willow to apply the selected sync method."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请完全退出并重新打开 Willow，以应用所选同步方式。"
           }
         }
       }

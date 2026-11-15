@@ -1,4 +1,4 @@
-import CoreStorage
+@testable import CoreStorage
 import Foundation
 import SwiftData
 import Testing
@@ -14,47 +14,59 @@ struct PreferenceSyncEventTests {
         }
     }
 
+    @Test func explicitRequestTriggersSyncWithoutOtherEvents() async throws {
+        let container = try WillowPersistence.make(inMemory: true).container
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let sync = drive.worker(container: container)
+        let events = PreferenceSyncEvents(observesDirectory: false)
+        let runner = Task {
+            await events.run(context: container.mainContext, sync: sync, center: NotificationCenter())
+        }
+        defer { runner.cancel() }
+        try await waitUntil { sync.viewModel.lastReconciledAt != nil }
+
+        let startupCompleted = try #require(sync.viewModel.lastReconciledAt)
+        events.request()
+        try await waitUntil { sync.viewModel.lastReconciledAt != startupCompleted }
+        runner.cancel()
+        await runner.value
+    }
+
     @Test func savesTriggerSyncAndCancellationRemovesObservers() async throws {
         let container = try WillowPersistence.make(inMemory: true).container
         let context = container.mainContext
-        let sync = PreferenceSyncModel(container: container)
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let sync = drive.worker(container: container)
         let events = PreferenceSyncEvents()
         let runner = Task { await events.run(context: context, sync: sync) }
         defer { runner.cancel() }
         try await waitUntil { sync.viewModel.lastReconciledAt != nil }
-        let startupDate = sync.viewModel.lastReconciledAt
 
-        // Reading progress is already synced directly by SwiftData and should not
-        // wake the plugin/tag coordinator.
-        context.insert(ComicRecord(sourceID: "test", comicID: "comic", title: "Comic"))
+        let comic = ComicRecord(sourceID: "test", comicID: "comic", title: "Comic")
+        comic.isFavorite = true
+        context.insert(comic)
         try context.save()
-        try await Task.sleep(for: .milliseconds(80))
-        #expect(sync.viewModel.lastReconciledAt == startupDate)
+        try await waitUntil { try drive.revisions().contains { $0.key.hasPrefix("favorite/") } }
 
         let subscription = SubscriptionRecord(url: "https://example.com/catalog", name: "Initial")
         context.insert(subscription)
         try context.save()
         try await waitUntil {
-            try ModelContext(container).fetchCount(FetchDescriptor<PreferenceSyncRecord>()) == 1
+            try drive.revisions().count == 2
         }
         subscription.name = "Updated"
         try context.save()
         try await waitUntil {
-            try ModelContext(container).fetchCount(FetchDescriptor<PreferenceSyncRecord>()) == 2
+            try drive.revisions().count == 3
         }
         context.delete(subscription)
         try context.save()
         try await waitUntil {
-            let rows = try ModelContext(container).fetch(FetchDescriptor<PreferenceSyncRecord>())
+            let rows = try drive.revisions().filter { $0.key.hasPrefix("subscription/") }
             return rows.count == 3 && rows.max(by: { $0.modifiedAt < $1.modifiedAt })?.deleted == true
         }
-        let completed = sync.viewModel.lastReconciledAt
-        try await Task.sleep(for: .milliseconds(80))
-        #expect(sync.viewModel.lastReconciledAt == completed, "Worker saves must not trigger feedback loops.")
-
-        // An explicit lifecycle event triggers reconciliation without a save.
-        events.request()
-        try await waitUntil { sync.viewModel.lastReconciledAt != completed }
         runner.cancel()
         await runner.value
         let stopped = sync.viewModel.lastReconciledAt
@@ -62,11 +74,14 @@ struct PreferenceSyncEventTests {
         try context.save()
         try await Task.sleep(for: .milliseconds(80))
         #expect(sync.viewModel.lastReconciledAt == stopped)
+        #expect(try drive.revisions().count == 4, "Reconciliation must not publish duplicate revisions or publish after cancellation.")
     }
     @Test func closingFirstWindowKeepsRemainingWindowSubscribed() async throws {
         let container = try WillowPersistence.make(inMemory: true).container
         let context = container.mainContext
-        let sync = PreferenceSyncModel(container: container)
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let sync = drive.worker(container: container)
         let events = PreferenceSyncEvents()
         let first = Task { await events.run(context: context, sync: sync) }
         defer { first.cancel() }
@@ -77,15 +92,10 @@ struct PreferenceSyncEventTests {
         first.cancel()
         await first.value
 
-        context.insert(SubscriptionRecord(url: "https://example.com/remaining", name: "Remaining window"))
-        try context.save()
+        try await ReadChapterStore.shared.recordOpen(comicKey: "comic", chapterID: "chapter", at: .now, in: context.container)
         try await waitUntil {
-            try ModelContext(container).fetchCount(FetchDescriptor<PreferenceSyncRecord>()) == 1
+            try drive.revisions().count == 1
         }
-        let completed = sync.viewModel.lastReconciledAt
-        events.request()
-        try await waitUntil { sync.viewModel.lastReconciledAt != completed }
-
         second.cancel()
         await second.value
         let stopped = sync.viewModel.lastReconciledAt
@@ -94,13 +104,13 @@ struct PreferenceSyncEventTests {
         events.request()
         try await Task.sleep(for: .milliseconds(80))
         #expect(sync.viewModel.lastReconciledAt == stopped)
-        #expect(try ModelContext(container).fetchCount(FetchDescriptor<PreferenceSyncRecord>()) == 1)
+        #expect(try drive.revisions().count == 1)
 
         // Reopening after all windows close starts a fresh observer and catches up.
         let reopened = Task { await events.run(context: context, sync: sync) }
         defer { reopened.cancel() }
         try await waitUntil {
-            try ModelContext(container).fetchCount(FetchDescriptor<PreferenceSyncRecord>()) == 2
+            try drive.revisions().count == 2
         }
         reopened.cancel()
         await reopened.value

@@ -63,12 +63,10 @@ jobs:
         run: Scripts/test-library-presentation.sh
       - name: Run plugin and presentation tests
         run: Scripts/test-plugin-home.sh
-      - name: Run Toast tests
+      - name: Run Toast and reader layout tests
         env:
           WILLOW_PACKAGE_TESTS_ONLY: '1'
-        run: swift test --disable-sandbox --package-path Core -Xswiftc -disable-sandbox -Xswiftc -DWILLOW_TESTING --filter ToastLifecycleTests
-      - name: Run reader layout tests
-        run: Scripts/test-reader-layout.sh
+        run: swift test --disable-sandbox --package-path Core -Xswiftc -disable-sandbox -Xswiftc -DWILLOW_TESTING --filter 'ToastLifecycleTests|ReaderLayoutTests'
       - name: Build unsigned IPA
         env:
           APP_VERSION: ${{ steps.version.outputs.value }}
@@ -108,19 +106,24 @@ jobs:
           set -euo pipefail
           cd release-assets
           sha256sum --check ./*.sha256
-          cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
-          此版本包含未签名的 iOS IPA、对应 Rust 组件源码包及 SHA-256 校验和。
-
-          Breeze 及其他 MPL 组件的对应源码包含在 sources.tar.gz 中，仍按 MPL-2.0 提供。第三方许可全文可在应用「设置 → 关于 → 第三方许可声明」查看。
-
-          Willow 原创代码采用 MPL-2.0。完整源码和许可证可从本次发布的标签获取。
-
-          IPA 需要使用自己的签名安装，不包含作者的证书、私钥或 provisioning profile。
-          iCloud 同步需要重新签名所用账号具备对应 CloudKit 容器权限；普通侧载不保证支持 iCloud。
-          NOTES
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" ./*.ipa ./*.tar.gz ./*.sha256 --clobber
           else
+            notes="$RUNNER_TEMP/release-notes.md"
+            gh api "repos/$GH_REPO/releases/generate-notes" -f tag_name="$RELEASE_TAG" --jq '.body' |
+              awk '
+                /^## New Contributors[[:space:]]*$/ { skip = 1; next }
+                /^#+[[:space:]]/ || /^\*\*Full Changelog\*\*:/ { skip = 0 }
+                !skip { print }
+              ' > "$notes"
+            printf '\n附件含未签名 IPA、MPL-2.0 对应源码和 SHA-256 校验文件。[安装与许可说明](https://github.com/%s/blob/%s/README.md)\n' \
+              "$GH_REPO" "$RELEASE_TAG" >> "$notes"
             gh release create "$RELEASE_TAG" ./*.ipa ./*.tar.gz ./*.sha256 --verify-tag \
-              --title "Willow ${RELEASE_TAG#version/}" --generate-notes --notes-file "$RUNNER_TEMP/release-notes.md"
+              --title "Willow ${RELEASE_TAG#version/}" --notes-file "$notes"
           fi
+
+  release-note:
+    needs: release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release-note.yml
