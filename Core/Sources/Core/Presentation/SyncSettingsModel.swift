@@ -9,9 +9,7 @@ final class SyncSettingsModel {
     private static let methodKey = "sync.method"
     private static let folderKey = "sync.driveFolder"
 
-    private let persistence: WillowPersistence
-    private let cloudKitIsActive: Bool
-    private let attemptedCloudKitAtLaunch: Bool
+    private let container: ModelContainer
     private let setup = DriveSyncSetup()
 
     private(set) var selection: WillowSyncMethod
@@ -22,32 +20,16 @@ final class SyncSettingsModel {
     private(set) var isSwitching = false
     private(set) var isReconciling = false
 
-    var requiresRelaunch: Bool {
-        if selection == .cloudKit { return !attemptedCloudKitAtLaunch || activeMethod == .drive }
-        return cloudKitIsActive
-    }
-    var error: String? {
-        if selection == .cloudKit { return persistence.syncFailure ?? worker?.viewModel.error }
-        return worker?.viewModel.error
-    }
+    var error: String? { worker?.viewModel.error }
 
-    static var selectedMethod: WillowSyncMethod {
-        UserDefaults.standard.string(forKey: methodKey).flatMap(WillowSyncMethod.init(rawValue:)) ?? .none
-    }
-
-    init(persistence: WillowPersistence, selection: WillowSyncMethod) {
-        self.persistence = persistence
-        self.selection = selection
-        cloudKitIsActive = persistence.syncStatus == .iCloud
-        attemptedCloudKitAtLaunch = selection == .cloudKit
+    init(container: ModelContainer) {
+        self.container = container
+        selection = UserDefaults.standard.string(forKey: Self.methodKey).flatMap(WillowSyncMethod.init(rawValue:)) ?? .none
         folder = UserDefaults.standard.data(forKey: Self.folderKey).flatMap { try? JSONDecoder().decode(DriveSyncFolder.self, from: $0) }
         activeMethod = .none
-        if persistence.syncStatus == .iCloud {
-            activeMethod = .cloudKit
-            worker = PreferenceSyncModel(container: persistence.container)
-        } else if selection == .drive, let folder {
+        if selection == .drive, let folder {
             activeMethod = .drive
-            worker = PreferenceSyncModel(container: persistence.container, folder: folder)
+            worker = PreferenceSyncModel(container: container, folder: folder)
         }
     }
 
@@ -98,18 +80,15 @@ final class SyncSettingsModel {
     }
 
     private func changeSelection(_ method: WillowSyncMethod) async {
-        if !cloudKitIsActive, method != .cloudKit {
-            // Stop and drain the previous backend before creating a new worker.
-            // Background refresh and all windows may still hold the old worker.
-            await worker?.stop()
-            worker = nil
-            activeMethod = .none
-            if method == .drive, let folder {
-                worker = PreferenceSyncModel(container: persistence.container, folder: folder)
-                activeMethod = .drive
-            }
-            events = PreferenceSyncEvents()
+        // Background refresh and other windows may still hold the old worker.
+        await worker?.stop()
+        worker = nil
+        activeMethod = .none
+        if method == .drive, let folder {
+            worker = PreferenceSyncModel(container: container, folder: folder)
+            activeMethod = .drive
         }
+        events = PreferenceSyncEvents()
 
         selection = method
         UserDefaults.standard.set(method.rawValue, forKey: Self.methodKey)

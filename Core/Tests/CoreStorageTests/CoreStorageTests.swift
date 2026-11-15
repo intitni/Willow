@@ -15,13 +15,8 @@ struct CoreStorageTests {
         #expect(String(localized: "LocalTags.NameRequired", bundle: chineseBundle) == "请输入标签名称。")
     }
 
-    @Test func `Library merges records and protects cloud fields`() throws {
+    @Test func `Library merges duplicate comics`() throws {
         let persistence = try WillowPersistence.make(inMemory: true)
-        try #require(persistence.syncStatus == .inMemory, "The in-memory library must be offline.")
-        let entity = Schema([ComicRecord.self]).entities.first!
-        let attributes = entity.properties.compactMap { $0 as? Schema.Attribute }
-        try #require(!attributes.isEmpty && attributes.allSatisfy { $0.options.contains(.allowsCloudEncryption) },
-                   "All library and reading history fields must allow CloudKit encryption.")
         let context = persistence.container.mainContext
 
         let comic = try ComicRecord.findOrCreate(in: context, sourceID: "source", comicID: "comic", title: "Comic")

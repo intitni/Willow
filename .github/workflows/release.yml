@@ -111,7 +111,7 @@ jobs:
           Willow 原创代码采用 MPL-2.0。完整源码和许可证可从本次发布的标签获取。
 
           IPA 需要使用自己的签名安装，不包含作者的证书、私钥或 provisioning profile。
-          iCloud 同步需要重新签名所用账号具备对应 CloudKit 容器权限；普通侧载不保证支持 iCloud。
+          可通过系统文件选择器连接 iCloud 云盘中的加密同步文件夹。
           NOTES
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" ./*.ipa ./*.tar.gz ./*.sha256 --clobber

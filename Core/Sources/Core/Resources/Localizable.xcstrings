@@ -184,23 +184,6 @@
         }
       }
     },
-    "Settings.ICloudSyncDescription" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your library, reading history, plugins, subscriptions, and tags sync through iCloud. Plugin sign-in settings and downloaded images stay on this device."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "书架、阅读历史、插件、订阅和标签通过 iCloud 同步。插件登录配置和下载图片仅保留在本机。"
-          }
-        }
-      }
-    },
     "Downloads.MissingPages" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -241,13 +224,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tags sync through iCloud. Turning off a tag only removes it from this comic."
+            "value" : "Turning off a tag only removes it from this comic."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "标签通过 iCloud 同步。关闭标签仅会移除此漫画的标签关联。"
+            "value" : "关闭标签仅会移除此漫画的标签关联。"
           }
         }
       }
@@ -1034,23 +1017,6 @@
         }
       }
     },
-    "ICloudSync.Configured" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configured"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已配置"
-          }
-        }
-      }
-    },
     "Text.Confirm" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1676,23 +1642,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "https://"
-          }
-        }
-      }
-    },
-    "Settings.ICloudSync" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iCloud Sync"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iCloud 同步"
           }
         }
       }
@@ -2458,23 +2407,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最早阅读"
-          }
-        }
-      }
-    },
-    "ICloudSync.OnThisDevice" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "On This Device"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅本机"
           }
         }
       }
@@ -3562,23 +3494,6 @@
         }
       }
     },
-    "ICloudSync.TemporaryStorage" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Temporary Storage"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "临时存储"
-          }
-        }
-      }
-    },
     "PluginHome.EmptyTitle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4464,23 +4379,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "恢复密钥"
-          }
-        }
-      }
-    },
-    "SyncSettings.Relaunch" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quit and reopen Willow to apply the selected sync method."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "请完全退出并重新打开 Willow，以应用所选同步方式。"
           }
         }
       }

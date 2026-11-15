@@ -121,7 +121,6 @@ struct DriveSyncTests {
         try await reattached.reconcile()
         try await syncB.reconcile()
         #expect(try ModelContext(b).fetch(FetchDescriptor<ComicRecord>()).first?.isFavorite == true)
-        #expect(try ModelContext(b).fetchCount(FetchDescriptor<PreferenceSyncRecord>()) == 0)
     }
 
     @Test func chapterRecordsMergeThroughDriveWithoutChangingResumePosition() async throws {

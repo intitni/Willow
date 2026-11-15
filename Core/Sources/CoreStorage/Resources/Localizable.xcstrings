@@ -154,23 +154,6 @@
         }
       }
     },
-    "Persistence.BuildCannotAccessCloudContainer": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This build can’t access its iCloud container."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "当前构建没有访问 iCloud 容器的权限。"
-          }
-        }
-      }
-    },
     "Downloads.EmptyChapter": {
       "extractionState": "manual",
       "localizations": {
@@ -303,40 +286,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Optic ID"
-          }
-        }
-      }
-    },
-    "Persistence.SimulatorLocalStorage": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This simulator build uses local storage. Verify iCloud sync on a device with iCloud capabilities configured."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "当前模拟器构建使用本地存储，未启用 iCloud 同步。请在已配置 iCloud 权限的真机上验证同步。"
-          }
-        }
-      }
-    },
-    "Persistence.CloudContainerUnavailable": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This build cannot access its iCloud container. Check signing and iCloud container configuration."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "当前构建没有访问所配置 iCloud 容器的权限。请检查签名与 iCloud 容器配置。"
           }
         }
       }

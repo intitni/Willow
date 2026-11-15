@@ -43,9 +43,6 @@ struct SyncSettingsSection: View {
                 Button(L10n.text("SyncSettings.ChooseFolder")) { pickingFolder = true }
             }
         } footer: {
-            if model.requiresRelaunch {
-                Text(L10n.text("SyncSettings.Relaunch"))
-            }
             if let failure = model.error {
                 Text(failure)
             } else if model.selection == .drive, model.folder == nil {
@@ -76,7 +73,6 @@ struct SyncSettingsSection: View {
     private func label(_ method: WillowSyncMethod) -> String {
         switch method {
         case .none: L10n.text("SyncSettings.None")
-        case .cloudKit: "CloudKit"
         case .drive: "iCloud Drive"
         }
     }
