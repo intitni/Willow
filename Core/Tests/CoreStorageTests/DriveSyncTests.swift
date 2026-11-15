@@ -124,6 +124,102 @@ struct DriveSyncTests {
         #expect(try ModelContext(b).fetchCount(FetchDescriptor<PreferenceSyncRecord>()) == 0)
     }
 
+    @Test func chapterRecordsMergeThroughDriveWithoutChangingResumePosition() async throws {
+        let dir = DriveSyncDirectory(root: try temporaryFolder())
+        defer { try? FileManager.default.removeItem(at: dir.root) }
+        let bytes = DriveSyncKeychain.generate()
+        let key = try DriveSyncKey(bytes)
+        try create(dir, key: key)
+        let a = try WillowPersistence.make(inMemory: true).container
+        let b = try WillowPersistence.make(inMemory: true).container
+        let syncA = PreferenceSyncModel(container: a, drive: .success(dir), driveKey: { _ in bytes })
+        let syncB = PreferenceSyncModel(container: b, drive: .success(dir), driveKey: { _ in bytes })
+        let comic = ComicRecord(sourceID: "source", comicID: "comic", title: "Comic")
+        let comicKey = comic.id
+        let first = Date(timeIntervalSinceReferenceDate: 100)
+        let latest = first.addingTimeInterval(10)
+        comic.chapterID = "one"
+        comic.pageIndex = 4
+        comic.lastReadAt = first
+        a.mainContext.insert(comic)
+        try await ReadChapterStore.shared.recordOpen(comicKey: comicKey, chapterID: "one", at: first, in: a)
+        try await ReadChapterStore.shared.recordOpen(comicKey: comicKey, chapterID: "one", at: latest, in: b)
+        try await ReadChapterStore.shared.recordOpen(comicKey: comicKey, chapterID: "two", at: latest, in: b)
+        try a.mainContext.save()
+        try await syncA.reconcile()
+        try await syncB.reconcile()
+        try await syncA.reconcile()
+
+        for container in [a, b] {
+            let context = ModelContext(container)
+            let chapters = try context.fetch(FetchDescriptor<ReadChapterRecord>())
+            #expect(chapters.count == 2)
+            #expect(Set(chapters.map(\.chapterID)) == ["one", "two"])
+            #expect(chapters.allSatisfy { $0.readAt == latest })
+            let progress = try #require(context.fetch(FetchDescriptor<ComicRecord>()).first)
+            #expect(progress.chapterID == "one")
+            #expect(progress.pageIndex == 4)
+        }
+        let revisions = try dir.readRevisions(key: key).revisions
+        #expect(revisions.filter(\.isReadChapter).count == 3)
+        #expect(revisions.filter { $0.filename.hasSuffix(".record") }.count == 1)
+        let latestRevision = try #require(revisions.first { $0.isReadChapter && $0.modifiedAt == latest })
+        let file = dir.directory.appending(path: latestRevision.filename)
+        let contents = try Data(contentsOf: file)
+        try FileManager.default.removeItem(at: file)
+        try await syncA.reconcile()
+        #expect(try dir.readRevisions(key: key).revisions.count == revisions.count - 1)
+        try contents.write(to: file, options: .atomic)
+        try await syncA.reconcile()
+        #expect(try dir.readRevisions(key: key).revisions.count == revisions.count)
+    }
+
+    @Test(arguments: [true, false])
+    func availableDriveRecordsSyncWhenOtherFilesArePending(chapterPending: Bool) async throws {
+        let dir = DriveSyncDirectory(root: try temporaryFolder())
+        defer { try? FileManager.default.removeItem(at: dir.root) }
+        let bytes = DriveSyncKeychain.generate()
+        let key = try DriveSyncKey(bytes)
+        try create(dir, key: key)
+        let a = try WillowPersistence.make(inMemory: true).container
+        let b = try WillowPersistence.make(inMemory: true).container
+        let syncA = PreferenceSyncModel(container: a, drive: .success(dir), driveKey: { _ in bytes })
+        let first = Date(timeIntervalSinceReferenceDate: 100)
+        try await ReadChapterStore.shared.recordOpen(comicKey: "comic", chapterID: "pending", at: first, in: a)
+        try await ReadChapterStore.shared.recordOpen(comicKey: "comic", chapterID: "ready", at: .now, in: a)
+        a.mainContext.insert(LocalTagRecord(name: "Tag"))
+        try a.mainContext.save()
+        try await syncA.reconcile()
+
+        let revisions = try dir.readRevisions(key: key).revisions
+        let pending = try #require(revisions.first {
+            chapterPending ? $0.isReadChapter && $0.modifiedAt == first : $0.key.hasPrefix("tag/")
+        })
+        let syncB = PreferenceSyncModel(container: b, drive: .success(dir), driveKey: { _ in bytes },
+                                        readDriveRecord: { url in
+            if url.lastPathComponent == pending.filename { return nil }
+            return try Data(contentsOf: url)
+        })
+        try await ReadChapterStore.shared.recordOpen(comicKey: "comic", chapterID: "local", at: .now, in: b)
+        if chapterPending {
+            try await syncB.reconcile()
+        } else {
+            await #expect(throws: DriveSyncError.waitingForFiles) { try await syncB.reconcile() }
+        }
+        let partial = ModelContext(b)
+        #expect(try partial.fetchCount(FetchDescriptor<LocalTagRecord>()) == (chapterPending ? 1 : 0))
+        let available: Set<String> = chapterPending ? ["ready", "local"] : ["pending", "ready", "local"]
+        #expect(Set(try partial.fetch(FetchDescriptor<ReadChapterRecord>()).map(\.chapterID)) == available)
+        try await syncA.reconcile()
+        #expect(try ModelContext(a).fetchCount(FetchDescriptor<ReadChapterRecord>()) == 3)
+
+        let afterDownload = PreferenceSyncModel(container: b, drive: .success(dir), driveKey: { _ in bytes })
+        try await afterDownload.reconcile()
+        let complete = ModelContext(b)
+        #expect(try complete.fetchCount(FetchDescriptor<ReadChapterRecord>()) == 3)
+        #expect(try complete.fetchCount(FetchDescriptor<LocalTagRecord>()) == 1)
+    }
+
     @Test(arguments: [true, false])
     func lateFavoriteDeletionWinsOverInitialLocalFavorite(enumerated: Bool) async throws {
         let dir = DriveSyncDirectory(root: try temporaryFolder())

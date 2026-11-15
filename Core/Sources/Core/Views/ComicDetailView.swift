@@ -11,6 +11,7 @@ struct ComicDetailView: View {
     @Query private var records: [ComicRecord]
     @Query private var plugins: [PluginRecord]
     @Query private var downloadRecords: [DownloadRecord]
+    @Query private var readChapters: [ReadChapterRecord]
     @State private var model: ComicDetailModel
     @State private var reader: ComicChapter?
     @State private var editingLocalTags = false
@@ -24,6 +25,7 @@ struct ComicDetailView: View {
     init(sourceID: String, summary: ComicSummary) {
         _model = State(initialValue: ComicDetailModel(sourceID: sourceID, summary: summary))
         let comicID = summary.id
+        let comicKey = ComicRecord.identifier(sourceID: sourceID, comicID: comicID)
         _records = Query(filter: #Predicate<ComicRecord> {
             $0.sourceID == sourceID && $0.comicID == comicID
         })
@@ -31,6 +33,7 @@ struct ComicDetailView: View {
         _downloadRecords = Query(filter: #Predicate<DownloadRecord> {
             $0.sourceID == sourceID && $0.comicID == comicID
         })
+        _readChapters = Query(filter: #Predicate<ReadChapterRecord> { $0.comicKey == comicKey })
     }
 
     init(record: ComicRecord) {
@@ -44,7 +47,8 @@ struct ComicDetailView: View {
 
     var body: some View {
         @Bindable var state = model.viewModel
-        let inputs = ComicDetailModel.Inputs(records: records, plugins: plugins, downloads: downloadRecords)
+        let inputs = ComicDetailModel.Inputs(records: records, plugins: plugins, downloads: downloadRecords,
+                                            readChapters: readChapters)
         let request = model.request(for: inputs)
         HStack(alignment: .top, spacing: 0) {
             if horizontalSizeClass == .regular {
@@ -117,6 +121,7 @@ struct ComicDetailView: View {
                     ChapterList(
                         chapters: state.displayedChapters,
                         activeChapterID: state.activeChapterID,
+                        readChapterIDs: inputs.readChapterIDs,
                         pendingDownloads: state.pendingDownloads,
                         downloads: state.chapterDownloads,
                         allowsDownload: state.allowsDownload && !state.preparingDownload,
@@ -211,6 +216,7 @@ private struct ComicDetailHeader: View {
 private struct ChapterList: View {
     let chapters: [ComicChapter]
     let activeChapterID: String?
+    let readChapterIDs: Set<String>
     let pendingDownloads: Set<String>
     let downloads: [String: ChapterDownloadPresentation]
     let allowsDownload: Bool
@@ -226,6 +232,8 @@ private struct ChapterList: View {
             ForEach(chapters, id: \.id) { chapter in
                 let downloadState = downloads[chapter.id]
                 let status = downloadState?.status
+                let isRead = readChapterIDs.contains(chapter.id)
+                let unreadColor: Color = chapter.id == activeChapterID ? WillowTheme.accent : .primary
                 HStack(spacing: 12) {
                     Button {
                         open(chapter)
@@ -233,7 +241,7 @@ private struct ChapterList: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(chapter.title)
-                                    .foregroundStyle(chapter.id == activeChapterID ? WillowTheme.accent : .primary)
+                                    .foregroundStyle(isRead ? .secondary : unreadColor)
                                 if pendingDownloads.contains(chapter.id) {
                                     Text(L10n.text("DownloadStatus.Preparing"))
                                         .font(.caption).foregroundStyle(.secondary)
@@ -254,6 +262,7 @@ private struct ChapterList: View {
                         .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityValue(isRead ? L10n.text("ComicDetail.ChapterRead") : "")
                     if pendingDownloads.contains(chapter.id) {
                         ProgressView()
                     } else if status == .queued || status == .downloading {

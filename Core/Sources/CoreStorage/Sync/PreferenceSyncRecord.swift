@@ -44,6 +44,7 @@ package enum PreferencePayload: Codable, Equatable, Sendable {
     case tagLink(TagLink)
     case favorite(Comic)
     case reading(Reading)
+    case readChapter(ReadChapter)
 
     package struct Comic: Codable, Equatable, Sendable {
         let sourceID: String
@@ -70,6 +71,14 @@ package enum PreferencePayload: Codable, Equatable, Sendable {
         let lastReadAt: Date
         let chapterID: String?
         let pageIndex: Int
+    }
+
+    package struct ReadChapter: Codable, Equatable, Sendable {
+        // Older CloudKit clients already ignore the reading namespace.
+        static let keyPrefix = "reading/chapter/"
+        let comicKey: String
+        let chapterID: String
+        let readAt: Date
     }
 
     package struct Plugin: Codable, Equatable, Sendable {
@@ -101,6 +110,7 @@ package enum PreferencePayload: Codable, Equatable, Sendable {
         case .tag(let value): "tag/" + value.normalizedName
         case .favorite(let comic): "favorite/" + comic.id
         case .reading(let reading): "reading/" + reading.comic.id
+        case .readChapter(let value): ReadChapter.keyPrefix + "\(value.comicKey.utf8.count):\(value.comicKey)\(value.chapterID)"
         case .tagLink(let value): "tag-link/" + Data(value.normalizedName.utf8).base64EncodedString() + "/" + Data(value.comicKey.utf8).base64EncodedString()
         }
     }

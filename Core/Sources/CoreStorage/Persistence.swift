@@ -25,8 +25,8 @@ package struct WillowPersistence {
 
     package static func make(inMemory: Bool = false, syncMethod: WillowSyncMethod = .none) throws -> WillowPersistence {
         let library = Schema([ComicRecord.self, PreferenceSyncRecord.self, PluginSyncAsset.self])
-        let local = Schema([PluginRecord.self, SubscriptionRecord.self, DownloadRecord.self, LocalTagRecord.self, PreferenceSyncCheckpoint.self])
-        let schema = Schema([ComicRecord.self, PreferenceSyncRecord.self, PluginSyncAsset.self, PluginRecord.self, SubscriptionRecord.self, DownloadRecord.self, LocalTagRecord.self, PreferenceSyncCheckpoint.self])
+        let local = Schema([PluginRecord.self, SubscriptionRecord.self, DownloadRecord.self, LocalTagRecord.self, PreferenceSyncCheckpoint.self, ReadChapterRecord.self])
+        let schema = Schema([ComicRecord.self, PreferenceSyncRecord.self, PluginSyncAsset.self, PluginRecord.self, SubscriptionRecord.self, DownloadRecord.self, LocalTagRecord.self, PreferenceSyncCheckpoint.self, ReadChapterRecord.self])
         let localConfiguration = ModelConfiguration(
             "WillowDevice",
             schema: local,

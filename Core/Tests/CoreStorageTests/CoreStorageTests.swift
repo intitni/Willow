@@ -77,6 +77,76 @@ struct CoreStorageTests {
         }
     }
 
+    @Test func `Opening chapters records each chapter once in the device store`() async throws {
+        let persistence = try WillowPersistence.make(inMemory: true)
+        let context = persistence.container.mainContext
+        let comicKey = ComicRecord.identifier(sourceID: "first", comicID: "comic")
+        let otherKey = ComicRecord.identifier(sourceID: "second", comicID: "comic")
+        let firstRead = Date(timeIntervalSince1970: 1_000)
+        let reread = Date(timeIntervalSince1970: 2_000)
+
+        try await ReadChapterStore.shared.recordOpen(comicKey: comicKey, chapterID: "one", at: firstRead, in: context.container)
+        try await ReadChapterStore.shared.recordOpen(comicKey: otherKey, chapterID: "one", at: firstRead, in: context.container)
+        try await ReadChapterStore.shared.recordOpen(comicKey: comicKey, chapterID: "two", at: reread, in: context.container)
+        try await ReadChapterStore.shared.recordOpen(comicKey: comicKey, chapterID: "one", at: reread, in: context.container)
+
+        let stored = try ModelContext(persistence.container).fetch(FetchDescriptor<ReadChapterRecord>())
+        #expect(stored.count == 3)
+        #expect(Set(stored.filter { $0.comicKey == comicKey }.map(\.chapterID)) == ["one", "two"])
+        #expect(stored.first { $0.comicKey == comicKey && $0.chapterID == "one" }?.readAt == reread)
+        #expect(stored.first { $0.comicKey == otherKey }?.readAt == firstRead)
+
+        let device = try #require(persistence.container.configurations.first { $0.name == "WillowDevice" })
+        let library = try #require(persistence.container.configurations.first { $0.name == "WillowLibrary" })
+        #expect(device.schema?.entities.contains { $0.name == "ReadChapterRecord" } == true)
+        #expect(library.schema?.entities.contains { $0.name == "ReadChapterRecord" } == false)
+    }
+
+    @Test func `Existing device stores gain chapter history without losing local tags`() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "WillowDevice.store")
+        let oldModels: [any PersistentModel.Type] = [
+            PluginRecord.self, SubscriptionRecord.self, DownloadRecord.self, LocalTagRecord.self,
+            PreferenceSyncCheckpoint.self,
+        ]
+
+        func openStore(_ models: [any PersistentModel.Type]) throws -> ModelContainer {
+            let schema = Schema(models)
+            let configuration = ModelConfiguration("WillowDevice", schema: schema, url: url, cloudKitDatabase: .none)
+            return try ModelContainer(for: schema, configurations: configuration)
+        }
+
+        let comicKey = ComicRecord.identifier(sourceID: "source", comicID: "comic")
+        do {
+            let container = try openStore(oldModels)
+            try LocalTagStore.create("Favorites", comicKey: comicKey, context: container.mainContext)
+        }
+
+        let upgraded = try openStore(oldModels + [ReadChapterRecord.self])
+        let context = upgraded.mainContext
+        let tags = try context.fetch(FetchDescriptor<LocalTagRecord>())
+        #expect(tags.first?.comicKeys == [comicKey])
+        #expect(try context.fetchCount(FetchDescriptor<ReadChapterRecord>()) == 0)
+        try await ReadChapterStore.shared.recordOpen(comicKey: comicKey, chapterID: "chapter", at: .now, in: context.container)
+        #expect(try context.fetchCount(FetchDescriptor<ReadChapterRecord>()) == 1)
+    }
+
+    @Test(arguments: [true, false])
+    func olderChapterImportPreservesLocalOpen(importFirst: Bool) async throws {
+        let container = try WillowPersistence.make(inMemory: true).container
+        let first = Date(timeIntervalSinceReferenceDate: 100)
+        let latest = first.addingTimeInterval(10)
+        let imported = PreferencePayload.ReadChapter(comicKey: "comic", chapterID: "one", readAt: first)
+        let store = ReadChapterStore.shared
+        if importFirst { try await store.merge([imported], in: container) }
+        try await store.recordOpen(comicKey: "comic", chapterID: "one", at: latest, in: container)
+        if !importFirst { try await store.merge([imported], in: container) }
+
+        let records = try ModelContext(container).fetch(FetchDescriptor<ReadChapterRecord>())
+        #expect(records.map(\.readAt) == [latest])
+    }
+
     @Test func `App lock preference persists`() throws {
         let suite = "WillowCore-\(UUID())"
         guard let defaults = UserDefaults(suiteName: suite) else { throw Failure("Cannot open isolated defaults.") }

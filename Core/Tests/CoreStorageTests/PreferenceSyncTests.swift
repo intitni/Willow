@@ -24,6 +24,34 @@ struct PreferenceSyncTests {
         try output.save()
     }
 
+    @Test func chapterHistoryMergesAcrossCloudKitImports() async throws {
+        let a = try WillowPersistence.make(inMemory: true).container
+        let b = try WillowPersistence.make(inMemory: true).container
+        let syncA = PreferenceSyncModel(container: a)
+        let syncB = PreferenceSyncModel(container: b)
+        let comicKey = ComicRecord.identifier(sourceID: "source", comicID: "comic")
+        let first = Date(timeIntervalSinceReferenceDate: 100)
+        let latest = first.addingTimeInterval(10)
+        try await ReadChapterStore.shared.recordOpen(comicKey: comicKey, chapterID: "one", at: first, in: a)
+        try await ReadChapterStore.shared.recordOpen(comicKey: comicKey, chapterID: "one", at: latest, in: b)
+        try await ReadChapterStore.shared.recordOpen(comicKey: comicKey, chapterID: "two", at: first, in: b)
+        try await syncA.reconcile()
+        try await syncB.reconcile()
+        try copyCloud(from: a, to: b)
+        try copyCloud(from: b, to: a)
+        try await syncA.reconcile()
+        try await syncB.reconcile()
+
+        for container in [a, b] {
+            let fresh = ModelContext(container)
+            let records = try fresh.fetch(FetchDescriptor<ReadChapterRecord>())
+            #expect(records.count == 2)
+            #expect(records.first { $0.chapterID == "one" }?.readAt == latest)
+            #expect(records.first { $0.chapterID == "two" }?.readAt == first)
+            #expect(try fresh.fetchCount(FetchDescriptor<PreferenceSyncRecord>()) == 3)
+        }
+    }
+
     @Test func tagsAndSubscriptionsMergeAndDeleteAcrossDevices() async throws {
         let a = try WillowPersistence.make(inMemory: true).container
         let b = try WillowPersistence.make(inMemory: true).container
