@@ -58,12 +58,10 @@ jobs:
         run: Scripts/test-library-presentation.sh
       - name: Run plugin and presentation tests
         run: Scripts/test-plugin-home.sh
-      - name: Run Toast tests
+      - name: Run Toast and reader layout tests
         env:
           WILLOW_PACKAGE_TESTS_ONLY: '1'
-        run: swift test --disable-sandbox --package-path Core -Xswiftc -disable-sandbox -Xswiftc -DWILLOW_TESTING --filter ToastLifecycleTests
-      - name: Run reader layout tests
-        run: Scripts/test-reader-layout.sh
+        run: swift test --disable-sandbox --package-path Core -Xswiftc -disable-sandbox -Xswiftc -DWILLOW_TESTING --filter 'ToastLifecycleTests|ReaderLayoutTests'
       - name: Build unsigned IPA
         env:
           APP_VERSION: ${{ steps.version.outputs.value }}

@@ -3715,6 +3715,23 @@
         }
       }
     },
+    "Reader.PairFromSecondPage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair Pages Starting on Page 2"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从第 2 页开始配对"
+          }
+        }
+      }
+    },
     "Reader.TwoPagesInWideWindows" : {
       "extractionState" : "manual",
       "localizations" : {
