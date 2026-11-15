@@ -2,7 +2,7 @@
 
 Willow uses source from [Breeze](https://github.com/breeze-project-org/Breeze), revision `d4888c8d4eaa866a526bd29b90564f6c60b86be3`, under the Mozilla Public License 2.0. The upstream license is preserved at `Vendor/Breeze/LICENSE`.
 
-The unmodified `rust/rquickjs_playground` runtime and `rust/src/decode` image utilities are referenced directly from the submodule. Willow does not distribute the Flutter application or its UI assets.
+Willow builds Breeze's `rust/rquickjs_playground` runtime with a [system DNS patch](Bridge/patches/breeze-system-dns.patch). The `rust/src/decode` image utilities come directly from the pinned submodule. Willow does not distribute the Flutter application or its UI assets.
 
 QuickJS is supplied through Breeze's pinned [rquickjs-sys fork](https://github.com/deretame/breeze-rquickjs-sys), revision `846889c482ee7511f558595384673f55c00c9f4a`. Rust transitive dependencies and exact versions are recorded in `Bridge/Cargo.lock`; their individual upstream licenses continue to apply.
 
