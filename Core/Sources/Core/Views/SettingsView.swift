@@ -159,7 +159,11 @@ private struct UpdatesView: View {
             Section(L10n.text("About.ReleaseNotes")) {
                 if let notes = model.latestRelease?.notes,
                    !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text(verbatim: notes)
+                    let markdown = try? AttributedString(
+                        markdown: notes,
+                        options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+                    )
+                    Text(markdown ?? AttributedString(notes))
                         .textSelection(.enabled)
                 } else {
                     Text(L10n.resource("About.NoReleaseNotes"))

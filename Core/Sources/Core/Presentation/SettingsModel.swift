@@ -138,19 +138,17 @@ final class UpdateModel {
     }
 
     private nonisolated static func fetchLatestRelease() async throws -> WillowRelease? {
-        let endpoint = URL(string: "https://api.github.com/repos/intitni/Willow/releases/latest")!
-        var request = URLRequest(url: endpoint)
-        request.timeoutInterval = 15
-        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("Willow iOS App", forHTTPHeaderField: "User-Agent")
-        request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
+        let endpoint = URL(string: "https://raw.githubusercontent.com/intitni/Willow/refs/heads/release-note/release.json")!
+        let request = URLRequest(url: endpoint, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
         let (data, response) = try await URLSession.shared.data(for: request)
-        guard let response = response as? HTTPURLResponse else {
+        return try decodeReleaseManifest(data, response: response)
+    }
+
+    nonisolated static func decodeReleaseManifest(_ data: Data, response: URLResponse) throws -> WillowRelease? {
+        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
-        if response.statusCode == 404 { return nil }
-        guard response.statusCode == 200 else { throw URLError(.badServerResponse) }
-        return try JSONDecoder().decode(WillowRelease.self, from: data)
+        return try JSONDecoder().decode(WillowRelease?.self, from: data)
     }
 
     private static func versionComponents(_ version: String) -> [Int]? {

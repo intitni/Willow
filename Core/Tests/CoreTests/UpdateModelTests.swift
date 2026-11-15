@@ -76,4 +76,16 @@ struct UpdateModelTests {
         #expect(current.isUpdateAvailable == false)
         #expect(ahead.isUpdateAvailable == false)
     }
+
+    @Test
+    func missingManifestFailsWhilePublishedNullMeansNoRelease() throws {
+        let url = URL(string: "https://raw.githubusercontent.com/intitni/Willow/refs/heads/release-note/release.json")!
+        let missing = try #require(HTTPURLResponse(url: url, statusCode: 404, httpVersion: nil, headerFields: nil))
+        let published = try #require(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: nil))
+
+        #expect(throws: URLError(.badServerResponse)) {
+            try UpdateModel.decodeReleaseManifest(Data(), response: missing)
+        }
+        #expect(try UpdateModel.decodeReleaseManifest(Data("null".utf8), response: published) == nil)
+    }
 }
