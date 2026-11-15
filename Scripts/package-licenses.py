@@ -21,7 +21,7 @@ ALIASES = {'srcmap-scopes': 'srcmap-codec', 'srcmap-sourcemap': 'srcmap-codec'}
 
 def metadata():
     result = subprocess.check_output([
-        'cargo', '+1.96.1', 'metadata', '--locked', '--offline',
+        'sh', str(ROOT / 'Scripts/cargo-bridge.sh'), 'metadata', '--locked', '--offline',
         '--manifest-path', str(ROOT / 'Bridge/Cargo.toml'), '--format-version', '1',
         '--filter-platform', 'aarch64-apple-ios',
     ], cwd=ROOT)
@@ -44,7 +44,7 @@ def revision():
 
 def license_files(directory):
     for path in sorted(directory.rglob('*')):
-        if not path.is_file() or '.git' in path.parts or 'target' in path.parts:
+        if not path.is_file() or {'.git', 'target'}.intersection(path.relative_to(directory).parts):
             continue
         name = path.name.lower()
         if name.startswith(('license', 'licence', 'copying', 'notice', 'copyright', 'unlicense', 'authors')) or name.endswith(('.license', '.license.txt')):
@@ -110,14 +110,16 @@ def source_archive(path, packages):
                 if file.is_symlink() or not file.is_file() or any(p in {'.git', 'target'} for p in file.relative_to(directory).parts):
                     continue
                 archive.add(file, arcname=destination + '/' + file.relative_to(directory).as_posix(), recursive=False)
-        for name in ['LICENSE', 'Bridge/Cargo.toml', 'Bridge/Cargo.lock', 'THIRD_PARTY_NOTICES.md', 'Scripts/package-licenses.py']:
+        for name in ['LICENSE', 'Bridge/Cargo.toml', 'Bridge/Cargo.lock', 'Bridge/patches/breeze-system-dns.patch',
+                     'THIRD_PARTY_NOTICES.md', 'Scripts/package-licenses.py']:
             archive.add(ROOT / name, arcname='Willow-Sources/' + name)
         add_tree(ROOT / 'Bridge/src', 'Willow-Sources/Bridge/src')
         add_tree(ROOT / 'Licenses', 'Willow-Sources/Licenses')
         # Include the actual working source used by the compiler, including any modifications.
         archive.add(ROOT / 'Vendor/Breeze/LICENSE', arcname='Willow-Sources/Vendor/Breeze/LICENSE')
-        for name in ['rust/rquickjs_playground', 'rust/src/decode']:
-            add_tree(ROOT / 'Vendor/Breeze' / name, 'Willow-Sources/Vendor/Breeze/' + name)
+        runtime = next(package for package in packages if package['name'] == 'rquickjs_playground')
+        add_tree(Path(runtime['manifest_path']).parent, 'Willow-Sources/Vendor/Breeze/rust/rquickjs_playground')
+        add_tree(ROOT / 'Vendor/Breeze/rust/src/decode', 'Willow-Sources/Vendor/Breeze/rust/src/decode')
         for package in packages:
             if package['name'] in {'willow_bridge', 'rquickjs_playground'}:
                 continue

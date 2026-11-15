@@ -49,7 +49,7 @@ struct ComicDetailView: View {
         HStack(alignment: .top, spacing: 0) {
             if horizontalSizeClass == .regular {
                 ScrollView {
-                    ComicDetailHeader(comic: state.comic, vertical: true)
+                    ComicDetailHeader(comic: state.comic, sourceID: model.sourceID, refreshID: state.coverRefreshID, vertical: true)
                         .padding(24)
                 }
                 .frame(width: 288)
@@ -58,7 +58,7 @@ struct ComicDetailView: View {
                 if horizontalSizeClass != .regular {
                     Section {
                     } header: {
-                        ComicDetailHeader(comic: state.comic, vertical: false)
+                        ComicDetailHeader(comic: state.comic, sourceID: model.sourceID, refreshID: state.coverRefreshID, vertical: false)
                             .textCase(nil)
                             .padding(.vertical, 8)
                     }
@@ -160,7 +160,7 @@ struct ComicDetailView: View {
         .navigationTitle(L10n.text("ComicDetail.Title"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: inputs, initial: true) { _, inputs in model.updatePresentation(inputs) }
-        .refreshable { await model.loadDetail(inputs: inputs, context: context) }
+        .refreshable { await model.loadDetail(inputs: inputs, context: context, refreshing: true) }
         .task(id: request) { await model.loadDetail(inputs: inputs, context: context) }
         .sheet(isPresented: $editingLocalTags) {
             LocalTagEditor(comicKey: ComicRecord.identifier(sourceID: model.sourceID, comicID: state.summary.id))
@@ -185,13 +185,17 @@ struct ComicDetailView: View {
 
 private struct ComicDetailHeader: View {
     let comic: ComicSummary
+    let sourceID: String
+    let refreshID: Int
     let vertical: Bool
 
     var body: some View {
         let layout = vertical ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
                               : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
         layout {
-            ComicCover(url: comic.coverURL).frame(width: vertical ? 240 : 112)
+            ComicCover(url: comic.coverURL, cachePolicy: .comicCover(id: ComicRecord.identifier(sourceID: sourceID, comicID: comic.id)),
+                       refreshID: refreshID)
+                .frame(width: vertical ? 240 : 112)
             VStack(alignment: .leading, spacing: 12) {
                 Text(comic.title).font(.title2.bold()).foregroundStyle(.primary)
                 if !comic.summary.isEmpty {

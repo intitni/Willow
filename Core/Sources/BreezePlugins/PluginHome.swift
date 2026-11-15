@@ -27,6 +27,7 @@ package struct PluginHomeLink: Identifiable, Sendable {
     package let id: String
     package let title: String
     package let coverURL: URL?
+    package let comicID: String?
     package let action: JSONValue
 }
 
@@ -89,7 +90,9 @@ extension PluginService {
                 for (index, item) in items.enumerated() {
                     let title = item["label"].string.isEmpty ? item["title"].string : item["label"].string
                     let comic = try await summary(item, plugin: plugin, fallbackID: "\(path).\(index)")
-                    links.append(PluginHomeLink(id: "\(path).\(index)", title: title, coverURL: comic.coverURL, action: item["action"]))
+                    let comicID = item["id"].string
+                    links.append(PluginHomeLink(id: "\(path).\(index)", title: title, coverURL: comic.coverURL,
+                                                comicID: comicID.isEmpty ? nil : comicID, action: item["action"]))
                 }
                 return [PluginHomeBlock(id: path, title: node["title"].string, kind: kind, comics: [], links: links, action: node["action"])]
             }

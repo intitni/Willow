@@ -39,6 +39,7 @@ final class ComicDetailViewModel {
     fileprivate(set) var loadError: String?
     var actionError: String?
     fileprivate(set) var refreshID = 0
+    fileprivate(set) var coverRefreshID = 0
     fileprivate(set) var pendingDownloads = Set<String>()
     fileprivate(set) var preparingDownload = false
     fileprivate(set) var favorite = false
@@ -165,7 +166,7 @@ final class ComicDetailModel {
         viewModel.showsReversed.toggle()
     }
 
-    func loadDetail(inputs: Inputs, context: ModelContext) async {
+    func loadDetail(inputs: Inputs, context: ModelContext, refreshing: Bool = false) async {
         let current = UUID()
         operation = current
         viewModel.loadError = nil
@@ -178,6 +179,7 @@ final class ComicDetailModel {
             let detail = try await PluginService.shared.detail(plugin: plugin, comicID: viewModel.summary.id)
             guard !Task.isCancelled, operation == current else { return }
             viewModel.detail = detail
+            if refreshing { viewModel.coverRefreshID += 1 }
             if let record = inputs.record {
                 update(record, from: detail)
                 try context.save()

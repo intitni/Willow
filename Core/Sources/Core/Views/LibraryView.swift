@@ -102,7 +102,7 @@ private struct LibraryGridTile: View {
             ComicDetailView(sourceID: comic.sourceID, summary: comic.comic)
         } label: {
             VStack(alignment: .leading, spacing: 6) {
-                DiscoverComicTile(comic: comic.comic)
+                DiscoverComicTile(comic: comic.comic, sourceID: comic.sourceID)
                 if isHistory, let date = comic.lastReadAt {
                     Text(date, format: .dateTime.month().day().hour().minute())
                         .font(.caption).foregroundStyle(.secondary)

@@ -15,7 +15,7 @@ export "BINDGEN_EXTRA_CLANG_ARGS_${TARGET_KEY}=--target=$CLANG_TARGET -isysroot 
 export "CFLAGS_${TARGET_KEY}=-isysroot $SDKROOT -target $CLANG_TARGET"
 export CARGO_TARGET_DIR="$ROOT_DIR/Bridge/target"
 if [ "${CONFIGURATION:-Debug}" = Release ]; then
-  cargo +1.96.1 build --manifest-path "$ROOT_DIR/Bridge/Cargo.toml" --target "$TARGET" --release --locked
+  sh "$ROOT_DIR/Scripts/cargo-bridge.sh" build --manifest-path "$ROOT_DIR/Bridge/Cargo.toml" --target "$TARGET" --release --locked
 else
-  cargo +1.96.1 build --manifest-path "$ROOT_DIR/Bridge/Cargo.toml" --target "$TARGET" --locked
+  sh "$ROOT_DIR/Scripts/cargo-bridge.sh" build --manifest-path "$ROOT_DIR/Bridge/Cargo.toml" --target "$TARGET" --locked
 fi

@@ -38,12 +38,14 @@ struct ErrorAlert: ViewModifier {
 
 struct ComicCover: View {
     let url: URL?
+    var cachePolicy: ImageCache.Policy = .byURL
+    var refreshID = 0
 
     var body: some View {
         Color.secondary.opacity(0.12)
             .aspectRatio(2.0 / 3.0, contentMode: .fit)
             .overlay {
-                CachedImage(url: url, thumbnail: true) { image in
+                CachedImage(url: url, thumbnail: true, cachePolicy: cachePolicy, refreshID: refreshID) { image in
                     GeometryReader { geometry in
                         image.resizable().scaledToFill()
                             .frame(width: geometry.size.width, height: geometry.size.height)
@@ -72,6 +74,8 @@ struct ComicCover: View {
 struct CachedImage<ImageContent: View, Placeholder: View>: View {
     let url: URL?
     var thumbnail = false
+    var cachePolicy: ImageCache.Policy = .byURL
+    var refreshID = 0
     @ViewBuilder let content: (Image) -> ImageContent
     @ViewBuilder let placeholder: (String?) -> Placeholder
     @State private var model = CachedImageModel()
@@ -80,6 +84,8 @@ struct CachedImage<ImageContent: View, Placeholder: View>: View {
 
     private struct Request: Hashable {
         let url: URL?
+        let cachePolicy: ImageCache.Policy
+        let refreshID: Int
         let attempt: Int
         let isVisible: Bool
     }
@@ -90,6 +96,20 @@ struct CachedImage<ImageContent: View, Placeholder: View>: View {
         Group {
             if let image {
                 content(Image(uiImage: image))
+                    .overlay(alignment: .bottomTrailing) {
+                        if let error {
+                            Button {
+                                attempt += 1
+                            } label: {
+                                Label(L10n.text("Cover.RetryLoading"), systemImage: "arrow.clockwise")
+                                    .labelStyle(.iconOnly)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .buttonBorderShape(.circle)
+                            .accessibilityHint(error)
+                            .padding(4)
+                        }
+                    }
             } else {
                 placeholder(error)
                     .onTapGesture {
@@ -102,9 +122,9 @@ struct CachedImage<ImageContent: View, Placeholder: View>: View {
         }
         .onAppear { isVisible = true }
         .onDisappear { isVisible = false }
-        .task(id: Request(url: url, attempt: attempt, isVisible: isVisible)) {
+        .task(id: Request(url: url, cachePolicy: cachePolicy, refreshID: refreshID, attempt: attempt, isVisible: isVisible)) {
             guard isVisible else { return }
-            await model.load(url: url, thumbnail: thumbnail)
+            await model.load(url: url, policy: cachePolicy, thumbnail: thumbnail)
         }
     }
 }

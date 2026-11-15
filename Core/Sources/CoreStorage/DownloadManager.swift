@@ -294,7 +294,17 @@ package actor ImageCache {
     private let directory: URL
     private let byteLimit: Int
     private let transport: (@Sendable (URL) async throws -> Data)?
+    private static let coverLifetime: TimeInterval = 30 * 24 * 60 * 60
     package enum Priority: Int, Sendable { case download, thumbnail, prefetch, reading }
+    package enum Policy: Hashable, Sendable {
+        case byURL
+        case comicCover(id: String)
+
+        fileprivate var coverID: String? {
+            guard case .comicCover(let id) = self else { return nil }
+            return id
+        }
+    }
     private struct Consumer {
         let priority: Priority
         let continuation: CheckedContinuation<Data, Error>
@@ -304,6 +314,7 @@ package actor ImageCache {
         let url: URL
         let headers: [String: String]
         let file: URL
+        let validatesThumbnail: Bool
         var consumers: [UUID: Consumer]
         var continuesWithoutView = false
         var task: Task<Void, Never>?
@@ -314,6 +325,7 @@ package actor ImageCache {
     private var pending: [String] = []
     private var activeRequests = 0
     private var activePrefetches = 0
+    private var activeThumbnails = 0
 
     package init(directory: URL? = nil, byteLimit: Int = 256 * 1024 * 1024,
                  transport: (@Sendable (URL) async throws -> Data)? = nil) {
@@ -327,22 +339,72 @@ package actor ImageCache {
     package var queuedRequestCount: Int { pending.count }
     #endif
 
-    package func data(for url: URL, headers: [String: String] = [:], priority: Priority = .thumbnail) async throws -> Data {
+    private func fallbackCover(for url: URL?, coverID: String) -> URL? {
+        let file = directory.appending(path: Self.coverKey(coverID))
+        if url == nil || Self.freshCoverDate(at: file) == nil,
+           FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) { return file }
+        guard let url, !url.isFileURL, !FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) else {
+            return nil
+        }
+        let legacyFile = directory.appending(path: Self.urlKey(for: url, headers: [:]))
+        return Self.freshCoverDate(at: legacyFile) == nil ? legacyFile : nil
+    }
+
+    package func load<Value: Sendable>(for url: URL?, priority: Priority, policy: Policy,
+                                       decode: @Sendable (Data) async -> Value?,
+                                       showFallback: @Sendable (Value) async -> Void) async throws -> Value? {
+        try Task.checkCancellation()
+        if let coverID = policy.coverID, let file = fallbackCover(for: url, coverID: coverID),
+           let (_, value) = try await cachedValue(at: file, decode: decode) {
+            await showFallback(value)
+        }
+        guard let url else { return nil }
+        return try await loadValue(for: url, headers: [:], priority: priority, policy: policy, decode: decode)
+    }
+
+    package func data(for url: URL, headers: [String: String] = [:], priority: Priority = .thumbnail,
+                      policy: Policy = .byURL) async throws -> Data {
+        let validatesThumbnail = policy.coverID != nil || priority == .thumbnail
+        return try await loadValue(for: url, headers: headers, priority: priority, policy: policy) { data in
+            if validatesThumbnail, !url.isFileURL, !(await Self.isDecodableThumbnail(data)) { return nil }
+            return data
+        }
+    }
+
+    private func loadValue<Value: Sendable>(for url: URL, headers: [String: String], priority: Priority,
+                                            policy: Policy, decode: @Sendable (Data) async -> Value?) async throws -> Value {
         try Task.checkCancellation()
         if url.isFileURL {
-            return try Data(contentsOf: url, options: .mappedIfSafe)
+            let data = try Data(contentsOf: url, options: .mappedIfSafe)
+            guard let value = await decode(data) else { throw URLError(.cannotDecodeContentData) }
+            return value
         }
 
         try LocalImageStorage.prepare(directory)
-        let headerKey = headers.sorted { $0.key < $1.key }.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
-        let identity = url.scheme == "willow-plugin" ? "willow-plugin/" + url.lastPathComponent : url.absoluteString
-        let key = Self.fileKey(for: "\(identity)\n\(headerKey)")
+        let coverID = policy.coverID
+        let urlKey = Self.urlKey(for: url, headers: headers)
+        let key = coverID.map(Self.coverKey) ?? urlKey
         let file = directory.appending(path: key)
-        if let data = try? Data(contentsOf: file, options: .mappedIfSafe) {
-            try? FileManager.default.setAttributes([.modificationDate: Date.now], ofItemAtPath: file.path(percentEncoded: false))
-            return data
+        if (coverID == nil || Self.freshCoverDate(at: file) != nil),
+           let (_, value) = try await cachedValue(at: file, decode: decode) { return value }
+        let legacyFile = directory.appending(path: urlKey)
+        if coverID != nil, !FileManager.default.fileExists(atPath: file.path(percentEncoded: false)),
+           let fetchedAt = Self.freshCoverDate(at: legacyFile),
+           let (data, value) = try await cachedValue(at: legacyFile, decode: decode) {
+            if requests[key] == nil, !FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) {
+                try? store(data, at: file, fetchedAt: fetchedAt)
+            }
+            return value
         }
+        let data = try await fetchData(for: url, headers: headers, priority: priority, key: key, file: file,
+                                       validatesThumbnail: coverID != nil || priority == .thumbnail)
+        try Task.checkCancellation()
+        guard let value = await decode(data) else { throw URLError(.cannotDecodeContentData) }
+        return value
+    }
 
+    private func fetchData(for url: URL, headers: [String: String], priority: Priority, key: String, file: URL,
+                           validatesThumbnail: Bool) async throws -> Data {
         let consumer = UUID()
         return try await withTaskCancellationHandler {
             try Task.checkCancellation()
@@ -351,7 +413,7 @@ package actor ImageCache {
                 if requests[key] != nil {
                     requests[key]?.consumers[consumer] = subscriber
                 } else {
-                    requests[key] = Request(url: url, headers: headers, file: file,
+                    requests[key] = Request(url: url, headers: headers, file: file, validatesThumbnail: validatesThumbnail,
                                             consumers: [consumer: subscriber])
                     pending.append(key)
                 }
@@ -369,6 +431,8 @@ package actor ImageCache {
         if requests[key]?.consumers.isEmpty == true {
             // 阅读页离屏后继续写入缓存，等待中的请求自然降为后台优先级。
             if requests[key]?.continuesWithoutView == true { return }
+            // Another screen can attach to a cover fetch that has already started.
+            if subscriber.priority == .thumbnail, requests[key]?.task != nil { return }
             requests[key]?.task?.cancel()
             requests[key] = nil
             pending.removeAll { $0 == key }
@@ -377,34 +441,36 @@ package actor ImageCache {
 
     private func startRequests() {
         while activeRequests < 6 {
-            let prefetchLimitReached = activePrefetches >= 2
             var selected: (index: Int, priority: Int)?
             // Keep FIFO ordering for equal priorities among requests that can start now.
             for index in pending.indices {
                 guard let priority = requests[pending[index]]?.priority,
                       priority > (selected?.priority ?? Int.min),
-                      !prefetchLimitReached || priority != Priority.prefetch.rawValue else { continue }
+                      priority != Priority.prefetch.rawValue || activePrefetches < 2,
+                      priority != Priority.thumbnail.rawValue || activeThumbnails < 2 else { continue }
                 selected = (index, priority)
             }
             guard let (index, priority) = selected else { return }
             let key = pending.remove(at: index)
             guard let request = requests[key] else { continue }
-            let startedAsPrefetch = priority == Priority.prefetch.rawValue
-            if startedAsPrefetch { activePrefetches += 1 }
+            let startedPriority = Priority(rawValue: priority)
+            if startedPriority == .prefetch { activePrefetches += 1 }
+            if startedPriority == .thumbnail { activeThumbnails += 1 }
             activeRequests += 1
             requests[key]?.task = Task {
                 let result: Result<Data, Error>
-                do { result = .success(try await fetch(request.url, headers: request.headers, file: request.file)) }
+                do { result = .success(try await fetch(request)) }
                 catch { result = .failure(error) }
-                finish(key: key, id: request.id, startedAsPrefetch: startedAsPrefetch, result: result)
+                finish(key: key, id: request.id, startedPriority: startedPriority, result: result)
             }
         }
     }
 
-    private func finish(key: String, id: UUID, startedAsPrefetch: Bool, result: Result<Data, Error>) {
+    private func finish(key: String, id: UUID, startedPriority: Priority?, result: Result<Data, Error>) {
         let request = requests[key]?.id == id ? requests.removeValue(forKey: key) : nil
         // A cancelled plugin call can keep running until the Rust bridge returns.
-        if startedAsPrefetch { activePrefetches -= 1 }
+        if startedPriority == .prefetch { activePrefetches -= 1 }
+        if startedPriority == .thumbnail { activeThumbnails -= 1 }
         activeRequests -= 1
         for consumer in request?.consumers.values ?? Dictionary<UUID, Consumer>().values {
             consumer.continuation.resume(with: result)
@@ -412,7 +478,8 @@ package actor ImageCache {
         startRequests()
     }
 
-    private func fetch(_ url: URL, headers: [String: String], file: URL) async throws -> Data {
+    private func fetch(_ request: Request) async throws -> Data {
+        let url = request.url
         let data: Data
         if let transport {
             data = try await transport(url)
@@ -421,11 +488,11 @@ package actor ImageCache {
         case "willow-plugin":
             data = try await PluginImageGateway.shared.data(for: url)
         case "https", "http":
-            var request = URLRequest(url: url)
-            for (name, value) in headers {
-                request.setValue(value, forHTTPHeaderField: name)
+            var urlRequest = URLRequest(url: url)
+            for (name, value) in request.headers {
+                urlRequest.setValue(value, forHTTPHeaderField: name)
             }
-            let (body, response) = try await URLSession.shared.data(for: request)
+            let (body, response) = try await URLSession.shared.data(for: urlRequest)
             guard let response = response as? HTTPURLResponse, (200..<300).contains(response.statusCode) else {
                 throw URLError(.badServerResponse)
             }
@@ -438,9 +505,13 @@ package actor ImageCache {
         guard let image = CGImageSourceCreateWithData(data as CFData, nil), CGImageSourceGetCount(image) > 0 else {
             throw URLError(.cannotDecodeContentData)
         }
+        if request.validatesThumbnail, !(await Self.isDecodableThumbnail(data)) {
+            throw URLError(.cannotDecodeContentData)
+        }
 
+        try Task.checkCancellation()
         if data.count <= byteLimit {
-            try? store(data, at: file)
+            try? store(data, at: request.file)
         }
         return data
     }
@@ -449,10 +520,62 @@ package actor ImageCache {
         SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
-    private func store(_ data: Data, at file: URL) throws {
+    private static func coverKey(_ coverID: String) -> String {
+        fileKey(for: "Willow cover\n\(coverID)")
+    }
+
+    private static func urlKey(for url: URL, headers: [String: String]) -> String {
+        let headerKey = headers.sorted { $0.key < $1.key }.map { "\($0.key): \($0.value)" }.joined(separator: "\n")
+        let identity = url.scheme == "willow-plugin" ? "willow-plugin/" + url.lastPathComponent : url.absoluteString
+        return fileKey(for: "\(identity)\n\(headerKey)")
+    }
+
+    private func cachedValue<Value: Sendable>(at file: URL, decode: @Sendable (Data) async -> Value?) async throws -> (Data, Value)? {
+        while let data = try? Data(contentsOf: file, options: .mappedIfSafe) {
+            let value = await decode(data)
+            try Task.checkCancellation()
+            if let value {
+                try? FileManager.default.setAttributes([.modificationDate: Date.now], ofItemAtPath: file.path(percentEncoded: false))
+                return (data, value)
+            }
+            // Another request may have replaced the file while decoding.
+            guard let current = try? Data(contentsOf: file, options: .mappedIfSafe) else { return nil }
+            if current == data {
+                try? FileManager.default.removeItem(at: file)
+                return nil
+            }
+        }
+        return nil
+    }
+
+    @concurrent
+    package static func decodeThumbnail(_ data: Data) async -> CGImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              CGImageSourceGetStatus(source) == .statusComplete else { return nil }
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: 600,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true
+        ] as CFDictionary)
+    }
+
+    private static func isDecodableThumbnail(_ data: Data) async -> Bool {
+        await decodeThumbnail(data) != nil
+    }
+
+    private static func freshCoverDate(at file: URL) -> Date? {
+        // Modification time tracks cache use for eviction. Creation time tracks freshness.
+        guard let created = try? file.resourceValues(forKeys: [.creationDateKey]).creationDate,
+              Date.now.timeIntervalSince(created) < coverLifetime else { return nil }
+        return created
+    }
+
+    private func store(_ data: Data, at file: URL, fetchedAt: Date = .now) throws {
         let manager = FileManager.default
         try LocalImageStorage.prepare(directory)
         try data.write(to: file, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        try? manager.setAttributes([.creationDate: fetchedAt], ofItemAtPath: file.path(percentEncoded: false))
 
         let keys: Set<URLResourceKey> = [.fileSizeKey, .contentModificationDateKey]
         let files = try manager.contentsOfDirectory(at: directory, includingPropertiesForKeys: Array(keys))
