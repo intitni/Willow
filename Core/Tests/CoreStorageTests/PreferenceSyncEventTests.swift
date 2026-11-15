@@ -77,8 +77,7 @@ struct PreferenceSyncEventTests {
         first.cancel()
         await first.value
 
-        context.insert(SubscriptionRecord(url: "https://example.com/remaining", name: "Remaining window"))
-        try context.save()
+        try await ReadChapterStore.shared.recordOpen(comicKey: "comic", chapterID: "chapter", at: .now, in: context.container)
         try await waitUntil {
             try ModelContext(container).fetchCount(FetchDescriptor<PreferenceSyncRecord>()) == 1
         }

@@ -128,6 +128,7 @@ package actor PreferenceSyncModel {
         context.autosaveEnabled = false
         let allRevisions: [SyncRevision]
         var firstError: Error?
+        var incompleteDriveRecords: Error?
         let encryptionKey = try directory.map { directory in
             if let driveKey {
                 let key = try DriveSyncKey(driveKey(directory.id))
@@ -138,8 +139,9 @@ package actor PreferenceSyncModel {
         }
         if let directory, let encryptionKey {
             let read = try directory.readRevisions(key: encryptionKey, readRecord: readDriveRecord)
-            guard read.isComplete else { throw read.error ?? DriveSyncError.waitingForFiles }
             allRevisions = read.revisions
+            firstError = read.chapterError
+            if !read.isComplete { incompleteDriveRecords = read.error ?? DriveSyncError.waitingForFiles }
         } else {
             allRevisions = try context.fetch(FetchDescriptor<PreferenceSyncRecord>()).map(SyncRevision.init)
         }
@@ -150,6 +152,18 @@ package actor PreferenceSyncModel {
         let checkpoints = Dictionary(try context.fetch(FetchDescriptor<PreferenceSyncCheckpoint>())
             .filter { prefix.isEmpty ? !$0.key.hasPrefix("drive/") : $0.key.hasPrefix(prefix) }
             .map { (String($0.key.dropFirst(prefix.count)), $0) }, uniquingKeysWith: { a, _ in a })
+        do {
+            try await reconcileReadChapters(remote: remote, checkpoints: checkpoints, prefix: prefix,
+                                            directory: directory, encryptionKey: encryptionKey, context: context)
+        } catch let error as CancellationError {
+            throw error
+        } catch {
+            context.rollback()
+            firstError = firstError ?? error
+        }
+        // Missing ordinary revisions may contain deletions. Chapter history
+        // only adds observations and can already merge the records available.
+        if let incompleteDriveRecords { throw incompleteDriveRecords }
         let assets = directory == nil
             ? Dictionary(grouping: try context.fetch(FetchDescriptor<PluginSyncAsset>()), by: \.digest)
             : [:]
@@ -217,7 +231,6 @@ package actor PreferenceSyncModel {
             try reconcileReading(readingEvents, remote: remote, checkpoints: checkpoints,
                                  prefix: prefix, directory: directory, encryptionKey: encryptionKey, context: context)
         }
-
         // 标签定义先于关联处理；文件操作放在最后，避免等待文件时覆盖标签编辑。
         let keys = Set(local.keys).union(remote.keys).union(checkpoints.keys).subtracting(unavailable)
             .filter { !$0.hasPrefix("reading/") }.sorted {
@@ -309,7 +322,7 @@ package actor PreferenceSyncModel {
         encryptionKey: DriveSyncKey,
         context: ModelContext
     ) throws {
-        let keys = Set(local.keys).union(remote.keys.filter { $0.hasPrefix("reading/") })
+        let keys = Set(local.keys).union(remote.values.lazy.filter { !$0.isReadChapter && $0.key.hasPrefix("reading/") }.map(\.key))
         for key in keys.sorted() {
             try checkActive()
             let checkpoint = checkpoints[key]
@@ -354,6 +367,58 @@ package actor PreferenceSyncModel {
                 try context.save()
             }
         }
+    }
+
+    private func reconcileReadChapters(
+        remote: [String: SyncRevision],
+        checkpoints: [String: PreferenceSyncCheckpoint],
+        prefix: String,
+        directory: DriveSyncDirectory?,
+        encryptionKey: DriveSyncKey?,
+        context: ModelContext
+    ) async throws {
+        let local = Dictionary(try context.fetch(FetchDescriptor<ReadChapterRecord>()).map { record in
+            let payload = PreferencePayload.readChapter(.init(comicKey: record.comicKey,
+                                                              chapterID: record.chapterID, readAt: record.readAt))
+            return (payload.key, (payload: payload, date: record.readAt))
+        }, uniquingKeysWith: { $0.date >= $1.date ? $0 : $1 })
+        var imports: [PreferencePayload.ReadChapter] = []
+        let keys = Set(local.keys).union(remote.values.lazy.filter(\.isReadChapter).map(\.key))
+        for key in keys {
+            try checkActive()
+            let checkpoint = checkpoints[key]
+            let baseline = checkpoint?.modifiedAt ?? .distantPast
+            let cloud = remote[key]
+            let current = local[key]
+            if let current, current.date > max(baseline, cloud?.orderingDate ?? .distantPast) {
+                let bytes = try current.payload.encoded()
+                let version = SyncRevision(key: key, payload: bytes, modifiedAt: current.date, deleted: false)
+                if let directory, let encryptionKey {
+                    try directory.publish(version, asset: nil, key: encryptionKey)
+                } else {
+                    let row = PreferenceSyncRecord(key: key, payload: bytes, modifiedAt: current.date)
+                    row.revision = version.revision
+                    context.insert(row)
+                }
+                saveCheckpoint(key: prefix + key, bytes: bytes, revision: version.revision, modifiedAt: current.date,
+                               path: nil, existing: checkpoint, context: context)
+            } else if let cloud, !cloud.deleted, let data = cloud.payload, cloud.orderingDate >= baseline {
+                let payload = try JSONDecoder().decode(PreferencePayload.self, from: data)
+                guard case .readChapter(let chapter) = payload, payload.key == key, chapter.readAt == cloud.orderingDate else {
+                    throw URLError(.cannotParseResponse)
+                }
+                if chapter.readAt > (current?.date ?? .distantPast) {
+                    imports.append(chapter)
+                }
+                if cloud.revision != checkpoint?.revision {
+                    saveCheckpoint(key: prefix + key, bytes: data, revision: cloud.revision, modifiedAt: chapter.readAt,
+                                   path: nil, existing: checkpoint, context: context)
+                }
+            }
+        }
+        if !imports.isEmpty { try await ReadChapterStore.shared.merge(imports, in: container) }
+        try checkActive()
+        if context.hasChanges { try context.save() }
     }
 
     private func matchesReadingPosition(_ current: PreferencePayload?, _ remote: PreferencePayload.Reading) -> Bool {
@@ -428,7 +493,7 @@ package actor PreferenceSyncModel {
             for record in try comicRecords(comic, deleted: deleted, context: context) {
                 record.isFavorite = !deleted
             }
-        case .reading:
+        case .reading, .readChapter:
             throw URLError(.cannotParseResponse)
         case .subscription(let value):
             let url = value.url

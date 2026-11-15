@@ -2207,6 +2207,23 @@
         }
       }
     },
+    "ComicDetail.ChapterRead" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已读"
+          }
+        }
+      }
+    },
     "ComicDetail.NoChapters" : {
       "extractionState" : "manual",
       "localizations" : {
