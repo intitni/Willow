@@ -134,7 +134,7 @@ struct AppLockShield: ViewModifier {
                         if appLock.isLocked {
                             verified = await appLock.unlock()
                         } else if privacy.requiresNSFWUnlock {
-                            verified = await appLock.verify(reason: L10n.text("Privacy.UnlockNSFWReason"))
+                            verified = await appLock.verify(reason: L10n.text("Privacy.UnlockReason"))
                         } else {
                             return
                         }
@@ -156,11 +156,24 @@ extension EnvironmentValues {
 }
 
 private struct WillowTabs: View {
+    private enum TabTitle: CaseIterable {
+        case shelf, history, downloads, discover, settings
+
+        var text: String {
+            switch self {
+            case .shelf: L10n.text("Shelf.Title")
+            case .history: L10n.text("History.TabTitle")
+            case .downloads: L10n.text("Downloads.Title")
+            case .discover: L10n.text("Discover.Title")
+            case .settings: L10n.text("Settings.Title")
+            }
+        }
+    }
+
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppLock.self) private var appLock
     @Environment(ContentPrivacy.self) private var privacy
     @Query(filter: #Predicate<PluginContentRating> { $0.isNSFW }) private var ratings: [PluginContentRating]
-    @State private var showingNSFWAccess = false
     @State private var authenticationError: String?
     @State private var authenticationTask: Task<Void, Never>?
     let updates: UpdateModel
@@ -170,38 +183,36 @@ private struct WillowTabs: View {
         let updateBadge = updates.isUpdateAvailable == true ? Text(verbatim: "") : nil
         let hiddenSources = privacy.hidesNSFWSources ? Set(ratings.map(\.sourceID)) : []
         TabView {
-            Tab(L10n.text("Shelf.Title"), systemImage: "books.vertical") {
+            Tab(TabTitle.shelf.text, systemImage: "books.vertical") {
                 NavigationStack { LibraryView(kind: .favorites) }
             }
-            Tab(L10n.text("History.TabTitle"), systemImage: "clock") {
+            Tab(TabTitle.history.text, systemImage: "clock") {
                 NavigationStack { LibraryView(kind: .history) }
             }
-            Tab(L10n.text("Downloads.Title"), systemImage: "arrow.down.circle") {
+            Tab(TabTitle.downloads.text, systemImage: "arrow.down.circle") {
                 NavigationStack { DownloadsView() }
             }
-            Tab(L10n.text("Discover.Title"), systemImage: "safari") {
+            Tab(TabTitle.discover.text, systemImage: "safari") {
                 NavigationStack { DiscoverView() }
                     .id(hiddenSources)
             }
-            Tab(L10n.text("Settings.Title"), systemImage: "gearshape") {
+            Tab(TabTitle.settings.text, systemImage: "gearshape") {
                 NavigationStack { SettingsView(updates: updates) }
             }
+            .accessibilityIdentifier(SettingsTabLongPress.tabIdentifier)
             .badge(updateBadge)
         }
         .environment(\.hiddenNSFWSources, hiddenSources)
         .background {
-            SettingsTabLongPress(title: L10n.text("Settings.Title"), action: verifyNSFWAccess)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        }
-        .alert(L10n.text("Privacy.NSFWAccess"), isPresented: $showingNSFWAccess) {
-            Button(L10n.text(privacy.allowsNSFW ? "Privacy.HideNSFW" : "Privacy.ShowNSFW")) {
-                privacy.toggleNSFWAccess()
-            }
-            Button(L10n.text("Text.Cancel"), role: .cancel) {}
+            SettingsTabLongPress(
+                title: TabTitle.settings.text,
+                tabTitles: Set(TabTitle.allCases.map(\.text)),
+                action: verifyNSFWAccess
+            )
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase != .active { showingNSFWAccess = false }
             if phase == .background { authenticationTask?.cancel() }
         }
         .onDisappear { authenticationTask?.cancel() }
@@ -212,10 +223,10 @@ private struct WillowTabs: View {
     private func verifyNSFWAccess() {
         guard scenePhase == .active, !appLock.isLocked, !privacy.requiresNSFWUnlock, !appLock.isAuthenticating else { return }
         authenticationTask = Task {
-            let verified = await appLock.verify(reason: L10n.text("Privacy.ChangeNSFWAccessReason"))
+            let verified = await appLock.verify(reason: L10n.text("Privacy.VerifyIdentityReason"))
             guard !Task.isCancelled else { return }
             if verified && !appLock.isLocked && !privacy.requiresNSFWUnlock {
-                showingNSFWAccess = true
+                privacy.toggleNSFWAccess()
             } else {
                 authenticationError = appLock.errorMessage
             }

@@ -123,13 +123,14 @@ struct PluginManagementView: View {
         ]) { result in
             model.importPlugin(result, context: context)
         }
-        .confirmationDialog(L10n.text("PluginManagement.UninstallTitle"), isPresented: Binding(
+        .alert(L10n.text("PluginManagement.UninstallTitle"), isPresented: Binding(
             get: { uninstalling != nil },
             set: { if !$0 { uninstalling = nil } }
-        ), titleVisibility: .visible, presenting: uninstalling) { plugin in
+        ), presenting: uninstalling) { plugin in
             Button(L10n.text("PluginManagement.UninstallNamedPlugin", defaultValue: "卸载 \(plugin.name)"), role: .destructive) {
                 model.uninstall(plugin, context: context)
             }
+            Button(L10n.text("Text.Cancel"), role: .cancel) {}
         }
         .confirmationDialog(L10n.text("PluginManagement.RemoveSubscriptionTitle"), isPresented: Binding(
             get: { removingSubscription != nil },

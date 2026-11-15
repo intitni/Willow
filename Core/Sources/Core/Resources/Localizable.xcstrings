@@ -915,87 +915,36 @@
         }
       }
     },
-    "Privacy.ChangeNSFWAccessReason" : {
+    "Privacy.VerifyIdentityReason" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verify your identity to change NSFW access."
+            "value" : "Verify your identity to change this setting."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "验证身份后可更改 NSFW 访问权限。"
+            "value" : "验证身份后可更改此设置。"
           }
         }
       }
     },
-    "Privacy.HideNSFW" : {
+    "Privacy.UnlockReason" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disallow NSFW"
+            "value" : "Verify your identity to unlock Willow."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不允许 NSFW"
-          }
-        }
-      }
-    },
-    "Privacy.NSFWAccess" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "NSFW Access"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "NSFW 访问权限"
-          }
-        }
-      }
-    },
-    "Privacy.UnlockNSFWReason" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verify your identity to unlock NSFW access."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "验证身份后可解锁 NSFW 访问权限。"
-          }
-        }
-      }
-    },
-    "Privacy.ShowNSFW" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Allow NSFW"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "允许 NSFW"
+            "value" : "验证身份后可解锁 Willow。"
           }
         }
       }
@@ -2781,6 +2730,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "绿色出行"
+          }
+        }
+      }
+    },
+    "Settings.ChangeGreenTravelReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify your identity to change Green Travel."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证身份后可更改绿色出行设置。"
+          }
+        }
+      }
+    },
+    "Settings.GreenTravelEnabled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Green Travel Is On"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "绿色出行已开启"
+          }
+        }
+      }
+    },
+    "Settings.GreenTravelExplanation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Green Travel hides NSFW plugins and their comics, reading history, and downloads while NSFW access is off. To view them temporarily, press and hold the Settings tab and verify your identity to allow NSFW content."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未临时允许 NSFW 时，绿色出行会隐藏标为 NSFW 的插件及其漫画、阅读历史和下载。若要临时查看，请长按「设置」标签，验证身份后允许显示 NSFW 内容。"
           }
         }
       }

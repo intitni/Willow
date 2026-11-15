@@ -16,12 +16,9 @@ private struct SettingsForm: View {
     let updates: UpdateModel
 
     init(appLock: AppLock, privacy: ContentPrivacy, updates: UpdateModel) {
-        _model = State(initialValue: SettingsModel(appLock: appLock))
-        self.privacy = privacy
+        _model = State(initialValue: SettingsModel(appLock: appLock, privacy: privacy))
         self.updates = updates
     }
-
-    private let privacy: ContentPrivacy
 
     var body: some View {
         @Bindable var viewModel = model.viewModel
@@ -50,10 +47,11 @@ private struct SettingsForm: View {
                 )) {
                     Label(L10n.text("Settings.AppLock"), systemImage: "lock")
                 }
-                .disabled(viewModel.updatingLock)
-                Toggle(isOn: Binding(get: { privacy.greenTravelEnabled }, set: privacy.setGreenTravel)) {
+                .disabled(viewModel.privacyControlsDisabled)
+                Toggle(isOn: Binding(get: { viewModel.greenTravelEnabled }, set: model.setGreenTravel)) {
                     Label(L10n.text("Settings.GreenTravel"), systemImage: "leaf")
                 }
+                .disabled(viewModel.privacyControlsDisabled)
             } header: {
                 Text(L10n.text("Settings.Privacy"))
             } footer: {
@@ -71,6 +69,11 @@ private struct SettingsForm: View {
             }
         }
         .navigationTitle(L10n.text("Settings.Title"))
+        .alert(L10n.text("Settings.GreenTravelEnabled"), isPresented: $viewModel.showingGreenTravelExplanation) {
+            Button(L10n.text("Text.OK")) {}
+        } message: {
+            Text(L10n.text("Settings.GreenTravelExplanation"))
+        }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification, object: UserDefaults.standard)) { _ in
             model.reloadReaderPreferences()
         }
