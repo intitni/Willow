@@ -8,24 +8,24 @@
 
 本项目将专注于原生漫画阅读体验，充分利用 iOS 平台的特性，同时通过 Breeze 插件运行时实现灵活的内容扩展。
 
-## 使用
+## 功能列表
 
-1. 在「设置 → 插件与订阅」添加 Breeze 插件目录或自己的 HTTPS 订阅地址。
-2. 从订阅安装图源，也可以导入 `.cjs`、`.cjs.br`，或从 HTTPS 链接安装。
-3. 在「发现」选择图源，浏览、搜索，按源提供的登录表单登录。
-4. 收藏漫画到书架，打开章节阅读，或在详情页按章下载；toolbar 也提供整部下载。下载列表按章节管理。
-5. 在漫画详情中设置本地标签，并在书架和下载页按标签筛选。
+- **图源扩展**。支持 Breeze 插件目录和自定义 HTTPS 订阅，也可导入 `.cjs`、`.cjs.br` 或从 HTTPS 链接安装图源。
+- **发现与搜索**。按图源浏览、搜索漫画，并使用图源提供的表单登录。
+- **书架与阅读记录**。收藏漫画、查看阅读历史，并从上次读到的位置继续阅读。
+- **离线下载与标签**。可按章下载，也可在漫画详情页下载整部作品。书架和下载页支持按本地标签筛选。
+- **隐私设置**。使用设备验证保护应用，或开启「绿色出行」按来源调整内容的显示范围。
+- **加密同步**。通过 iCloud 云盘同步书架、阅读进度、插件、订阅和标签。
+- **版本检查**。启动时检查 GitHub Releases，有新版时在「设置」标签显示红点。「设置 → 更新」提供更新日志和发布页，安装新版需手动下载并签名。
 
-Willow 每次启动时检查 GitHub 的最新发布版本；有更新时「设置」标签显示红点。在「设置 → 更新」可查看更新日志和发布页，更新仍需自行下载并签名安装。
-
-### 自签安装 IPA
+## 自签安装 IPA
 
 从发布页下载 `Willow-<版本>-unsigned.ipa`，任选一种工具用自己的 Apple 账户签名安装。首次安装时，请按设备提示信任开发者并开启开发者模式。[GitHub Releases](https://github.com/intitni/Willow/releases)
 
 - **AltStore Classic**。在电脑上运行 AltServer，将 AltStore Classic 安装到设备，再把 IPA 保存到设备的「文件」App。通过 USB 或同一 Wi-Fi 网络连接 AltServer，在 AltStore 的「My Apps」中点按「+」导入 IPA。免费账户的签名有效期为 7 天，到期前可在「My Apps」中点按「Refresh All」。[macOS 安装步骤](https://faq.altstore.io/altstore-classic/how-to-install-altstore-macos) · [Windows 安装步骤](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows) · [续签说明](https://faq.altstore.io/altstore-classic/your-altstore)
 - **iLoader**。在电脑上安装 iLoader，通过 USB 连接 iPhone 或 iPad。在 iLoader 中登录 Apple 账户、选择设备，再导入电脑上的 IPA 进行签名和安装。[官方下载](https://iloader.app/) · [使用说明](https://github.com/nab138/iloader#how-to-use)
 
-### 使用 iCloud 云盘同步
+## 使用 iCloud 云盘同步
 
 加密同步涵盖书架、阅读历史与进度、插件脚本与元数据、订阅、标签及其漫画关联。插件登录配置与下载图片只保存在本机。
 
