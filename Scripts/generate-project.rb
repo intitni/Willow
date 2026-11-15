@@ -37,8 +37,8 @@ target.build_configurations.each do |config|
   profile = config.name == 'Release' ? 'release' : 'debug'
   settings.merge!({
     'PRODUCT_BUNDLE_IDENTIFIER' => 'com.intii.Willow',
-    'MARKETING_VERSION' => '1.0.1',
-    'CURRENT_PROJECT_VERSION' => '2',
+    'MARKETING_VERSION' => '1.1.0',
+    'CURRENT_PROJECT_VERSION' => '3',
     'PRODUCT_NAME' => 'Willow',
     'ASSETCATALOG_COMPILER_APPICON_NAME' => 'Willow_icon',
     'INFOPLIST_FILE' => 'Willow/Info.plist',
