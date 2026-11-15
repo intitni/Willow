@@ -51,6 +51,9 @@ Config/*.local.xcconfig
 !.env.example
 !.env.template
 
+# Local owner workflow
+/.agents/skills/willow-owner-pr-workflow/
+
 # Python tooling caches
 __pycache__/
 *.py[cod]
