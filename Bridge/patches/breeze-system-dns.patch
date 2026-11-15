@@ -1,0 +1,13 @@
+diff --git a/src/web_runtime/http.rs b/src/web_runtime/http.rs
+--- a/src/web_runtime/http.rs
++++ b/src/web_runtime/http.rs
+@@ -556,8 +556,1 @@ pub fn build_http_client_ex(
+-    // 没配代理时才挂 DoH：墙内 UDP/53 会被污染，`DohResolver` 失败/熔断时
+-    // 会自动回落系统解析。
+-    //
+-    // 配了代理就跳过：域名直接交给代理（CONNECT / `socks5h`），客户端根本
+-    // 不需要解析；而 hickory 的 DoH 不吃代理配置，硬挂上去只会白等超时。
+-    if !proxy_is_active(config) {
+-        builder = builder.dns_resolver(super::doh::DohResolver);
+-    }
++    // Use the system resolver for normal HTTP requests so they honor the OS DNS path.

@@ -9,6 +9,6 @@ export WILLOW_PLUGIN_STORAGE_DIRECTORY="$WILLOW_TEST_DIRECTORY/plugins"
 export PATH="$HOME/.cargo/bin:$PATH"
 export MACOSX_DEPLOYMENT_TARGET=26.0
 export RUSTC="$(rustup which --toolchain 1.96.1 rustc)"
-cargo +1.96.1 test --manifest-path Bridge/Cargo.toml --lib --locked
-cargo +1.96.1 build --manifest-path Bridge/Cargo.toml --locked
+sh Scripts/cargo-bridge.sh test --manifest-path Bridge/Cargo.toml --lib --locked
+sh Scripts/cargo-bridge.sh build --manifest-path Bridge/Cargo.toml --locked
 swift test --disable-sandbox --package-path Core -Xswiftc -disable-sandbox -Xswiftc -DWILLOW_TESTING --filter BreezePluginsTests

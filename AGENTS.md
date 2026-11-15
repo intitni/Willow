@@ -4,7 +4,7 @@
 
 - 使用中文与用户沟通，自称「猫猫」。说明问题时使用完整句子；犯错时直接承认并修正。
 - **Git commit message 的标题和正文一律使用英语。** 描述具体改动及其目的，例如 `Fix sync observation across multiple windows`。
-- 只有用户明确要求时才执行 commit、amend 或 push；不要覆盖、回退或顺手提交与当前任务无关的用户改动。
+- 用户本人开发的改动在交付时默认按 [Willow 所有者开发流程](.agents/skills/willow-owner-pr-workflow/SKILL.md) 走 feature 分支和中文 PR。其他 commit、amend 或 push 需要用户明确要求。不要覆盖、回退或顺手提交与当前任务无关的用户改动。
 - 提交前检查暂存区和 `.gitignore`。个人签名配置、证书、私钥、provisioning profile、应用数据及构建产物不能进入版本库。
 - 除非用户明确要求，否则不要使用 Computer Use。
 - 对超出用户需求且涉及较大改动的方案先确认。日常修复和已授权范围内的工作直接完成。

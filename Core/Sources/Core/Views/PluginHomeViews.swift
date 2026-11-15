@@ -147,7 +147,9 @@ private struct PluginHomeBlockView: View {
                         Button { action(link.action) } label: {
                             VStack(spacing: 8) {
                                 if block.kind == "action-grid", let cover = link.coverURL {
-                                    ComicCover(url: cover)
+                                    ComicCover(url: cover, cachePolicy: link.comicID.map {
+                                        .comicCover(id: ComicRecord.identifier(sourceID: pluginID, comicID: $0))
+                                    } ?? .byURL)
                                 }
                                 Text(link.title).frame(maxWidth: .infinity)
                             }
@@ -168,7 +170,7 @@ private struct HomeComicGrid: View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 112, maximum: 192), spacing: 14)], spacing: 18) {
             ForEach(comics) { comic in
                 NavigationLink { ComicDetailView(sourceID: pluginID, summary: comic) } label: {
-                    DiscoverComicTile(comic: comic)
+                    DiscoverComicTile(comic: comic, sourceID: pluginID)
                 }
                 .buttonStyle(.plain)
             }

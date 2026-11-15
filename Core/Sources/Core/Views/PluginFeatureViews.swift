@@ -21,7 +21,7 @@ struct PluginCloudFavoritesView: View {
                     NavigationLink {
                         ComicDetailView(sourceID: plugin.uuid, summary: comic)
                     } label: {
-                        DiscoverComicTile(comic: comic)
+                        DiscoverComicTile(comic: comic, sourceID: plugin.uuid)
                     }
                     .buttonStyle(.plain)
                 }
@@ -144,7 +144,8 @@ private struct PluginFeatureResults: View {
                 ComicDetailView(sourceID: pluginID, summary: comic)
             } label: {
                 HStack(spacing: 12) {
-                    ComicCover(url: comic.coverURL).frame(width: 42)
+                    ComicCover(url: comic.coverURL, cachePolicy: .comicCover(id: ComicRecord.identifier(sourceID: pluginID, comicID: comic.id)))
+                        .frame(width: 42)
                     VStack(alignment: .leading) {
                         Text(comic.title)
                         if !comic.author.isEmpty { Text(comic.author).font(.caption).foregroundStyle(.secondary) }
