@@ -47,7 +47,7 @@ struct ComicCover: View {
             .overlay {
                 CachedImage(url: url, thumbnail: true, cachePolicy: cachePolicy, refreshID: refreshID) { image in
                     GeometryReader { geometry in
-                        image.resizable().scaledToFill()
+                        Image(uiImage: image).resizable().scaledToFill()
                             .frame(width: geometry.size.width, height: geometry.size.height)
                     }
                 } placeholder: { error in
@@ -76,7 +76,7 @@ struct CachedImage<ImageContent: View, Placeholder: View>: View {
     var thumbnail = false
     var cachePolicy: ImageCache.Policy = .byURL
     var refreshID = 0
-    @ViewBuilder let content: (Image) -> ImageContent
+    @ViewBuilder let content: (UIImage) -> ImageContent
     @ViewBuilder let placeholder: (String?) -> Placeholder
     @State private var model = CachedImageModel()
     @State private var attempt = 0
@@ -95,7 +95,7 @@ struct CachedImage<ImageContent: View, Placeholder: View>: View {
         let error = model.viewModel.error
         Group {
             if let image {
-                content(Image(uiImage: image))
+                content(image)
                     .overlay(alignment: .bottomTrailing) {
                         if let error {
                             Button {

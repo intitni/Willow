@@ -18,6 +18,8 @@ let package = Package(
     platforms: [.iOS(.v26), .macOS(.v26)],
     products: testsOnly ? [] : [.library(name: "Core", targets: ["Core"])],
     targets: [
+        .target(name: "CorePresentation"),
+        .testTarget(name: "CorePresentationTests", dependencies: ["CorePresentation"]),
         .target(name: "CoreToast"),
         .testTarget(name: "CoreToastTests", dependencies: ["CoreToast"]),
         .target(name: "BreezeBridge", publicHeadersPath: "include"),
@@ -36,7 +38,7 @@ let package = Package(
     ] + (testsOnly ? [] : [
         .target(
             name: "Core",
-            dependencies: ["CoreStorage", "BreezeRuntime", "BreezePlugins", "CoreToast"],
+            dependencies: ["CoreStorage", "BreezeRuntime", "BreezePlugins", "CorePresentation", "CoreToast"],
             resources: [.process("Resources")]
         ),
         .testTarget(name: "CoreTests", dependencies: ["Core"], linkerSettings: testLinker)
