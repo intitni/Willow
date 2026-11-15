@@ -83,10 +83,9 @@ private struct AppSession {
     let sync: SyncSettingsModel
 
     init() throws {
-        let selection = SyncSettingsModel.selectedMethod
-        persistence = try WillowPersistence.make(syncMethod: selection)
+        persistence = try WillowPersistence.make()
         downloads = DownloadManager(context: persistence.container.mainContext)
-        sync = SyncSettingsModel(persistence: persistence, selection: selection)
+        sync = SyncSettingsModel(container: persistence.container)
     }
 }
 

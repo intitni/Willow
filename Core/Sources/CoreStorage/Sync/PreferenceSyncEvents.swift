@@ -1,4 +1,3 @@
-import CoreData
 import Foundation
 import SwiftData
 #if canImport(UIKit)
@@ -8,6 +7,7 @@ import UIKit
 /// Owns UI lifecycle notifications only; all storage work runs on PreferenceSyncModel.
 @MainActor
 package final class PreferenceSyncEvents {
+    private let observesDirectory: Bool
     private var continuation: AsyncStream<Void>.Continuation?
     private var clients: [UUID: CheckedContinuation<Void, Never>] = [:]
     private var worker: Task<Void, Never>?
@@ -16,7 +16,9 @@ package final class PreferenceSyncEvents {
     private var notificationCenter: NotificationCenter?
     private var drivePresenter: DriveSyncPresenter?
 
-    package init() {}
+    package init(observesDirectory: Bool = true) {
+        self.observesDirectory = observesDirectory
+    }
 
     package func request() { continuation?.yield(()) }
 
@@ -39,14 +41,13 @@ package final class PreferenceSyncEvents {
         // Observe the UI context, not the worker's contexts, so applying cloud
         // changes cannot trigger an endless loop of our own saves.
         notificationCenter = center
-        let includesComics = sync.usesDrive
         observers = [center.addObserver(forName: ModelContext.didSave, object: context, queue: nil) { notification in
-            if Self.containsPreferenceChanges(notification, includesComics: includesComics) { continuation.yield(()) }
+            if Self.containsPreferenceChanges(notification) { continuation.yield(()) }
         }]
         chapterObserver = NotificationCenter.default.addObserver(
             forName: ReadChapterStore.didRecordOpen, object: context.container, queue: nil
         ) { _ in continuation.yield(()) }
-        if let directory = sync.directory {
+        if observesDirectory, let directory = sync.directory {
             let presenter = DriveSyncPresenter(directory: directory) { continuation.yield(()) }
             drivePresenter = presenter
             presenter.start()
@@ -59,12 +60,6 @@ package final class PreferenceSyncEvents {
                 continuation.yield(())
             })
             #endif
-        } else if !sync.usesDrive {
-            observers.append(center.addObserver(forName: NSPersistentCloudKitContainer.eventChangedNotification, object: nil, queue: nil) { notification in
-                guard let event = notification.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey] as? NSPersistentCloudKitContainer.Event,
-                      event.type == .import, event.endDate != nil else { return }
-                continuation.yield(())
-            })
         }
         #if canImport(UIKit)
         observers.append(center.addObserver(forName: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil, queue: nil) { _ in
@@ -103,9 +98,8 @@ package final class PreferenceSyncEvents {
         client.resume()
     }
 
-    nonisolated private static func containsPreferenceChanges(_ notification: Notification, includesComics: Bool) -> Bool {
-        var names: Set<String> = ["PluginRecord", "SubscriptionRecord", "LocalTagRecord"]
-        if includesComics { names.insert("ComicRecord") }
+    nonisolated private static func containsPreferenceChanges(_ notification: Notification) -> Bool {
+        let names: Set<String> = ["PluginRecord", "SubscriptionRecord", "LocalTagRecord", "ComicRecord"]
         let keys: [ModelContext.NotificationKey] = [.insertedIdentifiers, .updatedIdentifiers, .deletedIdentifiers]
         return keys.contains { key in
             let value = notification.userInfo?[key] ?? notification.userInfo?[key.rawValue]

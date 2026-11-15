@@ -1,30 +1,6 @@
 import Foundation
 import SwiftData
 
-// 同步记录与现有本地表分离，升级时不搬移或删除用户的旧数据。
-@Model
-package final class PreferenceSyncRecord {
-    package var revision: String = UUID().uuidString
-    @Attribute(.allowsCloudEncryption) package var key: String = ""
-    @Attribute(.allowsCloudEncryption) package var payload: Data?
-    package var modifiedAt: Date = Date.distantPast
-    package var deleted: Bool = false
-
-    package init(key: String, payload: Data?, deleted: Bool = false, modifiedAt: Date = .now) {
-        self.key = key
-        self.payload = payload
-        self.deleted = deleted
-        self.modifiedAt = modifiedAt
-    }
-}
-
-@Model
-package final class PluginSyncAsset {
-    package var digest: String = ""
-    @Attribute(.externalStorage) package var data: Data?
-    package init(digest: String, data: Data) { self.digest = digest; self.data = data }
-}
-
 @Model
 package final class PreferenceSyncCheckpoint {
     @Attribute(.unique) package var key: String
@@ -74,7 +50,6 @@ package enum PreferencePayload: Codable, Equatable, Sendable {
     }
 
     package struct ReadChapter: Codable, Equatable, Sendable {
-        // Older CloudKit clients already ignore the reading namespace.
         static let keyPrefix = "reading/chapter/"
         let comicKey: String
         let chapterID: String

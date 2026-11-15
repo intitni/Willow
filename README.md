@@ -27,6 +27,8 @@ Willow 每次启动时检查 GitHub 的最新发布版本；有更新时「设�
 
 ### 使用 iCloud 云盘同步
 
+加密同步涵盖书架、阅读历史与进度、插件脚本与元数据、订阅、标签及其漫画关联。插件登录配置与下载图片只保存在本机。
+
 先在各设备上登录同一个 iCloud 账户并开启 iCloud 云盘，确认「文件」App 可以访问准备使用的同步文件夹。Willow 默认不同步，需要在每台设备上分别选择同步方式和文件夹。
 
 1. 在第一台设备的「设置 → 同步方式」选择 **iCloud Drive**，在系统文件选择器中选择 iCloud 云盘下的文件夹，点按「创建加密同步文件夹」。
@@ -40,16 +42,7 @@ Willow 每次启动时检查 GitHub 的最新发布版本；有更新时「设�
 
 升级时，Willow 会先验证旧密钥并保存到本机，再删除旧的 iCloud 钥匙串条目。删除会传播到其他设备。尚未保存本机副本的设备需要重新输入恢复密钥。
 
-切换同步方式时，Willow 保留本机数据与已有云端副本。首次连接云盘文件夹时会合并双方各自独有的项目。首次发现的本地项目作为低优先级版本发布，稍后到达的云盘正式记录和删除仍然生效。阅读进度与清除历史按实际操作时间合并，因此稍后读回前面的页码也会同步。Willow 发现同步记录仍在下载时会等待下一次同步。iCloud 可能尚未列出其他设备写入的文件，这些文件到达后仍会参与合并。从 iCloud 云盘切换到不同步会立即停止 Willow 的云盘同步任务，文件提供方仍可完成已经提交的传输。涉及 CloudKit 的切换在完全退出并重新打开 Willow 后生效，重启前原方式继续生效。设置会同时显示所选方式和当前生效方式。
-
-### 开启 CloudKit 同步
-
-CloudKit 需要签名包含相应权限。
-
-1. 使用具备 iCloud 配置权限的 Apple Developer 团队，按下文的真机签名步骤填写自己的 Team ID。
-2. 在 Xcode 的 Willow target 中打开 **Signing & Capabilities**，启用 iCloud 下的 CloudKit，并选中团队有权访问的容器。项目已有 CloudKit 接收数据变更所需的静默后台通知配置。[Apple 配置指南](https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices)
-3. 如果团队无法使用项目预设的 `com.intii.Willow` 和 `iCloud.intii.Willow`，请使用自己团队的 Bundle ID 和 iCloud 容器，并同步修改构建设置、`Willow/Willow.entitlements` 和 `WillowPersistence.iCloudContainer`。需要互相同步的设备应使用相同的容器及 CloudKit 环境。
-4. 将签名后的 Willow 安装到已登录同一个 iCloud 账户的 iPhone 或 iPad。打开 Willow，在「设置 → 同步方式」选择 CloudKit，完全退出再重新打开，并确认「当前同步方式」显示 CloudKit。该状态表示存储容器已初始化。可在一台设备收藏一部作品，再到另一台设备查看书架，确认数据实际同步。若仍显示「不同步」，请查看状态下方的错误提示并检查签名和容器配置。
+首次连接云盘文件夹时会合并双方各自独有的项目。首次发现的本地项目作为低优先级版本发布，稍后到达的云盘正式记录和删除仍然生效。阅读进度与清除历史按实际操作时间合并，因此稍后读回前面的页码也会同步。Willow 发现同步记录仍在下载时会等待下一次同步。iCloud 可能尚未列出其他设备写入的文件，这些文件到达后仍会参与合并。切换到「不同步」会停止 Willow 的云盘同步任务，并保留本机数据和同步文件。文件提供方仍可完成已经提交的传输。
 
 ## 打开与构建
 
@@ -71,7 +64,7 @@ xcodebuild -project Willow.xcodeproj -scheme Willow -sdk iphonesimulator \
   -configuration Debug -derivedDataPath /tmp/WillowDerivedData CODE_SIGNING_ALLOWED=NO build
 ```
 
-真机运行前，将 `Config/Signing.example.xcconfig` 复制为 `Config/Signing.local.xcconfig`，并在该 Git 忽略的本地文件中填写自己的 Team ID。CloudKit 权限和容器的配置见上文。模拟器使用本地数据库。
+真机运行前，将 `Config/Signing.example.xcconfig` 复制为 `Config/Signing.local.xcconfig`，并在该 Git 忽略的本地文件中填写自己的 Team ID。
 
 主 App target 只有 `Willow/App/WillowApp.swift`，只负责创建 `CoreAppModel`、显示 `WillowRootView` 和转发生命周期。所有 Swift 功能代码都在本地 Swift Package `Core`。在 `Core/Sources` 的现有 target 中新增 Swift 文件会由 SwiftPM 自动发现，无需修改 Xcode 工程。新增功能 target 时只需维护 `Core/Package.swift` 的依赖关系。
 

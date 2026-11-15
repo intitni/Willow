@@ -141,7 +141,7 @@ package actor PluginImageGateway {
         let directory = try PluginRuntime.storageDirectory().appendingPathComponent("Images", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try data.write(to: directory.appendingPathComponent(key + ".json"), options: [.atomic, .completeFileProtection])
-        // Carry the descriptor so iCloud-synced covers resolve after installing the same source on another device.
+        // Carry the descriptor so synced covers resolve after installing the same source on another device.
         var components = URLComponents()
         components.scheme = "willow-plugin"
         components.host = "image"

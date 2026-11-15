@@ -48,11 +48,6 @@ struct SyncRevision: Codable, Sendable {
         self.seed = seed
     }
 
-    init(_ record: PreferenceSyncRecord) {
-        self.init(revision: record.revision, key: record.key, payload: record.payload,
-                  modifiedAt: record.modifiedAt, deleted: record.deleted)
-    }
-
     var orderingDate: Date {
         if seed == true { return .distantPast }
         // Legacy reading files used their publication time. Recover the actual

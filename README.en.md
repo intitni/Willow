@@ -16,7 +16,7 @@ Willow supports iPhone and iPad, adapts to changing window sizes on iPhone Duo, 
 
 Willow checks the latest GitHub release at launch and shows a red dot on the Settings tab when an update is available. Open Settings → Updates to see the release notes and release page; updates must still be downloaded and signed manually.
 
-Third-party sources must be installed separately. Sync is off by default. Under **Settings → Sync Method**, choose iCloud Drive or CloudKit to sync bookmarks, reading history and progress, plugin scripts and metadata, subscriptions, tags, and tag assignments. Plugin login credentials, cookies, and tokens stay encrypted on the device, with their encryption key in Keychain. Manga images stay on the device and are excluded from backups.
+Third-party sources must be installed separately. Sync is off by default. Under **Settings → Sync Method**, choose iCloud Drive to sync bookmarks, reading history and progress, plugin scripts and metadata, subscriptions, tags, and tag assignments. Plugin login credentials, cookies, and tokens stay encrypted on the device, with their encryption key in Keychain. Manga images stay on the device and are excluded from backups.
 
 Sync runs in response to local changes, arrivals from the cloud, foreground activity, and system background refresh.
 
@@ -42,16 +42,7 @@ Save a separate copy of your recovery key somewhere safe. Reinstalling Willow or
 
 After an upgrade, Willow verifies a legacy recovery key and saves it to the current device before deleting the old iCloud Keychain item. The deletion propagates to other devices. A device that hasn’t saved its own copy will need the recovery key again.
 
-Switching methods keeps your local data and existing cloud copies. The first connection merges items unique to either side. Newly discovered local items are published as lower-priority versions, so existing Drive edits and deletions still apply when they arrive later. Reading progress and history deletions are ordered by the time of the actual action, so a later reread can move the bookmark to an earlier page. When Willow finds sync records still downloading, it waits for the next sync. iCloud may still be discovering files uploaded by other devices, and those files join the merge when they appear. Switching from iCloud Drive to None immediately stops Willow’s Drive sync tasks. The file provider can finish transfers that Willow has already submitted. For changes involving CloudKit, the previous method stays active until you quit and reopen Willow. Settings shows both the selected method and the method currently in effect.
-
-### Enable CloudKit sync
-
-CloudKit requires signing with the appropriate entitlements.
-
-1. Use an Apple Developer team with permission to configure iCloud. Set your Team ID as described in the device signing instructions below.
-2. In Xcode, open **Signing & Capabilities** for the Willow target. Enable **CloudKit** under **iCloud** and select a container your team can access. The project already includes the configuration CloudKit uses to receive silent background updates. [Apple setup guide](https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices)
-3. If your team cannot use the preset identifiers `com.intii.Willow` and `iCloud.intii.Willow`, use your team's own bundle ID and iCloud container. Update the build settings, `Willow/Willow.entitlements`, and `WillowPersistence.iCloudContainer` together. Devices that sync with each other must use the same container and CloudKit environment.
-4. Install the signed build on iPhones or iPads signed in to the same iCloud account. Open Willow, select **CloudKit** under **Settings → Sync Method**, then quit and reopen it. **Active Sync Method** shows **CloudKit** once the storage container has initialized. To verify that data syncs, bookmark a title on one device and look for it in the library on another. If the active method still shows **None**, check the message below it and review the signing and container configuration.
+The first connection merges items unique to either side. Newly discovered local items are published as lower-priority versions, so existing Drive edits and deletions still apply when they arrive later. Reading progress and history deletions are ordered by the time of the actual action, so a later reread can move the bookmark to an earlier page. When Willow finds sync records still downloading, it waits for the next sync. iCloud may still be discovering files uploaded by other devices, and those files join the merge when they appear. Switching to None stops Willow’s sync tasks and keeps local data and sync files. The file provider can finish transfers that Willow has already submitted.
 
 ## Open and build
 
@@ -73,7 +64,7 @@ xcodebuild -project Willow.xcodeproj -scheme Willow -sdk iphonesimulator \
   -configuration Debug -derivedDataPath /tmp/WillowDerivedData CODE_SIGNING_ALLOWED=NO build
 ```
 
-Before running on a device, copy `Config/Signing.example.xcconfig` to `Config/Signing.local.xcconfig` and enter your Team ID in that Git-ignored file. Follow the CloudKit instructions above to configure the required entitlements and container. The simulator uses a local database.
+Before running on a device, copy `Config/Signing.example.xcconfig` to `Config/Signing.local.xcconfig` and enter your Team ID in that Git-ignored file.
 
 The host app target contains only `Willow/App/WillowApp.swift`. It creates `CoreAppModel`, displays `WillowRootView`, and forwards lifecycle events. The local Swift package `Core` contains the app's Swift feature code. SwiftPM automatically picks up new Swift files in existing targets under `Core/Sources`. When adding a feature target, update the target and its dependencies in `Core/Package.swift`.
 

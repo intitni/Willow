@@ -3,21 +3,21 @@ import SwiftData
 
 @Model
 package final class ComicRecord {
-    @Attribute(.allowsCloudEncryption) package var id: String = ""
-    @Attribute(.allowsCloudEncryption) package var sourceID: String = ""
-    @Attribute(.allowsCloudEncryption) package var comicID: String = ""
-    @Attribute(.allowsCloudEncryption) package var title: String = ""
-    @Attribute(.allowsCloudEncryption) package var coverURL: String = ""
-    @Attribute(.allowsCloudEncryption) package var author: String = ""
-    @Attribute(.allowsCloudEncryption) package var summary: String = ""
-    @Attribute(.allowsCloudEncryption) package var isFavorite: Bool = false
-    // Retain the legacy field for existing SwiftData stores and CloudKit records.
-    @Attribute(.allowsCloudEncryption) package var collectionName: String = ""
-    @Attribute(.allowsCloudEncryption) package var lastReadAt: Date?
-    @Attribute(.allowsCloudEncryption) package var historyClearedAt: Date?
-    @Attribute(.allowsCloudEncryption) package var chapterID: String?
-    @Attribute(.allowsCloudEncryption) package var pageIndex: Int = 0
-    @Attribute(.allowsCloudEncryption) package var detailJSON: Data?
+    package var id: String = ""
+    package var sourceID: String = ""
+    package var comicID: String = ""
+    package var title: String = ""
+    package var coverURL: String = ""
+    package var author: String = ""
+    package var summary: String = ""
+    package var isFavorite: Bool = false
+    // Retain the legacy field for existing SwiftData stores.
+    package var collectionName: String = ""
+    package var lastReadAt: Date?
+    package var historyClearedAt: Date?
+    package var chapterID: String?
+    package var pageIndex: Int = 0
+    package var detailJSON: Data?
 
     package init(
         sourceID: String,
@@ -67,7 +67,7 @@ package final class ComicRecord {
         if let existing = matches.max(by: {
             ($0.lastReadingEventAt ?? .distantPast) < ($1.lastReadingEventAt ?? .distantPast)
         }) {
-            // CloudKit allows simultaneous inserts for the same comic on different devices.
+            // Existing libraries may contain duplicate entries for the same comic.
             for duplicate in matches where duplicate !== existing {
                 if duplicate.isFavorite && !existing.isFavorite {
                     existing.isFavorite = true

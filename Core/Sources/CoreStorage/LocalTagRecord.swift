@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 
 /// Tags use stable comic identities; PreferenceSyncModel mirrors names and
-/// memberships to CloudKit without relationships across stores.
+/// memberships without relationships across stores.
 @Model
 package final class LocalTagRecord {
     @Attribute(.unique) package var id: UUID

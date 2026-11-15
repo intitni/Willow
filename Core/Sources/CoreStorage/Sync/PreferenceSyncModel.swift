@@ -19,7 +19,7 @@ package actor PreferenceSyncModel {
     private let container: ModelContainer
     private let files: PluginSyncFiles
     private let unloadPlugin: @Sendable (String) async throws -> Void
-    private let drive: Result<DriveSyncDirectory, any Error>?
+    private let drive: Result<DriveSyncDirectory, any Error>
     private let driveKey: (@Sendable (UUID) throws -> Data)?
     private let readDriveRecord: (@Sendable (URL) throws -> Data?)?
     private(set) var isStopped = false
@@ -28,16 +28,11 @@ package actor PreferenceSyncModel {
     private var rerun = false
     private var waiters: [UUID: CheckedContinuation<Void, Error>] = [:]
 
-    @MainActor package init(container: ModelContainer, files: PluginSyncFiles = PluginSyncFiles(),
-                 unloadPlugin: @escaping @Sendable (String) async throws -> Void = { try await PluginRuntime.shared.unload(id: $0) }) {
-        self.init(container: container, drive: nil, files: files, unloadPlugin: unloadPlugin)
-    }
-
     @MainActor package init(container: ModelContainer, folder: DriveSyncFolder) {
         self.init(container: container, drive: Result { try DriveSyncDirectory(folder: folder) })
     }
 
-    @MainActor init(container: ModelContainer, drive: Result<DriveSyncDirectory, any Error>?,
+    @MainActor init(container: ModelContainer, drive: Result<DriveSyncDirectory, any Error>,
                     files: PluginSyncFiles = PluginSyncFiles(),
                     driveKey: (@Sendable (UUID) throws -> Data)? = nil,
                     readDriveRecord: (@Sendable (URL) throws -> Data?)? = nil,
@@ -51,8 +46,7 @@ package actor PreferenceSyncModel {
         self.unloadPlugin = unloadPlugin
     }
 
-    nonisolated var directory: DriveSyncDirectory? { try? drive?.get() }
-    nonisolated var usesDrive: Bool { drive != nil }
+    nonisolated var directory: DriveSyncDirectory? { try? drive.get() }
 
     package func stop() async {
         isStopped = true
@@ -123,34 +117,24 @@ package actor PreferenceSyncModel {
 
     // Contexts and all model objects are created and consumed on this actor.
     private func reconcilePass() async throws {
-        let directory = try drive?.get()
+        let directory = try drive.get()
         let context = ModelContext(container)
         context.autosaveEnabled = false
-        let allRevisions: [SyncRevision]
-        var firstError: Error?
-        var incompleteDriveRecords: Error?
-        let encryptionKey = try directory.map { directory in
-            if let driveKey {
-                let key = try DriveSyncKey(driveKey(directory.id))
-                try directory.verify(key: key)
-                return key
-            }
-            return try DriveSyncKey(directory.recoveryKey())
-        }
-        if let directory, let encryptionKey {
-            let read = try directory.readRevisions(key: encryptionKey, readRecord: readDriveRecord)
-            allRevisions = read.revisions
-            firstError = read.chapterError
-            if !read.isComplete { incompleteDriveRecords = read.error ?? DriveSyncError.waitingForFiles }
+        let encryptionKey: DriveSyncKey
+        if let driveKey {
+            encryptionKey = try DriveSyncKey(driveKey(directory.id))
+            try directory.verify(key: encryptionKey)
         } else {
-            allRevisions = try context.fetch(FetchDescriptor<PreferenceSyncRecord>()).map(SyncRevision.init)
+            encryptionKey = try DriveSyncKey(directory.recoveryKey())
         }
-        let remote = Dictionary(grouping: allRevisions, by: \.key).compactMapValues { records in
+        let read = try directory.readRevisions(key: encryptionKey, readRecord: readDriveRecord)
+        var firstError = read.chapterError
+        let remote = Dictionary(grouping: read.revisions, by: \.key).compactMapValues { records in
             records.max { $0.precedes($1) }
         }
-        let prefix = directory.map { "drive/" + $0.id.uuidString + "/" } ?? ""
+        let prefix = "drive/" + directory.id.uuidString + "/"
         let checkpoints = Dictionary(try context.fetch(FetchDescriptor<PreferenceSyncCheckpoint>())
-            .filter { prefix.isEmpty ? !$0.key.hasPrefix("drive/") : $0.key.hasPrefix(prefix) }
+            .filter { $0.key.hasPrefix(prefix) }
             .map { (String($0.key.dropFirst(prefix.count)), $0) }, uniquingKeysWith: { a, _ in a })
         do {
             try await reconcileReadChapters(remote: remote, checkpoints: checkpoints, prefix: prefix,
@@ -163,10 +147,7 @@ package actor PreferenceSyncModel {
         }
         // Missing ordinary revisions may contain deletions. Chapter history
         // only adds observations and can already merge the records available.
-        if let incompleteDriveRecords { throw incompleteDriveRecords }
-        let assets = directory == nil
-            ? Dictionary(grouping: try context.fetch(FetchDescriptor<PluginSyncAsset>()), by: \.digest)
-            : [:]
+        if !read.isComplete { throw read.error ?? DriveSyncError.waitingForFiles }
         let plugins = try context.fetch(FetchDescriptor<PluginRecord>())
         var local: [String: PreferencePayload] = [:]
         var pluginPaths: [String: String] = [:]
@@ -197,21 +178,19 @@ package actor PreferenceSyncModel {
         }
         try checkActive()
         var readingEvents: [String: (payload: PreferencePayload, date: Date, deleted: Bool)] = [:]
-        if directory != nil {
-            for record in try context.fetch(FetchDescriptor<ComicRecord>()) {
-                let comic = PreferencePayload.Comic(record)
-                if record.isFavorite {
-                    let value = PreferencePayload.favorite(comic)
-                    local[value.key] = value
-                }
-                if let date = record.lastReadingEventAt {
-                    let deleted = record.lastReadAt == nil || date != record.lastReadAt
-                    let value = PreferencePayload.reading(.init(comic: comic, lastReadAt: date,
-                                                                chapterID: deleted ? nil : record.chapterID,
-                                                                pageIndex: deleted ? 0 : record.pageIndex))
-                    if let existing = readingEvents[value.key], existing.date > date || (existing.date == date && existing.deleted) { continue }
-                    readingEvents[value.key] = (value, date, deleted)
-                }
+        for record in try context.fetch(FetchDescriptor<ComicRecord>()) {
+            let comic = PreferencePayload.Comic(record)
+            if record.isFavorite {
+                let value = PreferencePayload.favorite(comic)
+                local[value.key] = value
+            }
+            if let date = record.lastReadingEventAt {
+                let deleted = record.lastReadAt == nil || date != record.lastReadAt
+                let value = PreferencePayload.reading(.init(comic: comic, lastReadAt: date,
+                                                            chapterID: deleted ? nil : record.chapterID,
+                                                            pageIndex: deleted ? 0 : record.pageIndex))
+                if let existing = readingEvents[value.key], existing.date > date || (existing.date == date && existing.deleted) { continue }
+                readingEvents[value.key] = (value, date, deleted)
             }
         }
         for subscription in try context.fetch(FetchDescriptor<SubscriptionRecord>()) {
@@ -227,10 +206,8 @@ package actor PreferenceSyncModel {
             }
         }
 
-        if let directory, let encryptionKey {
-            try reconcileReading(readingEvents, remote: remote, checkpoints: checkpoints,
-                                 prefix: prefix, directory: directory, encryptionKey: encryptionKey, context: context)
-        }
+        try reconcileReading(readingEvents, remote: remote, checkpoints: checkpoints,
+                             prefix: prefix, directory: directory, encryptionKey: encryptionKey, context: context)
         // 标签定义先于关联处理；文件操作放在最后，避免等待文件时覆盖标签编辑。
         let keys = Set(local.keys).union(remote.keys).union(checkpoints.keys).subtracting(unavailable)
             .filter { !$0.hasPrefix("reading/") }.sorted {
@@ -245,47 +222,34 @@ package actor PreferenceSyncModel {
                 let checkpoint = checkpoints[key]
                 let cloud = remote[key]
                 let newestDate = max(cloud?.orderingDate ?? .distantPast, checkpoint?.modifiedAt ?? .distantPast)
-                let changed = try (directory == nil || checkpoint != nil || cloud == nil) &&
+                let changed = try (checkpoint != nil || cloud == nil) &&
                     changedLocally(value, comparedTo: checkpoint?.payload, encoded: bytes)
                 if changed && !missingFiles.contains(key) {
                     var driveAsset: (digest: String, data: Data)?
                     if case .plugin(let plugin) = value {
                         guard let path = pluginPaths[key], pluginUnchanged(plugin, path: path) else { continue }
-                        if directory != nil || assets[plugin.digest]?.contains(where: { $0.data != nil }) != true {
-                            let data = try await files.read(path: path)
-                            guard try await files.digest(path: path) == plugin.digest,
-                                  pluginUnchanged(plugin, path: path) else { continue }
-                            try checkActive()
-                            if directory != nil { driveAsset = (plugin.digest, data) }
-                            else { context.insert(PluginSyncAsset(digest: plugin.digest, data: data)) }
-                        }
+                        let data = try await files.read(path: path)
+                        guard try await files.digest(path: path) == plugin.digest,
+                              pluginUnchanged(plugin, path: path) else { continue }
+                        try checkActive()
+                        driveAsset = (plugin.digest, data)
                     }
                     let date = max(Date.now, newestDate.addingTimeInterval(0.001))
                     let record = SyncRevision(key: key, payload: bytes ?? checkpoint?.payload, modifiedAt: date,
-                                              deleted: value == nil, seed: directory != nil && checkpoint == nil ? true : nil)
-                    if let directory, let encryptionKey {
-                        try directory.publish(record, asset: driveAsset, key: encryptionKey)
-                    } else {
-                        let row = PreferenceSyncRecord(key: key, payload: record.payload, deleted: record.deleted, modifiedAt: date)
-                        row.revision = record.revision
-                        context.insert(row)
-                    }
+                                              deleted: value == nil, seed: checkpoint == nil ? true : nil)
+                    try directory.publish(record, asset: driveAsset, key: encryptionKey)
                     saveCheckpoint(key: prefix + key, bytes: bytes, revision: record.revision, modifiedAt: record.orderingDate, path: pluginPaths[key], existing: checkpoint, context: context)
                     try context.save()
                 } else if let cloud,
                           cloud.revision != checkpoint?.revision || missingFiles.contains(key),
-                          directory == nil || checkpoint?.modifiedAt == nil ||
+                          checkpoint?.modifiedAt == nil ||
                             (cloud.orderingDate, cloud.revision) >= (checkpoint?.modifiedAt ?? .distantPast, checkpoint?.revision ?? "") {
                     guard let data = cloud.payload else { continue }
                     let payload = try JSONDecoder().decode(PreferencePayload.self, from: data)
                     guard payload.key == key else { throw URLError(.cannotParseResponse) }
                     let asset: Data?
                     if !cloud.deleted, case .plugin(let plugin) = payload {
-                        if let directory, let encryptionKey {
-                            asset = try directory.asset(plugin.digest, key: encryptionKey)
-                        } else {
-                            asset = assets[plugin.digest]?.lazy.compactMap(\.data).first
-                        }
+                        asset = try directory.asset(plugin.digest, key: encryptionKey)
                     } else {
                         asset = nil
                     }
@@ -373,8 +337,8 @@ package actor PreferenceSyncModel {
         remote: [String: SyncRevision],
         checkpoints: [String: PreferenceSyncCheckpoint],
         prefix: String,
-        directory: DriveSyncDirectory?,
-        encryptionKey: DriveSyncKey?,
+        directory: DriveSyncDirectory,
+        encryptionKey: DriveSyncKey,
         context: ModelContext
     ) async throws {
         let local = Dictionary(try context.fetch(FetchDescriptor<ReadChapterRecord>()).map { record in
@@ -393,13 +357,7 @@ package actor PreferenceSyncModel {
             if let current, current.date > max(baseline, cloud?.orderingDate ?? .distantPast) {
                 let bytes = try current.payload.encoded()
                 let version = SyncRevision(key: key, payload: bytes, modifiedAt: current.date, deleted: false)
-                if let directory, let encryptionKey {
-                    try directory.publish(version, asset: nil, key: encryptionKey)
-                } else {
-                    let row = PreferenceSyncRecord(key: key, payload: bytes, modifiedAt: current.date)
-                    row.revision = version.revision
-                    context.insert(row)
-                }
+                try directory.publish(version, asset: nil, key: encryptionKey)
                 saveCheckpoint(key: prefix + key, bytes: bytes, revision: version.revision, modifiedAt: current.date,
                                path: nil, existing: checkpoint, context: context)
             } else if let cloud, !cloud.deleted, let data = cloud.payload, cloud.orderingDate >= baseline {
