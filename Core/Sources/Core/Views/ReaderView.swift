@@ -306,24 +306,7 @@ private struct ReaderPage: View {
                     .offset(clampedOffset(x: offset.width + drag.width, y: offset.height + drag.height,
                                           scale: renderedScale))
                     .clipped()
-                    .contentShape(.rect)
-                    .gesture(MagnifyGesture()
-                        .updating($pinch) { value, state, _ in state = value.magnification }
-                        .onEnded { value in
-                            scale = min(4, max(1, scale * value.magnification))
-                            if scale == 1 { offset = .zero }
-                        })
-                    .gesture(DragGesture()
-                        .updating($drag) { value, state, _ in state = value.translation }
-                        .onEnded { value in
-                            offset = clampedOffset(x: offset.width + value.translation.width,
-                                                   y: offset.height + value.translation.height, scale: scale)
-                        }, including: scale > 1 ? .all : .none)
-                    .onTapGesture(count: 2) {
-                        scale = scale > 1 ? 1 : 2
-                        offset = .zero
-                    }
-                    .onTapGesture(perform: toggleControls)
+                    .overlay { pageInteraction }
                     .accessibilityAction(named: Text(L10n.text("Reader.ToggleControlsAccessibilityAction")), toggleControls)
             }
         } placeholder: { error in
@@ -342,6 +325,33 @@ private struct ReaderPage: View {
             })
         }
     }
+
+    private var pageInteraction: some View {
+        // Keep gesture input in the page's clipping frame as the image moves underneath it.
+        Color.clear
+            .contentShape(.rect)
+            .highPriorityGesture(DragGesture(coordinateSpace: .global)
+                .updating($drag) { value, state, transaction in
+                    transaction.animation = nil
+                    state = value.translation
+                }
+                .onEnded { value in
+                    offset = clampedOffset(x: offset.width + value.translation.width,
+                                           y: offset.height + value.translation.height, scale: scale)
+                }, isEnabled: scale > 1)
+            .gesture(MagnifyGesture()
+                .updating($pinch) { value, state, _ in state = value.magnification }
+                .onEnded { value in
+                    scale = min(4, max(1, scale * value.magnification))
+                    if scale == 1 { offset = .zero }
+                })
+            .onTapGesture(count: 2) {
+                scale = scale > 1 ? 1 : 2
+                offset = .zero
+            }
+            .onTapGesture(perform: toggleControls)
+    }
+
     private var renderedScale: CGFloat { min(4, max(1, scale * pinch)) }
 
     private func clampedOffset(x: CGFloat, y: CGFloat, scale: CGFloat) -> CGSize {
