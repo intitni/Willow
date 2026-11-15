@@ -57,7 +57,10 @@ struct HomePresentationSmoke {
         precondition(functionModel.viewModel.error == nil && functionModel.viewModel.blocks.first?.comics.count == 1)
         let detail = try await PluginService.shared.detail(plugin: plugin, comicID: "comic/1")
         let detailModel = ComicDetailModel(sourceID: plugin.uuid, summary: detail.comic)
-        await detailModel.loadDetail(inputs: .init(records: [], plugins: [plugin], downloads: []), context: context)
+        await detailModel.loadDetail(
+            inputs: .init(records: [], plugins: [plugin], downloads: [], readChapters: []),
+            context: context
+        )
         let information = detailModel.viewModel.metadata
         precondition(!information.contains { $0.title == "其他信息" })
         precondition(information.first { $0.title == "状态" }?.values == ["连载中"])
