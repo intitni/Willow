@@ -86,6 +86,66 @@ struct PreferenceSyncTests {
         #expect(try ModelContext(b).fetchCount(FetchDescriptor<PluginRecord>()) == 0)
         #expect(!FileManager.default.fileExists(atPath: path.path))
     }
+
+    @Test func pluginRatingSyncsWithoutAnInstalledPlugin() async throws {
+        let a = try WillowPersistence.make(inMemory: true).container
+        let b = try WillowPersistence.make(inMemory: true).container
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let syncA = drive.worker(container: a)
+        let syncB = drive.worker(container: b)
+
+        a.mainContext.insert(PluginContentRating(sourceID: "fixture", isNSFW: true))
+        try a.mainContext.save()
+        try await syncA.reconcile()
+        try await syncB.reconcile()
+
+        let editor = ModelContext(b)
+        let rating = try #require(editor.fetch(FetchDescriptor<PluginContentRating>()).first)
+        #expect(rating.sourceID == "fixture")
+        #expect(rating.isNSFW)
+        #expect(try editor.fetchCount(FetchDescriptor<PluginRecord>()) == 0)
+        rating.isNSFW = false
+        rating.updatedAt = try #require(rating.updatedAt).addingTimeInterval(1)
+        try editor.save()
+
+        try await syncB.reconcile()
+        try await syncA.reconcile()
+        try await syncA.reconcile()
+        let imported = try #require(ModelContext(a).fetch(FetchDescriptor<PluginContentRating>()).first)
+        #expect(!imported.isNSFW)
+        let revisions = try drive.revisions()
+        #expect(revisions.count == 2)
+        #expect(revisions.allSatisfy { $0.filename.hasSuffix(".rating") })
+    }
+
+    @Test(arguments: [true, false])
+    func firstPluginRatingSyncUsesEditTime(localIsNewer: Bool) async throws {
+        let container = try WillowPersistence.make(inMemory: true).container
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let sync = drive.worker(container: container)
+        let cloudDate = Date(timeIntervalSinceReferenceDate: 10_000)
+        let localDate = cloudDate.addingTimeInterval(localIsNewer ? 60 : -60)
+        let payload = PreferencePayload.pluginRating(.init(sourceID: "fixture", isNSFW: false))
+        // Older clients published the first value as a seed with no edit time in the payload.
+        let cloud = SyncRevision(key: payload.key, payload: try payload.encoded(), modifiedAt: cloudDate,
+                                 deleted: false, seed: true)
+        try drive.directory.publish(cloud, asset: nil, key: drive.key)
+        container.mainContext.insert(PluginContentRating(sourceID: "fixture", isNSFW: true, updatedAt: localDate))
+        try container.mainContext.save()
+
+        try await sync.reconcile()
+        try await sync.reconcile()
+
+        let rating = try #require(ModelContext(container).fetch(FetchDescriptor<PluginContentRating>()).first)
+        #expect(rating.isNSFW == localIsNewer)
+        #expect(rating.updatedAt == max(localDate, cloudDate))
+        let revisions = try drive.revisions()
+        #expect(revisions.count == (localIsNewer ? 2 : 1))
+        #expect(revisions.max { $0.precedes($1) }?.modifiedAt == max(localDate, cloudDate))
+    }
+
     @Test func missingOldFileAppliesCompleteRemoteVersion() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: "WillowVersion-\(UUID())")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

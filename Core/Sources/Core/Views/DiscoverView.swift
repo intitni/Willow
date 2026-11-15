@@ -5,8 +5,9 @@ import SwiftData
 import SwiftUI
 
 struct DiscoverView: View {
+    @Environment(\.hiddenNSFWSources) private var hiddenSources
     @Query(filter: #Predicate<PluginRecord> { $0.enabled }, sort: \PluginRecord.name)
-    private var plugins: [PluginRecord]
+    private var installedPlugins: [PluginRecord]
     @State private var search = ""
     @State private var showingPlugins = false
     @State private var destination: Destination?
@@ -17,6 +18,10 @@ struct DiscoverView: View {
         case action(PluginRecord, String, JSONValue)
     }
     @State private var model = DiscoverModel()
+
+    private var plugins: [PluginRecord] {
+        installedPlugins.filter { !hiddenSources.contains($0.uuid) }
+    }
 
     private var plugin: PluginRecord? { model.activePlugin(in: plugins) }
 

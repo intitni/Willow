@@ -42,14 +42,18 @@ package final class AppLock {
         }
     }
 
-    package func unlock() async {
-        guard isLocked else { return }
-        await authenticate(
+    package func unlock() async -> Bool {
+        guard isLocked else { return false }
+        return await authenticate(
             policy: .deviceOwnerAuthentication,
             reason: L10n.text("AppLock.UnlockReason")
         ) {
             isLocked = false
         }
+    }
+
+    package func verify(reason: String) async -> Bool {
+        await authenticate(policy: .deviceOwnerAuthentication, reason: reason) {}
     }
 
     package func setEnabled(_ enabled: Bool) async {
@@ -58,14 +62,14 @@ package final class AppLock {
         let reason = enabled
             ? L10n.text("AppLock.EnableReason")
             : L10n.text("AppLock.DisableReason")
-        await authenticate(policy: policy, reason: reason) {
+        _ = await authenticate(policy: policy, reason: reason) {
             defaults.set(enabled, forKey: Self.preferenceKey)
             isEnabled = enabled
         }
     }
 
-    private func authenticate(policy: LAPolicy, reason: String, onSuccess: () -> Void) async {
-        guard !isAuthenticating else { return }
+    private func authenticate(policy: LAPolicy, reason: String, onSuccess: () -> Void) async -> Bool {
+        guard !isAuthenticating else { return false }
         let context = LAContext()
         authenticationContext = context
         errorMessage = nil
@@ -79,13 +83,15 @@ package final class AppLock {
             let authenticated = try await context.evaluatePolicy(policy, localizedReason: reason)
             if authenticated && authenticationContext === context && !Task.isCancelled {
                 onSuccess()
+                return true
             }
         } catch let error as LAError where [.appCancel, .systemCancel, .userCancel].contains(error.code) {
-            return
+            return false
         } catch {
             if authenticationContext === context && !Task.isCancelled {
                 errorMessage = error.localizedDescription
             }
         }
+        return false
     }
 }

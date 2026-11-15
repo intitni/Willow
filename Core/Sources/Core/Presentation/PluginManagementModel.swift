@@ -139,6 +139,26 @@ final class InstalledPluginModel {
         }
     }
 
+    func setNSFW(_ isNSFW: Bool, context: ModelContext) {
+        let id = plugin.uuid
+        do {
+            let rating = try context.fetch(FetchDescriptor<PluginContentRating>(
+                predicate: #Predicate { $0.sourceID == id }
+            )).first
+            if let rating {
+                guard rating.isNSFW != isNSFW else { return }
+                rating.isNSFW = isNSFW
+                rating.updatedAt = .now
+            } else {
+                context.insert(PluginContentRating(sourceID: id, isNSFW: isNSFW))
+            }
+            try context.save()
+        } catch {
+            context.rollback()
+            viewModel.error = error.localizedDescription
+        }
+    }
+
     func saveSetting(id: String, value: String) {
         guard let setting = settings?.fields.first(where: { $0.id == id }) else { return }
         perform {

@@ -14,6 +14,7 @@ struct LibraryView: View {
     }
 
     @Environment(\.modelContext) private var context
+    @Environment(\.hiddenNSFWSources) private var hiddenSources
     @Query private var comics: [ComicRecord]
     @Query(sort: \LocalTagRecord.name) private var localTags: [LocalTagRecord]
     @State private var editingTags: LibraryItem?
@@ -83,7 +84,7 @@ struct LibraryView: View {
         }
         .sheet(item: $editingTags) { comic in LocalTagEditor(comicKey: comic.id).modifier(AppLockShield()) }
         .onChange(of: localTags.map(LocalTagSnapshot.init), initial: true) { _, tags in model.updateTags(tags) }
-        .onChange(of: comics.map(LibraryItem.init), initial: true) { _, items in
+        .onChange(of: comics.filter { !hiddenSources.contains($0.sourceID) }.map(LibraryItem.init), initial: true) { _, items in
             model.update(context: context, items: items)
         }
         .modifier(ErrorAlert(error: $viewModel.error))

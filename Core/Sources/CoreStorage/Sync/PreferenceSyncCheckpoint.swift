@@ -15,6 +15,7 @@ package final class PreferenceSyncCheckpoint {
 
 package enum PreferencePayload: Codable, Equatable, Sendable {
     case plugin(Plugin)
+    case pluginRating(PluginRating)
     case subscription(Subscription)
     case tag(Tag)
     case tagLink(TagLink)
@@ -65,6 +66,11 @@ package enum PreferencePayload: Codable, Equatable, Sendable {
         package let info: Data?
         package let digest: String
     }
+    package struct PluginRating: Codable, Equatable, Sendable {
+        static let keyPrefix = "plugin-rating/"
+        let sourceID: String
+        let isNSFW: Bool
+    }
     package struct Subscription: Codable, Equatable, Sendable {
         package let url: String
         package let name: String
@@ -81,6 +87,7 @@ package enum PreferencePayload: Codable, Equatable, Sendable {
     package var key: String {
         switch self {
         case .plugin(let value): "plugin/" + value.id
+        case .pluginRating(let value): PluginRating.keyPrefix + value.sourceID
         case .subscription(let value): "subscription/" + value.url
         case .tag(let value): "tag/" + value.normalizedName
         case .favorite(let comic): "favorite/" + comic.id

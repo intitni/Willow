@@ -49,7 +49,7 @@ struct SyncRevision: Codable, Sendable {
     }
 
     var orderingDate: Date {
-        if seed == true { return .distantPast }
+        if seed == true && !isPluginRating { return .distantPast }
         // Legacy reading files used their publication time. Recover the actual
         // reading time from the payload, while old tombstones use their saved time.
         guard !deleted, !isReadChapter, key.hasPrefix("reading/"), let payload,
@@ -59,10 +59,18 @@ struct SyncRevision: Codable, Sendable {
     }
 
     var isReadChapter: Bool { key.hasPrefix(PreferencePayload.ReadChapter.keyPrefix) }
+    var isPluginRating: Bool { key.hasPrefix(PreferencePayload.PluginRating.keyPrefix) }
 
     // Older Drive clients only read .record files and reject unknown payloads.
     static let chapterFileExtension = "chapter"
-    var filename: String { revision + "." + (isReadChapter ? Self.chapterFileExtension : "record") }
+    static let pluginRatingFileExtension = "rating"
+    var filename: String {
+        let fileExtension: String
+        if isReadChapter { fileExtension = Self.chapterFileExtension }
+        else if isPluginRating { fileExtension = Self.pluginRatingFileExtension }
+        else { fileExtension = "record" }
+        return revision + "." + fileExtension
+    }
 
     func precedes(_ other: Self) -> Bool {
         (orderingDate, revision) < (other.orderingDate, other.revision)
@@ -170,7 +178,7 @@ struct DriveSyncDirectory: Sendable {
             for url in entries {
                 try Task.checkCancellation()
                 let isChapterFile = url.pathExtension == SyncRevision.chapterFileExtension
-                guard url.pathExtension == "record" || isChapterFile,
+                guard url.pathExtension == "record" || isChapterFile || url.pathExtension == SyncRevision.pluginRatingFileExtension,
                       UUID(uuidString: url.deletingPathExtension().lastPathComponent) != nil else { continue }
                 do {
                     let bytes = if let readRecord {

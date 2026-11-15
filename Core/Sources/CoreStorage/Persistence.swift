@@ -12,8 +12,10 @@ package struct WillowPersistence {
     package static func make(inMemory: Bool = false) throws -> WillowPersistence {
         // Keep the existing store names so upgrades open the same local data.
         let library = Schema([ComicRecord.self])
-        let local = Schema([PluginRecord.self, SubscriptionRecord.self, DownloadRecord.self, LocalTagRecord.self, PreferenceSyncCheckpoint.self, ReadChapterRecord.self])
-        let schema = Schema([ComicRecord.self, PluginRecord.self, SubscriptionRecord.self, DownloadRecord.self, LocalTagRecord.self, PreferenceSyncCheckpoint.self, ReadChapterRecord.self])
+        let local = Schema([PluginRecord.self, PluginContentRating.self, SubscriptionRecord.self, DownloadRecord.self,
+                            LocalTagRecord.self, PreferenceSyncCheckpoint.self, ReadChapterRecord.self])
+        let schema = Schema([ComicRecord.self, PluginRecord.self, PluginContentRating.self, SubscriptionRecord.self,
+                             DownloadRecord.self, LocalTagRecord.self, PreferenceSyncCheckpoint.self, ReadChapterRecord.self])
         let localConfiguration = ModelConfiguration(
             "WillowDevice",
             schema: local,

@@ -4,6 +4,7 @@ import SwiftUI
 
 struct DownloadsView: View {
     @Environment(DownloadManager.self) private var downloads
+    @Environment(\.hiddenNSFWSources) private var hiddenSources
     @Query(sort: \DownloadRecord.updatedAt, order: .reverse) private var records: [DownloadRecord]
     @Query private var comics: [ComicRecord]
     @Query(sort: \LocalTagRecord.name) private var localTags: [LocalTagRecord]
@@ -12,6 +13,7 @@ struct DownloadsView: View {
 
     var body: some View {
         @Bindable var viewModel = model.viewModel
+        let visibleRecords = records.filter { !hiddenSources.contains($0.sourceID) }
         Group {
             if viewModel.isEmpty {
                 ContentUnavailableView(L10n.text("Downloads.EmptyTitle"), systemImage: "arrow.down.circle",
@@ -39,14 +41,16 @@ struct DownloadsView: View {
         .fullScreenCover(item: $viewModel.opened) { offline in
             ReaderView(sourceID: offline.sourceID, comicID: offline.comic.id, comic: offline.comic, chapters: offline.chapters,
                        initialChapter: offline.chapter, detail: offline.detail)
-                .modifier(AppLockShield())
         }
         .modifier(ErrorAlert(error: $viewModel.error))
         .onChange(of: records.map(\.updatedAt), initial: true) { _, _ in
-            model.update(records: records, comics: comics, manager: downloads)
+            model.update(records: visibleRecords, comics: comics, manager: downloads)
+        }
+        .onChange(of: hiddenSources) { _, _ in
+            model.update(records: visibleRecords, comics: comics, manager: downloads)
         }
         .onChange(of: comics.map(LibraryItem.init)) { _, _ in
-            model.update(records: records, comics: comics, manager: downloads)
+            model.update(records: visibleRecords, comics: comics, manager: downloads)
         }
     }
 

@@ -22,6 +22,7 @@ struct ReaderView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.modelContext) private var context
     @Environment(DownloadManager.self) private var downloads
+    @Environment(\.hiddenNSFWSources) private var hiddenSources
     @Query private var plugins: [PluginRecord]
     @AppStorage("reader.mode") private var mode = ReaderMode.vertical
     @AppStorage("reader.spreads") private var spreads = true
@@ -29,15 +30,28 @@ struct ReaderView: View {
     @State private var model: ReaderModel
     @State private var showsControls = true
     @State private var showsChapters = false
+    private let sourceID: String
 
     init(sourceID: String, comicID: String, comic: ComicSummary, chapters: [ComicChapter], initialChapter: ComicChapter,
          detail: ComicDetail?) {
+        self.sourceID = sourceID
         _model = State(initialValue: ReaderModel(sourceID: sourceID, comicID: comicID, comic: comic,
                                                 chapters: chapters, initialChapter: initialChapter, detail: detail))
         _plugins = Query(filter: #Predicate<PluginRecord> { $0.uuid == sourceID })
     }
 
     var body: some View {
+        let hidden = hiddenSources.contains(sourceID)
+        Group {
+            if !hidden { reader }
+        }
+        .modifier(AppLockShield())
+        .onChange(of: hidden, initial: true) { _, hidden in
+            if hidden { dismiss() }
+        }
+    }
+
+    @ViewBuilder private var reader: some View {
         @Bindable var state = model.viewModel
         let request = model.request
         let pageIndex = Binding(

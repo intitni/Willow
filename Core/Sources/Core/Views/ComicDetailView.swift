@@ -5,6 +5,8 @@ import SwiftData
 import SwiftUI
 
 struct ComicDetailView: View {
+    @Environment(\.hiddenNSFWSources) private var hiddenSources
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.modelContext) private var context
     @Environment(DownloadManager.self) private var downloads
@@ -46,6 +48,16 @@ struct ComicDetailView: View {
     }
 
     var body: some View {
+        let hidden = hiddenSources.contains(model.sourceID)
+        Group {
+            if !hidden { detail }
+        }
+        .onChange(of: hidden, initial: true) { _, hidden in
+            if hidden { dismiss() }
+        }
+    }
+
+    @ViewBuilder private var detail: some View {
         @Bindable var state = model.viewModel
         let inputs = ComicDetailModel.Inputs(records: records, plugins: plugins, downloads: downloadRecords,
                                             readChapters: readChapters)
@@ -174,7 +186,6 @@ struct ComicDetailView: View {
         .fullScreenCover(item: $reader) { chapter in
             ReaderView(sourceID: model.sourceID, comicID: state.summary.id, comic: state.comic,
                        chapters: state.chapters, initialChapter: chapter, detail: state.detail)
-                .modifier(AppLockShield())
         }
         .navigationDestination(item: $metadataDestination) { destination in
             if let plugin = inputs.plugin {

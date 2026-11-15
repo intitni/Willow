@@ -4,11 +4,13 @@ import CoreStorage
 import Observation
 import SwiftData
 import SwiftUI
+import UIKit
 
 @MainActor
 @Observable
 public final class CoreAppModel {
     fileprivate let appLock = AppLock()
+    fileprivate let contentPrivacy = ContentPrivacy()
     fileprivate let updates = UpdateModel()
     fileprivate var startup = Result { try AppSession() }
 
@@ -16,7 +18,7 @@ public final class CoreAppModel {
 
     public func scenePhaseChanged(_ phase: ScenePhase) {
         if phase == .background {
-            appLock.lock()
+            lockAccess()
             if case .success(let session) = startup, session.sync.worker != nil {
                 PreferenceBackgroundRefresh.schedule()
             }
@@ -25,6 +27,17 @@ public final class CoreAppModel {
             session.downloads.resumeForegroundDownloads()
             session.sync.events.request()
         }
+    }
+
+    fileprivate func resignActive() {
+        // LocalAuthentication can temporarily make the app inactive.
+        guard !appLock.isAuthenticating else { return }
+        lockAccess()
+    }
+
+    fileprivate func lockAccess() {
+        appLock.lock()
+        contentPrivacy.lockNSFWAccess()
     }
 
     public static let preferenceRefreshIdentifier = "com.intii.Willow.preferences.refresh"
@@ -66,11 +79,20 @@ public struct WillowRootView: View {
                         await events.run(context: session.persistence.container.mainContext, sync: worker)
                     }
                     .environment(model.appLock)
+                    .environment(model.contentPrivacy)
                     .tint(WillowTheme.accent)
             case .failure(let error):
                 RetryView(title: L10n.text("App.StartupFailed"), message: error.localizedDescription, retry: model.retry)
                     .tint(WillowTheme.accent)
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIScene.willDeactivateNotification)) { notification in
+            if let scene = notification.object as? UIWindowScene, scene.session.role == .windowApplication {
+                model.resignActive()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            model.lockAccess()
         }
         .task { _ = model.updates.startInitialCheck() }
     }
@@ -84,6 +106,7 @@ private struct AppSession {
 
     init() throws {
         persistence = try WillowPersistence.make()
+        try ContentPrivacy.migrateSourceRatings(in: persistence.container.mainContext)
         downloads = DownloadManager(context: persistence.container.mainContext)
         sync = SyncSettingsModel(container: persistence.container)
     }
@@ -92,27 +115,60 @@ private struct AppSession {
 struct AppLockShield: ViewModifier {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppLock.self) private var appLock
+    @Environment(ContentPrivacy.self) private var privacy
+    @State private var unlockTask: Task<Void, Never>?
 
     func body(content: Content) -> some View {
-        let protected = appLock.isLocked || (appLock.isEnabled && scenePhase != .active)
+        let protected = appLock.isLocked || privacy.requiresNSFWUnlock
+            || ((appLock.isEnabled || privacy.allowsNSFW) && scenePhase != .active)
         ZStack {
             content
+                .opacity(protected ? 0 : 1)
                 .accessibilityHidden(protected)
                 .allowsHitTesting(!protected)
 
             if protected {
-                LockedView(appLock: appLock)
+                LockedView(appLock: appLock) {
+                    unlockTask = Task {
+                        let verified: Bool
+                        if appLock.isLocked {
+                            verified = await appLock.unlock()
+                        } else if privacy.requiresNSFWUnlock {
+                            verified = await appLock.verify(reason: L10n.text("Privacy.UnlockNSFWReason"))
+                        } else {
+                            return
+                        }
+                        if verified { privacy.unlockNSFWAccess() }
+                    }
+                }
+                .disabled(scenePhase != .active)
             }
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { unlockTask?.cancel() }
+        }
+        .onDisappear { unlockTask?.cancel() }
     }
 }
 
+extension EnvironmentValues {
+    @Entry var hiddenNSFWSources: Set<String> = []
+}
+
 private struct WillowTabs: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(AppLock.self) private var appLock
+    @Environment(ContentPrivacy.self) private var privacy
+    @Query(filter: #Predicate<PluginContentRating> { $0.isNSFW }) private var ratings: [PluginContentRating]
+    @State private var showingNSFWAccess = false
+    @State private var authenticationError: String?
+    @State private var authenticationTask: Task<Void, Never>?
     let updates: UpdateModel
 
     var body: some View {
         @Bindable var notices = PluginNoticeModel.shared.viewModel
         let updateBadge = updates.isUpdateAvailable == true ? Text(verbatim: "") : nil
+        let hiddenSources = privacy.hidesNSFWSources ? Set(ratings.map(\.sourceID)) : []
         TabView {
             Tab(L10n.text("Shelf.Title"), systemImage: "books.vertical") {
                 NavigationStack { LibraryView(kind: .favorites) }
@@ -125,18 +181,51 @@ private struct WillowTabs: View {
             }
             Tab(L10n.text("Discover.Title"), systemImage: "safari") {
                 NavigationStack { DiscoverView() }
+                    .id(hiddenSources)
             }
             Tab(L10n.text("Settings.Title"), systemImage: "gearshape") {
                 NavigationStack { SettingsView(updates: updates) }
             }
             .badge(updateBadge)
         }
+        .environment(\.hiddenNSFWSources, hiddenSources)
+        .background {
+            SettingsTabLongPress(title: L10n.text("Settings.Title"), action: verifyNSFWAccess)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        .alert(L10n.text("Privacy.NSFWAccess"), isPresented: $showingNSFWAccess) {
+            Button(L10n.text(privacy.allowsNSFW ? "Privacy.HideNSFW" : "Privacy.ShowNSFW")) {
+                privacy.toggleNSFWAccess()
+            }
+            Button(L10n.text("Text.Cancel"), role: .cancel) {}
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { showingNSFWAccess = false }
+            if phase == .background { authenticationTask?.cancel() }
+        }
+        .onDisappear { authenticationTask?.cancel() }
+        .modifier(ErrorAlert(error: $authenticationError))
         .modifier(ErrorAlert(error: $notices.message))
+    }
+
+    private func verifyNSFWAccess() {
+        guard scenePhase == .active, !appLock.isLocked, !privacy.requiresNSFWUnlock, !appLock.isAuthenticating else { return }
+        authenticationTask = Task {
+            let verified = await appLock.verify(reason: L10n.text("Privacy.ChangeNSFWAccessReason"))
+            guard !Task.isCancelled else { return }
+            if verified && !appLock.isLocked && !privacy.requiresNSFWUnlock {
+                showingNSFWAccess = true
+            } else {
+                authenticationError = appLock.errorMessage
+            }
+        }
     }
 }
 
 private struct LockedView: View {
     let appLock: AppLock
+    let unlock: () -> Void
 
     var body: some View {
         ContentUnavailableView {
@@ -146,9 +235,7 @@ private struct LockedView: View {
                 Text(error)
             }
         } actions: {
-            Button(L10n.text("AppLock.Unlock")) {
-                Task { await appLock.unlock() }
-            }
+            Button(L10n.text("AppLock.Unlock"), action: unlock)
             .buttonStyle(.glassProminent)
             .disabled(appLock.isAuthenticating)
         }

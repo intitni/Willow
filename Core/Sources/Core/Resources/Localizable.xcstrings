@@ -915,6 +915,91 @@
         }
       }
     },
+    "Privacy.ChangeNSFWAccessReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify your identity to change NSFW access."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证身份后可更改 NSFW 访问权限。"
+          }
+        }
+      }
+    },
+    "Privacy.HideNSFW" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disallow NSFW"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不允许 NSFW"
+          }
+        }
+      }
+    },
+    "Privacy.NSFWAccess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NSFW Access"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NSFW 访问权限"
+          }
+        }
+      }
+    },
+    "Privacy.UnlockNSFWReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify your identity to unlock NSFW access."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证身份后可解锁 NSFW 访问权限。"
+          }
+        }
+      }
+    },
+    "Privacy.ShowNSFW" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow NSFW"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许 NSFW"
+          }
+        }
+      }
+    },
     "Reader.Close" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2683,6 +2768,23 @@
         }
       }
     },
+    "Settings.GreenTravel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Green Travel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "绿色出行"
+          }
+        }
+      }
+    },
     "Settings.Privacy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3592,6 +3694,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这个插件操作暂不支持。"
+          }
+        }
+      }
+    },
+    "PluginSettings.NSFW" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NSFW"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NSFW"
           }
         }
       }

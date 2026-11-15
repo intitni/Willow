@@ -3,10 +3,11 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppLock.self) private var appLock
+    @Environment(ContentPrivacy.self) private var privacy
     let updates: UpdateModel
 
     var body: some View {
-        SettingsForm(appLock: appLock, updates: updates)
+        SettingsForm(appLock: appLock, privacy: privacy, updates: updates)
     }
 }
 
@@ -14,10 +15,13 @@ private struct SettingsForm: View {
     @State private var model: SettingsModel
     let updates: UpdateModel
 
-    init(appLock: AppLock, updates: UpdateModel) {
+    init(appLock: AppLock, privacy: ContentPrivacy, updates: UpdateModel) {
         _model = State(initialValue: SettingsModel(appLock: appLock))
+        self.privacy = privacy
         self.updates = updates
     }
+
+    private let privacy: ContentPrivacy
 
     var body: some View {
         @Bindable var viewModel = model.viewModel
@@ -47,6 +51,9 @@ private struct SettingsForm: View {
                     Label(L10n.text("Settings.AppLock"), systemImage: "lock")
                 }
                 .disabled(viewModel.updatingLock)
+                Toggle(isOn: Binding(get: { privacy.greenTravelEnabled }, set: privacy.setGreenTravel)) {
+                    Label(L10n.text("Settings.GreenTravel"), systemImage: "leaf")
+                }
             } header: {
                 Text(L10n.text("Settings.Privacy"))
             } footer: {
