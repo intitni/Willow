@@ -148,6 +148,15 @@ package actor PreferenceSyncModel {
         // Missing ordinary revisions may contain deletions. Chapter history
         // only adds observations and can already merge the records available.
         if !read.isComplete { throw read.error ?? DriveSyncError.waitingForFiles }
+        do {
+            try reconcilePluginRatings(remote: remote, checkpoints: checkpoints, prefix: prefix,
+                                       directory: directory, encryptionKey: encryptionKey, context: context)
+        } catch let error as CancellationError {
+            throw error
+        } catch {
+            context.rollback()
+            firstError = firstError ?? error
+        }
         let plugins = try context.fetch(FetchDescriptor<PluginRecord>())
         var local: [String: PreferencePayload] = [:]
         var pluginPaths: [String: String] = [:]
@@ -210,7 +219,7 @@ package actor PreferenceSyncModel {
                              prefix: prefix, directory: directory, encryptionKey: encryptionKey, context: context)
         // 标签定义先于关联处理；文件操作放在最后，避免等待文件时覆盖标签编辑。
         let keys = Set(local.keys).union(remote.keys).union(checkpoints.keys).subtracting(unavailable)
-            .filter { !$0.hasPrefix("reading/") }.sorted {
+            .filter { !$0.hasPrefix("reading/") && !$0.hasPrefix(PreferencePayload.PluginRating.keyPrefix) }.sorted {
             func order(_ key: String) -> Int { key.hasPrefix("tag/") ? 0 : key.hasPrefix("tag-link/") ? 1 : key.hasPrefix("plugin/") ? 3 : 2 }
             return order($0) == order($1) ? $0 < $1 : order($0) < order($1)
         }
@@ -275,6 +284,61 @@ package actor PreferenceSyncModel {
             }
         }
         if let firstError { throw firstError }
+    }
+
+    private func reconcilePluginRatings(
+        remote: [String: SyncRevision],
+        checkpoints: [String: PreferenceSyncCheckpoint],
+        prefix: String,
+        directory: DriveSyncDirectory,
+        encryptionKey: DriveSyncKey,
+        context: ModelContext
+    ) throws {
+        let ratingPrefix = PreferencePayload.PluginRating.keyPrefix
+        let local = Dictionary(uniqueKeysWithValues: try context.fetch(FetchDescriptor<PluginContentRating>()).map {
+            (ratingPrefix + $0.sourceID, $0)
+        })
+        let keys = Set(local.keys).union(remote.values.lazy.filter(\.isPluginRating).map(\.key))
+        for key in keys.sorted() {
+            try checkActive()
+            let rating = local[key]
+            let editedAt = rating?.updatedAt ?? .distantPast
+            let checkpoint = checkpoints[key]
+            let baseline = checkpoint?.modifiedAt ?? .distantPast
+            let cloud = remote[key]
+
+            if let rating,
+               (cloud == nil && checkpoint == nil) || editedAt > max(baseline, cloud?.orderingDate ?? .distantPast) {
+                let payload = PreferencePayload.pluginRating(.init(sourceID: rating.sourceID, isNSFW: rating.isNSFW))
+                let bytes = try payload.encoded()
+                let version = SyncRevision(key: key, payload: bytes, modifiedAt: editedAt, deleted: false)
+                try directory.publish(version, asset: nil, key: encryptionKey)
+                saveCheckpoint(key: prefix + key, bytes: bytes, revision: version.revision, modifiedAt: editedAt,
+                               path: nil, existing: checkpoint, context: context)
+            } else if let cloud, let bytes = cloud.payload, cloud.orderingDate >= editedAt,
+                      (cloud.orderingDate, cloud.revision) >= (baseline, checkpoint?.revision ?? "") {
+                guard case .pluginRating(let value) = try JSONDecoder().decode(PreferencePayload.self, from: bytes),
+                      PluginIdentity.isValid(value.sourceID) else {
+                    throw URLError(.cannotParseResponse)
+                }
+                if cloud.deleted {
+                    if let rating { context.delete(rating) }
+                } else if let rating {
+                    if rating.isNSFW != value.isNSFW || rating.updatedAt != cloud.orderingDate {
+                        rating.isNSFW = value.isNSFW
+                        rating.updatedAt = cloud.orderingDate
+                    }
+                } else {
+                    context.insert(PluginContentRating(sourceID: value.sourceID, isNSFW: value.isNSFW,
+                                                       updatedAt: cloud.orderingDate))
+                }
+                if cloud.revision != checkpoint?.revision {
+                    saveCheckpoint(key: prefix + key, bytes: cloud.deleted ? nil : bytes, revision: cloud.revision,
+                                   modifiedAt: cloud.orderingDate, path: nil, existing: checkpoint, context: context)
+                }
+            }
+            if context.hasChanges { try context.save() }
+        }
     }
 
     private func reconcileReading(
@@ -451,7 +515,7 @@ package actor PreferenceSyncModel {
             for record in try comicRecords(comic, deleted: deleted, context: context) {
                 record.isFavorite = !deleted
             }
-        case .reading, .readChapter:
+        case .reading, .readChapter, .pluginRating:
             throw URLError(.cannotParseResponse)
         case .subscription(let value):
             let url = value.url

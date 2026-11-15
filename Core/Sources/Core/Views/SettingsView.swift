@@ -3,10 +3,11 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppLock.self) private var appLock
+    @Environment(ContentPrivacy.self) private var privacy
     let updates: UpdateModel
 
     var body: some View {
-        SettingsForm(appLock: appLock, updates: updates)
+        SettingsForm(appLock: appLock, privacy: privacy, updates: updates)
     }
 }
 
@@ -14,8 +15,8 @@ private struct SettingsForm: View {
     @State private var model: SettingsModel
     let updates: UpdateModel
 
-    init(appLock: AppLock, updates: UpdateModel) {
-        _model = State(initialValue: SettingsModel(appLock: appLock))
+    init(appLock: AppLock, privacy: ContentPrivacy, updates: UpdateModel) {
+        _model = State(initialValue: SettingsModel(appLock: appLock, privacy: privacy))
         self.updates = updates
     }
 
@@ -46,7 +47,11 @@ private struct SettingsForm: View {
                 )) {
                     Label(L10n.text("Settings.AppLock"), systemImage: "lock")
                 }
-                .disabled(viewModel.updatingLock)
+                .disabled(viewModel.privacyControlsDisabled)
+                Toggle(isOn: Binding(get: { viewModel.greenTravelEnabled }, set: model.setGreenTravel)) {
+                    Label(L10n.text("Settings.GreenTravel"), systemImage: "leaf")
+                }
+                .disabled(viewModel.privacyControlsDisabled)
             } header: {
                 Text(L10n.text("Settings.Privacy"))
             } footer: {
@@ -64,6 +69,11 @@ private struct SettingsForm: View {
             }
         }
         .navigationTitle(L10n.text("Settings.Title"))
+        .alert(L10n.text("Settings.GreenTravelEnabled"), isPresented: $viewModel.showingGreenTravelExplanation) {
+            Button(L10n.text("Text.OK")) {}
+        } message: {
+            Text(L10n.text("Settings.GreenTravelExplanation"))
+        }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification, object: UserDefaults.standard)) { _ in
             model.reloadReaderPreferences()
         }

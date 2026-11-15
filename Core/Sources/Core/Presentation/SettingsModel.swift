@@ -25,24 +25,31 @@ final class SettingsModel {
     @Observable
     final class ViewModel {
         private let appLock: AppLock
+        private let privacy: ContentPrivacy
         var lockEnabled: Bool { appLock.isEnabled }
         var biometryName: String { appLock.biometryName }
+        var greenTravelEnabled: Bool { privacy.greenTravelEnabled }
+        var privacyControlsDisabled: Bool { updatingPrivacy || appLock.isAuthenticating }
 
         fileprivate(set) var mode = ReaderMode.vertical
         fileprivate(set) var spreads = true
-        fileprivate(set) var updatingLock = false
+        fileprivate(set) var updatingPrivacy = false
+        var showingGreenTravelExplanation = false
         var error: String?
-        init(appLock: AppLock) {
+        init(appLock: AppLock, privacy: ContentPrivacy) {
             self.appLock = appLock
+            self.privacy = privacy
         }
     }
 
     private let appLock: AppLock
+    private let privacy: ContentPrivacy
     let viewModel: ViewModel
 
-    init(appLock: AppLock) {
+    init(appLock: AppLock, privacy: ContentPrivacy) {
         self.appLock = appLock
-        viewModel = ViewModel(appLock: appLock)
+        self.privacy = privacy
+        viewModel = ViewModel(appLock: appLock, privacy: privacy)
         reloadReaderPreferences()
     }
 
@@ -63,12 +70,28 @@ final class SettingsModel {
     }
 
     func setAppLock(_ enabled: Bool) {
-        guard !viewModel.updatingLock else { return }
-        viewModel.updatingLock = true
+        guard !viewModel.privacyControlsDisabled else { return }
+        viewModel.updatingPrivacy = true
         Task {
-            defer { viewModel.updatingLock = false }
+            defer { viewModel.updatingPrivacy = false }
             await appLock.setEnabled(enabled)
             viewModel.error = appLock.errorMessage
+        }
+    }
+
+    func setGreenTravel(_ enabled: Bool) {
+        guard enabled != privacy.greenTravelEnabled, !viewModel.privacyControlsDisabled,
+              !appLock.isLocked, !privacy.requiresNSFWUnlock else { return }
+        viewModel.updatingPrivacy = true
+        Task {
+            defer { viewModel.updatingPrivacy = false }
+            let verified = await appLock.verify(reason: L10n.text("Settings.ChangeGreenTravelReason"))
+            guard verified, !appLock.isLocked, !privacy.requiresNSFWUnlock else {
+                viewModel.error = appLock.errorMessage
+                return
+            }
+            privacy.setGreenTravel(enabled)
+            viewModel.showingGreenTravelExplanation = enabled
         }
     }
 }

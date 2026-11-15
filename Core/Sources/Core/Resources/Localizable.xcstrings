@@ -915,6 +915,40 @@
         }
       }
     },
+    "Privacy.VerifyIdentityReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify your identity to change this setting."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证身份后可更改此设置。"
+          }
+        }
+      }
+    },
+    "Privacy.UnlockReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify your identity to unlock Willow."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证身份后可解锁 Willow。"
+          }
+        }
+      }
+    },
     "Reader.Close" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2683,6 +2717,74 @@
         }
       }
     },
+    "Settings.GreenTravel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Green Travel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "绿色出行"
+          }
+        }
+      }
+    },
+    "Settings.ChangeGreenTravelReason" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify your identity to change Green Travel."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证身份后可更改绿色出行设置。"
+          }
+        }
+      }
+    },
+    "Settings.GreenTravelEnabled" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Green Travel Is On"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "绿色出行已开启"
+          }
+        }
+      }
+    },
+    "Settings.GreenTravelExplanation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Green Travel hides NSFW plugins and their comics, reading history, and downloads while NSFW access is off. To view them temporarily, press and hold the Settings tab and verify your identity to allow NSFW content."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未临时允许 NSFW 时，绿色出行会隐藏标为 NSFW 的插件及其漫画、阅读历史和下载。若要临时查看，请长按「设置」标签，验证身份后允许显示 NSFW 内容。"
+          }
+        }
+      }
+    },
     "Settings.Privacy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3592,6 +3694,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "这个插件操作暂不支持。"
+          }
+        }
+      }
+    },
+    "PluginSettings.NSFW" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NSFW"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NSFW"
           }
         }
       }

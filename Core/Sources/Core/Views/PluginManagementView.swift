@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 
 struct PluginManagementView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.hiddenNSFWSources) private var hiddenSources
     @Query(sort: \PluginRecord.name) private var plugins: [PluginRecord]
     @Query(sort: \SubscriptionRecord.name) private var subscriptions: [SubscriptionRecord]
     @State private var model = PluginManagementModel()
@@ -19,12 +20,13 @@ struct PluginManagementView: View {
 
     var body: some View {
         @Bindable var viewModel = model.viewModel
+        let visiblePlugins = plugins.filter { !hiddenSources.contains($0.uuid) }
         List {
             Section(L10n.text("PluginManagement.Installed")) {
-                if plugins.isEmpty {
+                if visiblePlugins.isEmpty {
                     Text(L10n.text("PluginManagement.EmptyPlugins")).foregroundStyle(.secondary)
                 }
-                ForEach(plugins, id: \.uuid) { plugin in
+                ForEach(visiblePlugins, id: \.uuid) { plugin in
                     NavigationLink {
                         InstalledPluginView(plugin: plugin)
                     } label: {
@@ -121,13 +123,14 @@ struct PluginManagementView: View {
         ]) { result in
             model.importPlugin(result, context: context)
         }
-        .confirmationDialog(L10n.text("PluginManagement.UninstallTitle"), isPresented: Binding(
+        .alert(L10n.text("PluginManagement.UninstallTitle"), isPresented: Binding(
             get: { uninstalling != nil },
             set: { if !$0 { uninstalling = nil } }
-        ), titleVisibility: .visible, presenting: uninstalling) { plugin in
+        ), presenting: uninstalling) { plugin in
             Button(L10n.text("PluginManagement.UninstallNamedPlugin", defaultValue: "卸载 \(plugin.name)"), role: .destructive) {
                 model.uninstall(plugin, context: context)
             }
+            Button(L10n.text("Text.Cancel"), role: .cancel) {}
         }
         .confirmationDialog(L10n.text("PluginManagement.RemoveSubscriptionTitle"), isPresented: Binding(
             get: { removingSubscription != nil },
@@ -154,15 +157,32 @@ private struct PluginAddressField: View {
 
 private struct InstalledPluginView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.hiddenNSFWSources) private var hiddenSources
+    @Environment(\.dismiss) private var dismiss
+    @Query private var ratings: [PluginContentRating]
     @State private var model: InstalledPluginModel
+    private let sourceID: String
     @State private var editingField: InstalledPluginModel.Field?
     @State private var editedValue = ""
 
     init(plugin: PluginRecord) {
         _model = State(initialValue: InstalledPluginModel(plugin: plugin))
+        let id = plugin.uuid
+        sourceID = id
+        _ratings = Query(filter: #Predicate<PluginContentRating> { $0.sourceID == id })
     }
 
     var body: some View {
+        let hidden = hiddenSources.contains(sourceID)
+        Group {
+            if !hidden { settings }
+        }
+        .onChange(of: hidden) { _, hidden in
+            if hidden { dismiss() }
+        }
+    }
+
+    @ViewBuilder private var settings: some View {
         @Bindable var viewModel = model.viewModel
         Form {
             Section(L10n.text("PluginSettings.Information")) {
@@ -173,6 +193,10 @@ private struct InstalledPluginView: View {
                 Toggle(L10n.text("PluginSettings.Enable"), isOn: Binding(
                     get: { viewModel.enabled },
                     set: { model.setEnabled($0, context: context) }
+                ))
+                Toggle(L10n.text("PluginSettings.NSFW"), isOn: Binding(
+                    get: { ratings.first?.isNSFW ?? false },
+                    set: { model.setNSFW($0, context: context) }
                 ))
             }
 
@@ -300,6 +324,7 @@ private struct PluginLoginView: View {
 
 private struct SubscriptionView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.hiddenNSFWSources) private var hiddenSources
     @Query private var installedPlugins: [PluginRecord]
     @State private var model: SubscriptionModel
 
@@ -309,21 +334,22 @@ private struct SubscriptionView: View {
 
     var body: some View {
         @Bindable var viewModel = model.viewModel
+        let rows = viewModel.rows.filter { !hiddenSources.contains($0.id) }
         Group {
-            if viewModel.loading && viewModel.rows.isEmpty {
+            if viewModel.loading && rows.isEmpty {
                 ProgressView(L10n.text("Subscription.Loading"))
-            } else if let error = viewModel.loadError, viewModel.rows.isEmpty {
+            } else if let error = viewModel.loadError, rows.isEmpty {
                 RetryView(title: L10n.text("Subscription.LoadFailed"), message: error) {
                     Task { await model.reload(refresh: true, context: context) }
                 }
-            } else if viewModel.rows.isEmpty {
+            } else if rows.isEmpty {
                 ContentUnavailableView(L10n.text("Subscription.EmptyTitle"), systemImage: "puzzlepiece.extension")
             } else {
                 List {
                     if let error = viewModel.loadError {
                         Section { Text(error).foregroundStyle(.secondary) }
                     }
-                    ForEach(viewModel.rows) { row in
+                    ForEach(rows) { row in
                         SubscriptionPluginRow(row: row, installing: viewModel.installing.contains(row.id)) {
                             Task { await model.install(id: row.id, context: context) }
                         }

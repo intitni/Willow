@@ -99,7 +99,7 @@ package final class PreferenceSyncEvents {
     }
 
     nonisolated private static func containsPreferenceChanges(_ notification: Notification) -> Bool {
-        let names: Set<String> = ["PluginRecord", "SubscriptionRecord", "LocalTagRecord", "ComicRecord"]
+        let names: Set<String> = ["PluginRecord", "PluginContentRating", "SubscriptionRecord", "LocalTagRecord", "ComicRecord"]
         let keys: [ModelContext.NotificationKey] = [.insertedIdentifiers, .updatedIdentifiers, .deletedIdentifiers]
         return keys.contains { key in
             let value = notification.userInfo?[key] ?? notification.userInfo?[key.rawValue]
