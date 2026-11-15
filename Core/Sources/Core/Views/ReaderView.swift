@@ -214,13 +214,16 @@ private struct ReaderPages: View {
                     LazyHStack(spacing: 0) {
                         ForEach(groups, id: \.self) { start in
                             let indices = layout.slots(start: start, reversed: mode == .rightToLeft)
+                            let hasTwoPages = layout.usesSpread && start + 1 < urls.count
                             HStack(spacing: 0) {
                                 ForEach(indices, id: \.self) { index in
                                     if urls.indices.contains(index) {
+                                        let innerEdge: Alignment = index == indices.first ? .trailing : .leading
                                         ReaderPage(
                                             url: urls[index],
                                             viewport: CGSize(width: viewport.width / CGFloat(groupSize), height: viewport.height),
                                             vertical: false,
+                                            imageAlignment: hasTwoPages ? innerEdge : .center,
                                             toggleControls: toggleControls
                                         )
                                     } else {
@@ -273,6 +276,7 @@ private struct ReaderPage: View {
     let url: URL
     let viewport: CGSize
     let vertical: Bool
+    var imageAlignment: Alignment = .center
     let toggleControls: () -> Void
     @State private var scale: CGFloat = 1
     @State private var offset = CGSize.zero
@@ -282,7 +286,7 @@ private struct ReaderPage: View {
     var body: some View {
         CachedImage(url: url) { image in
             image.resizable().scaledToFit()
-                .frame(width: viewport.width, height: vertical ? nil : viewport.height)
+                .frame(width: viewport.width, height: vertical ? nil : viewport.height, alignment: imageAlignment)
                 .scaleEffect(renderedScale)
                 .offset(clampedOffset(x: offset.width + drag.width, y: offset.height + drag.height,
                                       scale: renderedScale))
