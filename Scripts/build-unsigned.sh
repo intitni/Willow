@@ -2,8 +2,8 @@
 set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT_DIR"
-VERSION=${1:-1.0.0}
-BUILD_NUMBER=${2:-1}
+VERSION=${1:-1.0.1}
+BUILD_NUMBER=${2:-2}
 if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || [[ ! "$BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
   echo 'Expected version X.Y.Z and a positive numeric build number.' >&2
   exit 1
