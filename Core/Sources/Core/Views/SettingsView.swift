@@ -13,6 +13,7 @@ struct SettingsView: View {
 
 private struct SettingsForm: View {
     @State private var model: SettingsModel
+    @State private var didCopySyncKey = false
     let updates: UpdateModel
 
     init(appLock: AppLock, privacy: ContentPrivacy, updates: UpdateModel) {
@@ -63,7 +64,7 @@ private struct SettingsForm: View {
                 Text(L10n.resource("Settings.BiometricUnlockDescription", defaultValue: "开启后，Willow 会在返回前台时使用 \(viewModel.biometryName) 解锁。"))
             }
 
-            SyncSettingsSection()
+            SyncSettingsSection(didCopyKey: $didCopySyncKey, error: $viewModel.error)
 
             Section {
                 NavigationLink {
@@ -78,6 +79,11 @@ private struct SettingsForm: View {
             Button(L10n.text("Text.OK")) {}
         } message: {
             Text(L10n.text("Settings.GreenTravelExplanation"))
+        }
+        .alert(L10n.text("SyncSettings.KeyCopied"), isPresented: $didCopySyncKey) {
+            Button(L10n.text("Text.OK")) {}
+        } message: {
+            Text(L10n.text("SyncSettings.KeyCopiedDescription"))
         }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification, object: UserDefaults.standard)) { _ in
             model.reloadReaderPreferences()

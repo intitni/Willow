@@ -29,7 +29,7 @@ struct DriveSyncTests {
         #expect(try reopened.asset(digest, key: reopenedKey) == script)
         let incorrect = try DriveSyncKey(DriveSyncKeychain.generate())
         #expect(throws: DriveSyncError.wrongKey) {
-            let marker = try #require(try reopened.marker())
+            let marker = try reopened.recoveryMarker()
             try marker.verify(incorrect)
         }
         #expect(throws: DriveSyncError.folderAlreadyExists) { try create(reopened, key: incorrect) }
@@ -50,6 +50,18 @@ struct DriveSyncTests {
         let result = try reopened.readRevisions(key: reopenedKey)
         #expect(result.revisions.isEmpty)
         #expect(result.error != nil)
+    }
+
+    @Test func recoveryRequiresTheConfiguredDirectoryMarker() throws {
+        let directory = DriveSyncDirectory(root: try temporaryFolder())
+        defer { try? FileManager.default.removeItem(at: directory.root) }
+        #expect(throws: DriveSyncError.missingDirectory) { try directory.recoveryMarker() }
+
+        let key = try DriveSyncKey(DriveSyncKeychain.generate())
+        try create(directory, key: key)
+        let replacement = DriveSyncDirectory(root: directory.root)
+        #expect(throws: DriveSyncError.directoryChanged) { try replacement.recoveryMarker() }
+        try directory.recoveryMarker().verify(key)
     }
 
     @Test func readingAndFavoritesMergeIndependentlyAndDeletionDoesNotRollBack() async throws {

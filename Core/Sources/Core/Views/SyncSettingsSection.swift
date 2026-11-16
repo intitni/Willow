@@ -7,9 +7,10 @@ struct SyncSettingsSection: View {
     @Environment(SyncSettingsModel.self) private var model
     @State private var pickingFolder = false
     @State private var folder: SelectedFolder?
+    @State private var recoveryFolder: DriveSyncFolder?
     @State private var isReadingRecoveryKey = false
-    @State private var didCopyKey = false
-    @State private var error: String?
+    @Binding var didCopyKey: Bool
+    @Binding var error: String?
 
     var body: some View {
         Section {
@@ -33,6 +34,11 @@ struct SyncSettingsSection: View {
                         }
                     }
                     .disabled(isReadingRecoveryKey)
+                    Button(L10n.text("SyncSettings.RestoreKey")) { recoveryFolder = folder }
+                        .sheet(item: $recoveryFolder) { folder in
+                            DriveKeyRecoveryView(folder: folder, model: model)
+                                .modifier(AppLockShield())
+                        }
                     if model.activeMethod == .drive {
                         Button(L10n.text("SyncSettings.SyncNow")) {
                             Task { await model.reconcile() }
@@ -62,12 +68,6 @@ struct SyncSettingsSection: View {
             DriveFolderSetupView(folder: folder.url, model: model)
                 .modifier(AppLockShield())
         }
-        .alert(L10n.text("SyncSettings.KeyCopied"), isPresented: $didCopyKey) {
-            Button(L10n.text("Text.OK")) {}
-        } message: {
-            Text(L10n.text("SyncSettings.KeyCopiedDescription"))
-        }
-        .modifier(ErrorAlert(error: $error))
     }
 
     private func label(_ method: WillowSyncMethod) -> String {
@@ -108,6 +108,55 @@ struct SyncSettingsSection: View {
     private struct SelectedFolder: Identifiable {
         let url: URL
         var id: URL { url }
+    }
+}
+
+private struct DriveKeyRecoveryView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var key = ""
+    @State private var error: String?
+    let folder: DriveSyncFolder
+    let model: SyncSettingsModel
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    SecureField(L10n.text("SyncSettings.RecoveryKey"), text: $key)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    Button(L10n.text("SyncSettings.RestoreKey"), action: restore)
+                        .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                } header: {
+                    Text(folder.name)
+                } footer: {
+                    Text(L10n.text("SyncSettings.RestoreKeyDescription"))
+                }
+            }
+            .navigationTitle(L10n.text("SyncSettings.RestoreKey"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.text("Text.Cancel")) { dismiss() }
+                }
+            }
+            .disabled(model.isSwitching)
+            .interactiveDismissDisabled(model.isSwitching)
+            .modifier(ErrorAlert(error: $error))
+        }
+    }
+
+    private func restore() {
+        Task {
+            do {
+                try await model.restoreRecoveryKey(key, for: folder)
+                dismiss()
+            } catch is CancellationError {
+                return
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
     }
 }
 
