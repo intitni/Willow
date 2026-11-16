@@ -29,6 +29,22 @@ package final class DownloadRecord {
         set { rawStatus = newValue.rawValue }
     }
 
+    package static var unfinishedDownloads: FetchDescriptor<DownloadRecord> {
+        let completed = DownloadStatus.completed.rawValue
+        return FetchDescriptor(
+            predicate: #Predicate { $0.rawStatus != completed },
+            sortBy: [SortDescriptor(\.createdAt)]
+        )
+    }
+
+    package static var completedDownloads: FetchDescriptor<DownloadRecord> {
+        let completed = DownloadStatus.completed.rawValue
+        return FetchDescriptor(
+            predicate: #Predicate { $0.rawStatus == completed },
+            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+        )
+    }
+
     package init(
         sourceID: String,
         comicID: String,

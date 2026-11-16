@@ -23,6 +23,7 @@ struct ComicDetailView: View {
     @State private var model: ComicDetailModel
     @State private var reader: ComicChapter?
     @State private var editingLocalTags = false
+    @State private var showingDownloadConfirmation = false
     @State private var metadataDestination: MetadataDestination?
 
     private struct MetadataDestination: Hashable {
@@ -161,11 +162,10 @@ struct ComicDetailView: View {
                     Button(L10n.text("Text.Retry"), systemImage: "arrow.clockwise", action: model.retry)
                 }
                 Button {
-                    model.enqueueComic(plugin: inputs.plugin, context: context, downloads: downloads)
+                    model.toggleFavorite(context: context)
                 } label: {
-                    Label(state.preparingDownload ? L10n.text("DownloadStatus.Preparing") : L10n.text("ComicDetail.DownloadComic"), systemImage: "arrow.down.circle")
+                    Label(state.favorite ? L10n.text("Text.Bookmarked") : L10n.text("Text.Bookmark"), systemImage: state.favorite ? "bookmark.fill" : "bookmark")
                 }
-                .disabled(!state.allowsDownload || state.chapters.isEmpty || state.preparingDownload)
 
                 Button {
                     model.setFollowing(!isFollowing, following: following)
@@ -176,10 +176,11 @@ struct ComicDetailView: View {
                 .disabled(state.changingFollow)
 
                 Button {
-                    model.toggleFavorite(context: context)
+                    showingDownloadConfirmation = true
                 } label: {
-                    Label(state.favorite ? L10n.text("Text.Bookmarked") : L10n.text("Text.Bookmark"), systemImage: state.favorite ? "bookmark.fill" : "bookmark")
+                    Label(state.preparingDownload ? L10n.text("DownloadStatus.Preparing") : L10n.text("ComicDetail.DownloadComic"), systemImage: "arrow.down.circle")
                 }
+                .disabled(!state.allowsDownload || state.chapters.isEmpty || state.preparingDownload)
             }
             ToolbarItem(placement: readingButtonPlacement) {
                 Button {
@@ -201,6 +202,12 @@ struct ComicDetailView: View {
         .task(id: request) {
             guard request != nil else { return }
             await model.loadDetail(inputs: inputs, context: context, following: following)
+        }
+        .alert(L10n.text("ComicDetail.DownloadComicConfirmation"), isPresented: $showingDownloadConfirmation) {
+            Button(L10n.text("ComicDetail.DownloadComic")) {
+                model.enqueueComic(plugin: inputs.plugin, context: context, downloads: downloads)
+            }
+            Button(L10n.text("Text.Cancel"), role: .cancel) {}
         }
         .alert(L10n.text("Following.NotificationsDisabled"), isPresented: $state.showsNotificationSettings) {
             Button(L10n.text("Following.OpenNotificationSettings")) {
