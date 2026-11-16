@@ -51,19 +51,25 @@ struct DiscoverCartView: View {
 struct DiscoverCartToolbarButton: View {
     @Environment(DiscoverCartModel.self) private var cart
     @Environment(\.hiddenNSFWSources) private var hiddenSources
+    @ScaledMetric(relativeTo: .caption2) private var badgeDiameter: CGFloat = 20
     let action: () -> Void
 
     var body: some View {
         let count = cart.items.count { !hiddenSources.contains($0.sourceID) }
         Button(action: action) {
-            VStack(spacing: 1) {
-                Image(systemName: "cart")
-                if count > 0 {
+            Image(systemName: "cart")
+                .overlay {
                     Text(count, format: .number)
                         .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .frame(minWidth: badgeDiameter)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .frame(height: badgeDiameter)
+                        .background(.tint, in: .capsule)
+                        .opacity(count > 0 ? 1 : 0)
+                        .offset(x: 12, y: -12)
                 }
-            }
         }
         .accessibilityLabel(L10n.text("DiscoverCart.Title"))
         .accessibilityValue(count > 0 ? count.formatted() : "")
