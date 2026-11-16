@@ -193,6 +193,7 @@ private struct ReaderPages: View {
     let toggleControls: () -> Void
 
     @State private var position: Int?
+    @State private var widePages: Set<Int> = []
 
     init(urls: [URL], mode: ReaderMode, layout: ReaderLayout, pageIndex: Binding<Int>, toggleControls: @escaping () -> Void) {
         self.urls = urls
@@ -200,7 +201,7 @@ private struct ReaderPages: View {
         self.layout = layout
         _pageIndex = pageIndex
         self.toggleControls = toggleControls
-        _position = State(initialValue: layout.anchor(for: pageIndex.wrappedValue))
+        _position = State(initialValue: layout.pagination(pageCount: urls.count).anchor(for: pageIndex.wrappedValue))
     }
 
     private struct LayoutID: Hashable {
@@ -212,7 +213,9 @@ private struct ReaderPages: View {
     }
 
     var body: some View {
-        let groups = layout.starts(pageCount: urls.count, reversed: mode == .rightToLeft)
+        let pagination = layout.pagination(pageCount: urls.count, widePages: widePages)
+        let reversed = mode == .rightToLeft
+        let groups = pagination.starts(reversed: reversed)
         let layoutID = LayoutID(mode: mode, spread: layout.usesSpread, spreadOffset: layout.usesSpreadOffset,
                                 width: viewport.width, height: viewport.height)
         Group {
@@ -230,12 +233,12 @@ private struct ReaderPages: View {
                 .contentMargins(.all, 0, for: .scrollContent)
                 .scrollPosition(id: $position, anchor: .top)
                 .scrollIndicators(.hidden)
-                .onScrollPhaseChange { _, phase in if phase == .idle { commitPosition() } }
+                .onScrollPhaseChange { _, phase in if phase == .idle { commitPosition(in: pagination) } }
             } else {
                 ScrollView(.horizontal) {
                     LazyHStack(spacing: 0) {
                         ForEach(groups, id: \.self) { start in
-                            let indices = layout.slots(start: start, reversed: mode == .rightToLeft)
+                            let indices = pagination.slots(start: start, reversed: reversed)
                             let slotSize = CGSize(width: viewport.width / CGFloat(indices.count), height: viewport.height)
                             let hasTwoPages = indices.count == 2 && start + 1 < urls.count
                             HStack(spacing: 0) {
@@ -247,6 +250,8 @@ private struct ReaderPages: View {
                                             viewport: slotSize,
                                             vertical: false,
                                             imageAlignment: hasTwoPages ? innerEdge : .center,
+                                            isSpreadSlot: indices.count == 2,
+                                            onWideImage: { widePages.insert(index) },
                                             toggleControls: toggleControls
                                         )
                                     } else {
@@ -268,31 +273,38 @@ private struct ReaderPages: View {
                 .scrollTargetBehavior(.viewAligned(limitBehavior: .alwaysByOne))
                 .scrollPosition(id: $position, anchor: .center)
                 .scrollIndicators(.hidden)
-                .onScrollPhaseChange { _, phase in if phase == .idle { commitPosition() } }
+                .onScrollPhaseChange { _, phase in if phase == .idle { commitPosition(in: pagination) } }
                 .id(layoutID)
             }
         }
         .background {
             // Include the visible group so its in-flight requests survive the turn.
-            let indices = layout.prefetchIndices(from: position ?? pageIndex, pageCount: urls.count)
+            let indices = pagination.prefetchIndices(from: position ?? pageIndex)
             ZStack {
                 ForEach(indices, id: \.self) { index in
-                    Color.clear.task {
-                        await ReaderModel.prefetchPage(urls[index])
+                    Color.clear.task(id: layout.usesSpread) {
+                        let isWide = await ReaderModel.prefetchPage(urls[index], checkAspectRatio: layout.usesSpread)
+                        if isWide && !Task.isCancelled { widePages.insert(index) }
                     }
                 }
             }
             .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
-        .onChange(of: pageIndex) { _, index in position = layout.anchor(for: index) }
-        .onChange(of: layoutID) { _, _ in position = layout.anchor(for: pageIndex) }
+        .onChange(of: pageIndex) { _, index in position = pagination.anchor(for: index) }
+        .onChange(of: layoutID) { _, _ in position = pagination.anchor(for: pageIndex) }
+        .onChange(of: pagination) { previous, current in
+            let visible = position ?? previous.anchor(for: pageIndex)
+            let page = previous.anchor(for: pageIndex) == visible ? pageIndex : visible
+            let anchor = current.anchor(for: page)
+            if position != anchor { position = anchor }
+        }
     }
 
-    private func commitPosition() {
+    private func commitPosition(in pagination: ReaderLayout.Pagination) {
         guard let position, urls.indices.contains(position),
-              position == layout.anchor(for: position),
-              position != layout.anchor(for: pageIndex) else { return }
+              position == pagination.anchor(for: position),
+              position != pagination.anchor(for: pageIndex) else { return }
         pageIndex = position
     }
 }
@@ -302,6 +314,8 @@ private struct ReaderPage: View {
     let viewport: CGSize
     let vertical: Bool
     var imageAlignment: Alignment = .center
+    var isSpreadSlot = false
+    var onWideImage: () -> Void = {}
     let toggleControls: () -> Void
     @State private var scale: CGFloat = 1
     @State private var offset = CGSize.zero
@@ -310,18 +324,26 @@ private struct ReaderPage: View {
 
     var body: some View {
         CachedImage(url: url) { image in
+            let isWide = ReaderLayout.isWideImage(image.size)
             let fittedImage = Image(uiImage: image).resizable().scaledToFit()
                 .frame(width: viewport.width, height: vertical ? nil : viewport.height, alignment: imageAlignment)
-            if imageAlignment != .center && ReaderLayout.isNarrowImage(image.size, in: viewport) {
-                fittedImage.allowsHitTesting(false)
-            } else {
-                fittedImage
-                    .scaleEffect(renderedScale)
-                    .offset(clampedOffset(x: offset.width + drag.width, y: offset.height + drag.height,
-                                          scale: renderedScale))
-                    .clipped()
-                    .overlay { pageInteraction }
-                    .accessibilityAction(named: Text(L10n.text("Reader.ToggleControlsAccessibilityAction")), toggleControls)
+            Group {
+                if isSpreadSlot && isWide {
+                    Color.clear.frame(width: viewport.width, height: viewport.height)
+                } else if imageAlignment != .center && ReaderLayout.isNarrowImage(image.size, in: viewport) {
+                    fittedImage.allowsHitTesting(false)
+                } else {
+                    fittedImage
+                        .scaleEffect(renderedScale)
+                        .offset(clampedOffset(x: offset.width + drag.width, y: offset.height + drag.height,
+                                              scale: renderedScale))
+                        .clipped()
+                        .overlay { pageInteraction }
+                        .accessibilityAction(named: Text(L10n.text("Reader.ToggleControlsAccessibilityAction")), toggleControls)
+                }
+            }
+            .onChange(of: isWide, initial: true) { _, isWide in
+                if isWide { onWideImage() }
             }
         } placeholder: { error in
             VStack(spacing: 10) {

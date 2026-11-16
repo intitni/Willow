@@ -1,8 +1,10 @@
 import BreezePlugins
+import CorePresentation
 import CoreStorage
 import Foundation
 import Observation
 import SwiftData
+import UIKit
 
 @MainActor
 @Observable
@@ -77,9 +79,12 @@ final class ReaderModel {
         saveProgress(context: context)
     }
 
-    static func prefetchPage(_ url: URL) async {
-        guard !url.isFileURL else { return }
-        _ = try? await ImageCache.shared.data(for: url, priority: .prefetch)
+    @concurrent
+    nonisolated static func prefetchPage(_ url: URL, checkAspectRatio: Bool) async -> Bool {
+        guard checkAspectRatio || !url.isFileURL,
+              let data = try? await ImageCache.shared.data(for: url, priority: .prefetch),
+              checkAspectRatio, !Task.isCancelled, let image = UIImage(data: data) else { return false }
+        return ReaderLayout.isWideImage(image.size)
     }
 
     func loadChapter(request: Request, plugins: [PluginRecord], context: ModelContext,
