@@ -312,9 +312,12 @@ struct SyncTestFolder {
 
     @MainActor
     func worker(container: ModelContainer, files: PluginSyncFiles? = nil,
+                readDriveRecord: (@Sendable (URL) throws -> Data?)? = nil,
+                didImportFollowing: @escaping @Sendable () async -> Void = {},
                 unloadPlugin: @escaping @Sendable (String) async throws -> Void = { _ in }) -> PreferenceSyncModel {
         PreferenceSyncModel(container: container, drive: .success(directory),
                             files: files ?? PluginSyncFiles(directory: directory.root.appending(path: "plugins")),
-                            driveKey: { [keyData] _ in keyData }, unloadPlugin: unloadPlugin)
+                            driveKey: { [keyData] _ in keyData }, readDriveRecord: readDriveRecord,
+                            didImportFollowing: didImportFollowing, unloadPlugin: unloadPlugin)
     }
 }

@@ -10,6 +10,7 @@ final class SyncSettingsModel {
     private static let folderKey = "sync.driveFolder"
 
     private let container: ModelContainer
+    private let didImportFollowing: @Sendable () async -> Void
     private let setup = DriveSyncSetup()
 
     private(set) var selection: WillowSyncMethod
@@ -22,14 +23,15 @@ final class SyncSettingsModel {
 
     var error: String? { worker?.viewModel.error }
 
-    init(container: ModelContainer) {
+    init(container: ModelContainer, didImportFollowing: @escaping @Sendable () async -> Void) {
         self.container = container
+        self.didImportFollowing = didImportFollowing
         selection = UserDefaults.standard.string(forKey: Self.methodKey).flatMap(WillowSyncMethod.init(rawValue:)) ?? .none
         folder = UserDefaults.standard.data(forKey: Self.folderKey).flatMap { try? JSONDecoder().decode(DriveSyncFolder.self, from: $0) }
         activeMethod = .none
         if selection == .drive, let folder {
             activeMethod = .drive
-            worker = PreferenceSyncModel(container: container, folder: folder)
+            worker = PreferenceSyncModel(container: container, folder: folder, didImportFollowing: didImportFollowing)
         }
     }
 
@@ -85,7 +87,7 @@ final class SyncSettingsModel {
         worker = nil
         activeMethod = .none
         if method == .drive, let folder {
-            worker = PreferenceSyncModel(container: container, folder: folder)
+            worker = PreferenceSyncModel(container: container, folder: folder, didImportFollowing: didImportFollowing)
             activeMethod = .drive
         }
         events = PreferenceSyncEvents()

@@ -3,6 +3,7 @@ import SwiftUI
 
 @main
 struct WillowApp: App {
+    @UIApplicationDelegateAdaptor(WillowNotificationDelegate.self) private var notificationDelegate
     @Environment(\.scenePhase) private var scenePhase
     @State private var model = CoreAppModel()
 
@@ -13,7 +14,7 @@ struct WillowApp: App {
         .backgroundTask(.appRefresh(CoreAppModel.preferenceRefreshIdentifier)) {
             await model.refreshPreferencesInBackground()
         }
-        .onChange(of: scenePhase) { _, phase in
+        .onChange(of: scenePhase, initial: true) { _, phase in
             model.scenePhaseChanged(phase)
         }
     }

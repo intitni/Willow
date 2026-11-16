@@ -43,6 +43,8 @@ final class ComicDetailViewModel {
     fileprivate(set) var pendingDownloads = Set<String>()
     fileprivate(set) var preparingDownload = false
     fileprivate(set) var favorite = false
+    fileprivate(set) var changingFollow = false
+    var showsNotificationSettings = false
     fileprivate(set) var activeChapterID: String?
     fileprivate(set) var downloadStatuses: [String: DownloadStatus] = [:]
     fileprivate(set) var chapterDownloads: [String: ChapterDownloadPresentation] = [:]
@@ -134,6 +136,8 @@ final class ComicDetailModel {
     let sourceID: String
     let viewModel: ComicDetailViewModel
     private var operation = UUID()
+    private var loadedChapterIDs: [String]?
+    private var comicKey: String { ComicRecord.identifier(sourceID: sourceID, comicID: viewModel.summary.id) }
 
     init(sourceID: String, summary: ComicSummary) {
         self.sourceID = sourceID
@@ -168,11 +172,18 @@ final class ComicDetailModel {
         viewModel.showsReversed.toggle()
     }
 
-    func loadDetail(inputs: Inputs, context: ModelContext, refreshing: Bool = false) async {
+    func loadDetail(inputs: Inputs, context: ModelContext, following: ComicFollowingModel, refreshing: Bool = false) async {
         let current = UUID()
         operation = current
         viewModel.loadError = nil
         updatePresentation(inputs)
+        var followRevision: UUID?
+        do {
+            followRevision = try await following.opened(comicKey)
+        } catch {
+            if !Task.isCancelled { viewModel.actionError = error.localizedDescription }
+        }
+        guard !Task.isCancelled, operation == current else { return }
         guard let plugin = inputs.plugin else {
             viewModel.loadError = L10n.text("ComicDetail.SourceUnavailable")
             return
@@ -181,13 +192,34 @@ final class ComicDetailModel {
             let detail = try await PluginService.shared.detail(plugin: plugin, comicID: viewModel.summary.id)
             guard !Task.isCancelled, operation == current else { return }
             viewModel.detail = detail
+            loadedChapterIDs = detail.chapters.map(\.id)
             if refreshing { viewModel.coverRefreshID += 1 }
             if let record = inputs.record {
                 update(record, from: detail)
                 try context.save()
             }
+            do {
+                try await following.observedInDetail(detail.chapters, id: comicKey, revision: followRevision)
+            } catch {
+                if !Task.isCancelled, operation == current { viewModel.actionError = error.localizedDescription }
+            }
         } catch {
             if !Task.isCancelled, operation == current { viewModel.loadError = error.localizedDescription }
+        }
+    }
+
+    func setFollowing(_ enabled: Bool, following: ComicFollowingModel) {
+        guard !viewModel.changingFollow else { return }
+        viewModel.changingFollow = true
+        Task {
+            defer { viewModel.changingFollow = false }
+            do {
+                let authorized = try await following.setFollowing(enabled, sourceID: sourceID, comicID: viewModel.summary.id,
+                                                                   comic: viewModel.comic, chapterIDs: loadedChapterIDs)
+                viewModel.showsNotificationSettings = !authorized
+            } catch {
+                viewModel.actionError = error.localizedDescription
+            }
         }
     }
 

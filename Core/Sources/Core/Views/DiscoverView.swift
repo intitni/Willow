@@ -239,12 +239,19 @@ private struct DiscoverResults: View {
 }
 
 struct DiscoverComicTile: View {
+    @Environment(\.unreadFollowedComics) private var unreadFollowedComics
     let comic: ComicSummary
     let sourceID: String
 
     var body: some View {
+        let comicKey = ComicRecord.identifier(sourceID: sourceID, comicID: comic.id)
         VStack(alignment: .leading, spacing: 6) {
-            ComicCover(url: comic.coverURL, cachePolicy: .comicCover(id: ComicRecord.identifier(sourceID: sourceID, comicID: comic.id)))
+            ComicCover(url: comic.coverURL, cachePolicy: .comicCover(id: comicKey))
+                .overlay(alignment: .topTrailing) {
+                    if unreadFollowedComics.contains(comicKey) {
+                        UnreadComicUpdateDot().padding(6)
+                    }
+                }
             Text(comic.title)
                 .font(.subheadline.weight(.medium))
                 .lineLimit(2, reservesSpace: true)
