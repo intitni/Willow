@@ -1,13 +1,16 @@
 import BreezePlugins
+import CoreStorage
+import SwiftData
 import SwiftUI
 
 struct DiscoverCartView: View {
     @Environment(DiscoverCartModel.self) private var cart
     @Environment(\.hiddenNSFWSources) private var hiddenSources
-    let sourceNames: [String: String]
+    @Query(filter: #Predicate<PluginRecord> { $0.enabled }) private var plugins: [PluginRecord]
 
     var body: some View {
         let items = cart.items.filter { !hiddenSources.contains($0.sourceID) }
+        let sourceNames = Dictionary(uniqueKeysWithValues: plugins.map { ($0.uuid, $0.name) })
         Group {
             if items.isEmpty {
                 ContentUnavailableView(
@@ -73,6 +76,28 @@ struct DiscoverCartToolbarButton: View {
         }
         .accessibilityLabel(L10n.text("DiscoverCart.Title"))
         .accessibilityValue(count > 0 ? count.formatted() : "")
+    }
+}
+
+struct DiscoverCartToolbar: ViewModifier {
+    @Environment(DiscoverCartModel.self) private var cart: DiscoverCartModel?
+    @State private var showsCart = false
+    var isEnabled = true
+
+    func body(content: Content) -> some View {
+        if isEnabled, cart != nil {
+            content
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        DiscoverCartToolbarButton { showsCart = true }
+                    }
+                }
+                .navigationDestination(isPresented: $showsCart) {
+                    DiscoverCartView()
+                }
+        } else {
+            content
+        }
     }
 }
 

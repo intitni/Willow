@@ -130,7 +130,7 @@ struct DiscoverView: View {
         .navigationDestination(item: $destination) { destination in
             switch destination {
             case .cart:
-                DiscoverCartView(sourceNames: Dictionary(uniqueKeysWithValues: plugins.map { ($0.uuid, $0.name) }))
+                DiscoverCartView()
             case .favorites(let plugin):
                 PluginCloudHomeView(plugin: plugin)
             case .advancedSearch(let plugin, let keyword):

@@ -93,6 +93,7 @@ struct PluginHomePageView: View {
                     .disabled(state.loading)
             }
         }
+        .modifier(DiscoverCartToolbar(isEnabled: !embedded))
         .sheet(isPresented: $showingFilters) {
             FavoriteFiltersSheet(fields: state.fields, values: state.values) { values in
                 showingFilters = false
@@ -196,6 +197,7 @@ struct PluginCloudHomeView: View {
             }
         }
         .navigationTitle(L10n.text("CloudFavorites.TitleWithSource", defaultValue: "云端收藏 · \(plugin.name)"))
+        .modifier(DiscoverCartToolbar())
         .task { if !state.loaded { await model.load(plugin: plugin) } }
     }
 }

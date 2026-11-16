@@ -129,6 +129,7 @@ struct PluginAdvancedSearchView: View {
             }
         }
         .navigationTitle(L10n.text("AdvancedSearch.Title"))
+        .modifier(DiscoverCartToolbar())
         .task { if !state.loaded { await model.load() } }
     }
 }
