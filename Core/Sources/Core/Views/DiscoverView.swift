@@ -15,6 +15,7 @@ struct DiscoverView: View {
     @State private var destination: Destination?
 
     private enum Destination: Hashable {
+        case cart
         case favorites(PluginRecord)
         case advancedSearch(PluginRecord, String)
         case action(PluginRecord, String, JSONValue)
@@ -77,54 +78,59 @@ struct DiscoverView: View {
         }
         .onChange(of: plugin?.uuid) { selectedHomeTabID = nil }
         .toolbar {
-            if let plugin {
-                Menu {
-                    Picker(L10n.text("Text.Sources"), selection: Binding(
-                        get: { self.plugin?.uuid ?? "" },
-                        set: model.selectPlugin
-                    )) {
-                        ForEach(plugins, id: \.uuid) { Text($0.name).tag($0.uuid) }
-                    }
-                    if plugin.supportsCloudFavorites {
-                        Button(L10n.text("CloudFavorites.OpenSourceFavorites"), systemImage: "bookmark") {
-                            destination = .favorites(plugin)
-                        }
-                    }
-                    Button(L10n.text("AdvancedSearch.Title"), systemImage: "line.3.horizontal.decrease") {
-                        destination = .advancedSearch(plugin, search)
-                    }
-                    Button(L10n.text("Discover.ManagePlugins"), systemImage: "puzzlepiece.extension") {
-                        showingPlugins = true
-                    }
-                } label: {
-                    Label(plugin.name, systemImage: "puzzlepiece.extension")
-                }
-                let actions = toolbarActions(plugin: plugin, homeTab: homeTab)
-                let canSwitchPages = homeTabs.count > 1
-                if !actions.isEmpty || canSwitchPages {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                DiscoverCartToolbarButton { destination = .cart }
+                if let plugin {
                     Menu {
-                        if canSwitchPages, let homeTab {
-                            Picker(L10n.text("Discover.PluginPages"), selection: Binding(
-                                get: { homeTab.id },
-                                set: { selectedHomeTabID = $0 }
-                            )) {
-                                ForEach(homeTabs) { Text($0.title).tag($0.id) }
-                            }
-                            .pickerStyle(.menu)
+                        Picker(L10n.text("Text.Sources"), selection: Binding(
+                            get: { self.plugin?.uuid ?? "" },
+                            set: model.selectPlugin
+                        )) {
+                            ForEach(plugins, id: \.uuid) { Text($0.name).tag($0.uuid) }
                         }
-                        ForEach(Array(actions.enumerated()), id: \.offset) { _, item in
-                            Button(item.title) {
-                                destination = .action(plugin, item.title, item.action)
+                        if plugin.supportsCloudFavorites {
+                            Button(L10n.text("CloudFavorites.OpenSourceFavorites"), systemImage: "bookmark") {
+                                destination = .favorites(plugin)
                             }
+                        }
+                        Button(L10n.text("AdvancedSearch.Title"), systemImage: "line.3.horizontal.decrease") {
+                            destination = .advancedSearch(plugin, search)
+                        }
+                        Button(L10n.text("Discover.ManagePlugins"), systemImage: "puzzlepiece.extension") {
+                            showingPlugins = true
                         }
                     } label: {
-                        Label(L10n.text("Discover.PluginFunctions"), systemImage: "square.grid.2x2")
+                        Label(plugin.name, systemImage: "puzzlepiece.extension")
+                    }
+                    let actions = toolbarActions(plugin: plugin, homeTab: homeTab)
+                    let canSwitchPages = homeTabs.count > 1
+                    if !actions.isEmpty || canSwitchPages {
+                        Menu {
+                            if canSwitchPages, let homeTab {
+                                Picker(L10n.text("Discover.PluginPages"), selection: Binding(
+                                    get: { homeTab.id },
+                                    set: { selectedHomeTabID = $0 }
+                                )) {
+                                    ForEach(homeTabs) { Text($0.title).tag($0.id) }
+                                }
+                                .pickerStyle(.menu)
+                            }
+                            ForEach(Array(actions.enumerated()), id: \.offset) { _, item in
+                                Button(item.title) {
+                                    destination = .action(plugin, item.title, item.action)
+                                }
+                            }
+                        } label: {
+                            Label(L10n.text("Discover.PluginFunctions"), systemImage: "square.grid.2x2")
+                        }
                     }
                 }
             }
         }
         .navigationDestination(item: $destination) { destination in
             switch destination {
+            case .cart:
+                DiscoverCartView(sourceNames: Dictionary(uniqueKeysWithValues: plugins.map { ($0.uuid, $0.name) }))
             case .favorites(let plugin):
                 PluginCloudHomeView(plugin: plugin)
             case .advancedSearch(let plugin, let keyword):
@@ -234,6 +240,7 @@ private struct DiscoverResults: View {
                     DiscoverComicTile(comic: comic, sourceID: plugin.uuid)
                 }
                 .buttonStyle(.plain)
+                .modifier(DiscoverCartContextMenu(comic: comic, sourceID: plugin.uuid))
             }
         }
     }

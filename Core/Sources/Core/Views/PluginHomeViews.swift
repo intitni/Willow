@@ -148,11 +148,19 @@ private struct PluginHomeBlockView: View {
                             }
                         }
                         .buttonStyle(.bordered)
-                            .buttonBorderShape(.roundedRectangle(radius: 10))
+                        .buttonBorderShape(.roundedRectangle(radius: 10))
+                        .modifier(DiscoverCartContextMenu(comic: cartComic(for: link), sourceID: pluginID))
                     }
                 }
             }
         }
+    }
+
+    private func cartComic(for link: PluginHomeLink) -> ComicSummary? {
+        let action = link.action["action"].isNull ? link.action : link.action["action"]
+        let id = action["payload"]["comicId"].string
+        guard action["type"].string == "openComicInfo", !id.isEmpty else { return nil }
+        return ComicSummary(id: id, title: link.title, coverURL: link.coverURL, author: "", summary: "")
     }
 }
 
@@ -166,6 +174,7 @@ private struct HomeComicGrid: View {
                     DiscoverComicTile(comic: comic, sourceID: pluginID)
                 }
                 .buttonStyle(.plain)
+                .modifier(DiscoverCartContextMenu(comic: comic, sourceID: pluginID))
             }
         }
     }
