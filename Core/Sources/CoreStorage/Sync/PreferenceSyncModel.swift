@@ -21,6 +21,7 @@ package actor PreferenceSyncModel {
     private let unloadPlugin: @Sendable (String) async throws -> Void
     private let drive: Result<DriveSyncDirectory, any Error>
     private let driveKey: (@Sendable (UUID) throws -> Data)?
+    private let didImportFollowing: @Sendable () async -> Void
     private let readDriveRecord: (@Sendable (URL) throws -> Data?)?
     private(set) var isStopped = false
     private var stopWaiters: [CheckedContinuation<Void, Never>] = []
@@ -28,20 +29,24 @@ package actor PreferenceSyncModel {
     private var rerun = false
     private var waiters: [UUID: CheckedContinuation<Void, Error>] = [:]
 
-    @MainActor package init(container: ModelContainer, folder: DriveSyncFolder) {
-        self.init(container: container, drive: Result { try DriveSyncDirectory(folder: folder) })
+    @MainActor package init(container: ModelContainer, folder: DriveSyncFolder,
+                            didImportFollowing: @escaping @Sendable () async -> Void = {}) {
+        self.init(container: container, drive: Result { try DriveSyncDirectory(folder: folder) },
+                  didImportFollowing: didImportFollowing)
     }
 
     @MainActor init(container: ModelContainer, drive: Result<DriveSyncDirectory, any Error>,
                     files: PluginSyncFiles = PluginSyncFiles(),
                     driveKey: (@Sendable (UUID) throws -> Data)? = nil,
                     readDriveRecord: (@Sendable (URL) throws -> Data?)? = nil,
+                    didImportFollowing: @escaping @Sendable () async -> Void = {},
                     unloadPlugin: @escaping @Sendable (String) async throws -> Void = { try await PluginRuntime.shared.unload(id: $0) }) {
         viewModel = PreferenceSyncViewModel()
         self.container = container
         self.drive = drive
         self.driveKey = driveKey
         self.readDriveRecord = readDriveRecord
+        self.didImportFollowing = didImportFollowing
         self.files = files
         self.unloadPlugin = unloadPlugin
     }
@@ -129,7 +134,7 @@ package actor PreferenceSyncModel {
         }
         let read = try directory.readRevisions(key: encryptionKey, readRecord: readDriveRecord)
         var firstError = read.chapterError
-        let remote = Dictionary(grouping: read.revisions, by: \.key).compactMapValues { records in
+        let remote = Dictionary(grouping: read.revisions.filter { !$0.isFollowedComic }, by: \.key).compactMapValues { records in
             records.max { $0.precedes($1) }
         }
         let prefix = "drive/" + directory.id.uuidString + "/"
@@ -155,6 +160,13 @@ package actor PreferenceSyncModel {
             throw error
         } catch {
             context.rollback()
+            firstError = firstError ?? error
+        }
+        do {
+            try await reconcileFollowing(read.revisions.filter(\.isFollowedComic), directory: directory, encryptionKey: encryptionKey)
+        } catch let error as CancellationError {
+            throw error
+        } catch {
             firstError = firstError ?? error
         }
         let plugins = try context.fetch(FetchDescriptor<PluginRecord>())
@@ -284,6 +296,46 @@ package actor PreferenceSyncModel {
             }
         }
         if let firstError { throw firstError }
+    }
+
+    private func reconcileFollowing(
+        _ revisions: [SyncRevision], directory: DriveSyncDirectory, encryptionKey: DriveSyncKey
+    ) async throws {
+        var remote: [String: FollowedComicSnapshot] = [:]
+        for revision in revisions {
+            try checkActive()
+            guard let data = revision.payload,
+                  case .followedComic(let value) = try JSONDecoder().decode(PreferencePayload.self, from: data),
+                  value.updatedAt == revision.modifiedAt, value.revision.uuidString == revision.revision,
+                  value.followingChangedAt <= value.updatedAt, value.isFollowing != revision.deleted else {
+                throw URLError(.cannotParseResponse)
+            }
+            if remote[value.id].map({ $0.version < value.version }) ?? true {
+                remote[value.id] = value
+            }
+        }
+
+        let store = FollowedComicStore.shared
+        let records = try await store.records(in: container, followingOnly: false)
+        let local = Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) })
+        let ids = Set(local.keys).union(remote.keys)
+        var imports: [FollowedComicSnapshot] = []
+        for id in ids.sorted() {
+            try checkActive()
+            if let cloud = remote[id], local[id].map({ $0.version <= cloud.version }) ?? true {
+                if local[id]?.revision != cloud.revision { imports.append(cloud) }
+            } else if let value = local[id] {
+                let payload = PreferencePayload.followedComic(value)
+                let revision = SyncRevision(revision: value.revision.uuidString, key: payload.key,
+                                            payload: try payload.encoded(), modifiedAt: value.updatedAt,
+                                            deleted: !value.isFollowing)
+                try directory.publish(revision, asset: nil, key: encryptionKey)
+            }
+        }
+        try checkActive()
+        if !imports.isEmpty, try await store.merge(imports, in: container) {
+            await didImportFollowing()
+        }
     }
 
     private func reconcilePluginRatings(
@@ -515,7 +567,7 @@ package actor PreferenceSyncModel {
             for record in try comicRecords(comic, deleted: deleted, context: context) {
                 record.isFavorite = !deleted
             }
-        case .reading, .readChapter, .pluginRating:
+        case .reading, .readChapter, .pluginRating, .followedComic:
             throw URLError(.cannotParseResponse)
         case .subscription(let value):
             let url = value.url

@@ -61,13 +61,17 @@ struct SyncRevision: Codable, Sendable {
     var isReadChapter: Bool { key.hasPrefix(PreferencePayload.ReadChapter.keyPrefix) }
     var isPluginRating: Bool { key.hasPrefix(PreferencePayload.PluginRating.keyPrefix) }
 
+    var isFollowedComic: Bool { key.hasPrefix(PreferencePayload.followedComicKeyPrefix) }
+
     // Older Drive clients only read .record files and reject unknown payloads.
     static let chapterFileExtension = "chapter"
     static let pluginRatingFileExtension = "rating"
+    static let followedComicFileExtension = "follow"
     var filename: String {
         let fileExtension: String
         if isReadChapter { fileExtension = Self.chapterFileExtension }
         else if isPluginRating { fileExtension = Self.pluginRatingFileExtension }
+        else if isFollowedComic { fileExtension = Self.followedComicFileExtension }
         else { fileExtension = "record" }
         return revision + "." + fileExtension
     }
@@ -178,7 +182,9 @@ struct DriveSyncDirectory: Sendable {
             for url in entries {
                 try Task.checkCancellation()
                 let isChapterFile = url.pathExtension == SyncRevision.chapterFileExtension
-                guard url.pathExtension == "record" || isChapterFile || url.pathExtension == SyncRevision.pluginRatingFileExtension,
+                guard url.pathExtension == "record" || isChapterFile
+                        || url.pathExtension == SyncRevision.pluginRatingFileExtension
+                        || url.pathExtension == SyncRevision.followedComicFileExtension,
                       UUID(uuidString: url.deletingPathExtension().lastPathComponent) != nil else { continue }
                 do {
                     let bytes = if let readRecord {

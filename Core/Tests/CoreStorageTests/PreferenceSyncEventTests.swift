@@ -96,6 +96,11 @@ struct PreferenceSyncEventTests {
         try await waitUntil {
             try drive.revisions().count == 1
         }
+        let follow = FollowedComicSnapshot(sourceID: "test", comicID: "comic", title: "Comic",
+                                           coverURL: "", author: "", summary: "")
+        try await FollowedComicStore.shared.setFollowing(follow, in: container)
+        try await waitUntil { try drive.revisions().contains { $0.isFollowedComic } }
+
         second.cancel()
         await second.value
         let stopped = sync.viewModel.lastReconciledAt
@@ -104,13 +109,13 @@ struct PreferenceSyncEventTests {
         events.request()
         try await Task.sleep(for: .milliseconds(80))
         #expect(sync.viewModel.lastReconciledAt == stopped)
-        #expect(try drive.revisions().count == 1)
+        #expect(try drive.revisions().count == 2)
 
         // Reopening after all windows close starts a fresh observer and catches up.
         let reopened = Task { await events.run(context: context, sync: sync) }
         defer { reopened.cancel() }
         try await waitUntil {
-            try drive.revisions().count == 2
+            try drive.revisions().count == 3
         }
         reopened.cancel()
         await reopened.value

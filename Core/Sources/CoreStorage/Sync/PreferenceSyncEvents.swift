@@ -12,7 +12,7 @@ package final class PreferenceSyncEvents {
     private var clients: [UUID: CheckedContinuation<Void, Never>] = [:]
     private var worker: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
-    private var chapterObserver: NSObjectProtocol?
+    private var storageObservers: [NSObjectProtocol] = []
     private var notificationCenter: NotificationCenter?
     private var drivePresenter: DriveSyncPresenter?
 
@@ -44,9 +44,11 @@ package final class PreferenceSyncEvents {
         observers = [center.addObserver(forName: ModelContext.didSave, object: context, queue: nil) { notification in
             if Self.containsPreferenceChanges(notification) { continuation.yield(()) }
         }]
-        chapterObserver = NotificationCenter.default.addObserver(
-            forName: ReadChapterStore.didRecordOpen, object: context.container, queue: nil
-        ) { _ in continuation.yield(()) }
+        storageObservers = [ReadChapterStore.didRecordOpen, FollowedComicStore.didEdit].map { name in
+            NotificationCenter.default.addObserver(forName: name, object: context.container, queue: nil) { _ in
+                continuation.yield(())
+            }
+        }
         if observesDirectory, let directory = sync.directory {
             let presenter = DriveSyncPresenter(directory: directory) { continuation.yield(()) }
             drivePresenter = presenter
@@ -84,8 +86,8 @@ package final class PreferenceSyncEvents {
             let previousWorker = worker
             worker = nil
             if let notificationCenter { observers.forEach(notificationCenter.removeObserver) }
-            if let chapterObserver { NotificationCenter.default.removeObserver(chapterObserver) }
-            chapterObserver = nil
+            storageObservers.forEach(NotificationCenter.default.removeObserver)
+            storageObservers.removeAll()
             observers.removeAll()
             notificationCenter = nil
             drivePresenter?.stop()

@@ -3,16 +3,22 @@ import BreezeRuntime
 import CoreStorage
 import SwiftData
 import SwiftUI
+import UIKit
 
 struct ComicDetailView: View {
     @Environment(\.hiddenNSFWSources) private var hiddenSources
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.modelContext) private var context
+    @Environment(\.openURL) private var openURL
+    @Environment(AppLock.self) private var appLock
+    @Environment(ContentPrivacy.self) private var privacy
+    @Environment(ComicFollowingModel.self) private var following
     @Environment(DownloadManager.self) private var downloads
     @Query private var records: [ComicRecord]
     @Query private var plugins: [PluginRecord]
     @Query private var downloadRecords: [DownloadRecord]
+    @Query private var followRecords: [FollowedComicRecord]
     @Query private var readChapters: [ReadChapterRecord]
     @State private var model: ComicDetailModel
     @State private var reader: ComicChapter?
@@ -35,6 +41,7 @@ struct ComicDetailView: View {
         _downloadRecords = Query(filter: #Predicate<DownloadRecord> {
             $0.sourceID == sourceID && $0.comicID == comicID
         })
+        _followRecords = Query(filter: #Predicate<FollowedComicRecord> { $0.id == comicKey && $0.isFollowing })
         _readChapters = Query(filter: #Predicate<ReadChapterRecord> { $0.comicKey == comicKey })
     }
 
@@ -61,7 +68,9 @@ struct ComicDetailView: View {
         @Bindable var state = model.viewModel
         let inputs = ComicDetailModel.Inputs(records: records, plugins: plugins, downloads: downloadRecords,
                                             readChapters: readChapters)
-        let request = model.request(for: inputs)
+        let canRead = !appLock.isLocked && !privacy.requiresNSFWUnlock
+        let request = canRead ? model.request(for: inputs) : nil
+        let isFollowing = !followRecords.isEmpty
         HStack(alignment: .top, spacing: 0) {
             if horizontalSizeClass == .regular {
                 ScrollView {
@@ -159,6 +168,14 @@ struct ComicDetailView: View {
                 .disabled(!state.allowsDownload || state.chapters.isEmpty || state.preparingDownload)
 
                 Button {
+                    model.setFollowing(!isFollowing, following: following)
+                } label: {
+                    Label(L10n.text(isFollowing ? "Following.Unfollow" : "Following.Follow"),
+                          systemImage: isFollowing ? "bell.fill" : "bell")
+                }
+                .disabled(state.changingFollow)
+
+                Button {
                     model.toggleFavorite(context: context)
                 } label: {
                     Label(state.favorite ? L10n.text("Text.Bookmarked") : L10n.text("Text.Bookmark"), systemImage: state.favorite ? "bookmark.fill" : "bookmark")
@@ -177,8 +194,22 @@ struct ComicDetailView: View {
         .navigationTitle(L10n.text("ComicDetail.Title"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: inputs, initial: true) { _, inputs in model.updatePresentation(inputs) }
-        .refreshable { await model.loadDetail(inputs: inputs, context: context, refreshing: true) }
-        .task(id: request) { await model.loadDetail(inputs: inputs, context: context) }
+        .refreshable {
+            guard canRead else { return }
+            await model.loadDetail(inputs: inputs, context: context, following: following, refreshing: true)
+        }
+        .task(id: request) {
+            guard request != nil else { return }
+            await model.loadDetail(inputs: inputs, context: context, following: following)
+        }
+        .alert(L10n.text("Following.NotificationsDisabled"), isPresented: $state.showsNotificationSettings) {
+            Button(L10n.text("Following.OpenNotificationSettings")) {
+                if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+            }
+            Button(L10n.text("Text.Cancel"), role: .cancel) {}
+        } message: {
+            Text(L10n.text("Following.NotificationsDisabledDescription"))
+        }
         .sheet(isPresented: $editingLocalTags) {
             LocalTagEditor(comicKey: ComicRecord.identifier(sourceID: model.sourceID, comicID: state.summary.id))
                 .modifier(AppLockShield())
