@@ -81,6 +81,15 @@ final class SyncSettingsModel {
         return try await setup.recoveryKey(for: folder)
     }
 
+    func restoreRecoveryKey(_ key: String, for folder: DriveSyncFolder) async throws {
+        guard !isSwitching else { throw CancellationError() }
+        guard selection == .drive, self.folder == folder else { throw DriveSyncError.directoryChanged }
+        isSwitching = true
+        defer { isSwitching = false }
+        try await setup.restoreRecoveryKey(key, for: folder)
+        events.request()
+    }
+
     private func changeSelection(_ method: WillowSyncMethod) async {
         // Background refresh and other windows may still hold the old worker.
         await worker?.stop()

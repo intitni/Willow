@@ -154,8 +154,7 @@ package actor DriveSyncSetup {
         let directory = DriveSyncDirectory(root: url, securityScoped: true)
         let id: UUID
         if let recoveryKey {
-            guard let bytes = Data(base64Encoded: recoveryKey.trimmingCharacters(in: .whitespacesAndNewlines)),
-                  bytes.count == 32 else { throw DriveSyncError.invalidKey }
+            let bytes = try decodeRecoveryKey(recoveryKey)
             guard let marker = try directory.marker() else { throw DriveSyncError.missingDirectory }
             try DriveSyncKeychain.saveVerified(bytes, id: marker.id, verify: marker.verify)
             id = marker.id
@@ -172,5 +171,18 @@ package actor DriveSyncSetup {
     package func recoveryKey(for folder: DriveSyncFolder) throws -> String {
         let directory = try DriveSyncDirectory(folder: folder)
         return try directory.recoveryKey().base64EncodedString()
+    }
+
+    package func restoreRecoveryKey(_ recoveryKey: String, for folder: DriveSyncFolder) throws {
+        let bytes = try decodeRecoveryKey(recoveryKey)
+        let marker = try DriveSyncDirectory(folder: folder).recoveryMarker()
+        try Task.checkCancellation()
+        try DriveSyncKeychain.saveVerified(bytes, id: marker.id, verify: marker.verify)
+    }
+
+    private func decodeRecoveryKey(_ recoveryKey: String) throws -> Data {
+        guard let bytes = Data(base64Encoded: recoveryKey.trimmingCharacters(in: .whitespacesAndNewlines)),
+              bytes.count == 32 else { throw DriveSyncError.invalidKey }
+        return bytes
     }
 }

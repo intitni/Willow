@@ -4419,6 +4419,40 @@
         }
       }
     },
+    "SyncSettings.RestoreKey" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter Recovery Key"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "补填恢复密钥"
+          }
+        }
+      }
+    },
+    "SyncSettings.RestoreKeyDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the recovery key from a device that can still sync with this folder."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入能正常同步此文件夹的设备上的恢复密钥。"
+          }
+        }
+      }
+    },
     "SyncSettings.SyncNow" : {
       "extractionState" : "manual",
       "localizations" : {

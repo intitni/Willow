@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
 
-package struct DriveSyncFolder: Codable, Equatable, Sendable {
+package struct DriveSyncFolder: Codable, Equatable, Identifiable, Sendable {
     package let id: UUID
     package let name: String
     let bookmark: Data
@@ -156,15 +156,18 @@ struct DriveSyncDirectory: Sendable {
     }
 
     func recoveryKey() throws -> Data {
-        guard let marker = try marker() else { throw DriveSyncError.missingDirectory }
-        guard marker.id == id else { throw DriveSyncError.directoryChanged }
+        let marker = try recoveryMarker()
         return try DriveSyncKeychain.readVerified(id, verify: marker.verify)
     }
 
     func verify(key: DriveSyncKey) throws {
+        try recoveryMarker().verify(key)
+    }
+
+    func recoveryMarker() throws -> (id: UUID, verify: (DriveSyncKey) throws -> Void) {
         guard let marker = try marker() else { throw DriveSyncError.missingDirectory }
         guard marker.id == id else { throw DriveSyncError.directoryChanged }
-        try marker.verify(key)
+        return marker
     }
 
     func readRevisions(
