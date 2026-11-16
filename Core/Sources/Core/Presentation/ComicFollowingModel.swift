@@ -82,9 +82,8 @@ final class ComicFollowingModel {
             for record in ordered {
                 try Task.checkCancellation()
                 if let last = lastAttempted[record.id], Date.now.timeIntervalSince(last) < 15 * 60 { continue }
-                if privacy.hidesNSFWSources || privacy.requiresNSFWUnlock {
-                    if try hiddenSourceIDs().contains(record.sourceID) { continue }
-                }
+                if privacy.greenTravelEnabled, privacy.hidesNSFWSources || privacy.requiresNSFWUnlock,
+                   try isNSFWSource(record.sourceID) { continue }
                 let context = ModelContext(container)
                 let sourceID = record.sourceID
                 let descriptor = FetchDescriptor<PluginRecord>(predicate: #Predicate { $0.uuid == sourceID && $0.enabled })
@@ -142,8 +141,7 @@ final class ComicFollowingModel {
                 || settings.authorizationStatus == .ephemeral else { return }
         guard settings.alertSetting == .enabled || settings.notificationCenterSetting == .enabled else { return }
         let pending = try await store.pendingNotifications(in: container)
-        let hiddenSources = try hiddenSourceIDs()
-        for record in pending where !hiddenSources.contains(record.sourceID) {
+        for record in pending {
             try Task.checkCancellation()
             guard let chapter = record.updateChapter else { continue }
             let content = UNMutableNotificationContent()
@@ -157,6 +155,8 @@ final class ComicFollowingModel {
             let request = UNNotificationRequest(identifier: ComicUpdateNotifications.identifier(for: record.id),
                                                 content: content, trigger: nil)
             do {
+                // Recheck before each send, since delivery suspends between records.
+                if privacy.greenTravelEnabled, try isNSFWSource(record.sourceID) { continue }
                 try await center.add(request)
                 if try await !store.noteNotification(for: record.id, chapterID: chapter.id, in: container) {
                     clearNotification(for: record.id)
@@ -175,9 +175,10 @@ final class ComicFollowingModel {
         center.removeDeliveredNotifications(withIdentifiers: [identifier])
     }
 
-    private func hiddenSourceIDs() throws -> Set<String> {
-        guard privacy.greenTravelEnabled else { return [] }
-        let descriptor = FetchDescriptor<PluginContentRating>(predicate: #Predicate { $0.isNSFW })
-        return Set(try ModelContext(container).fetch(descriptor).map(\.sourceID))
+    private func isNSFWSource(_ sourceID: String) throws -> Bool {
+        let descriptor = FetchDescriptor<PluginContentRating>(predicate: #Predicate {
+            $0.sourceID == sourceID && $0.isNSFW
+        })
+        return try ModelContext(container).fetchCount(descriptor) > 0
     }
 }
