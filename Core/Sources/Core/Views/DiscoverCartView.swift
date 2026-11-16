@@ -1,13 +1,16 @@
 import BreezePlugins
+import CoreStorage
+import SwiftData
 import SwiftUI
 
 struct DiscoverCartView: View {
     @Environment(DiscoverCartModel.self) private var cart
     @Environment(\.hiddenNSFWSources) private var hiddenSources
-    let sourceNames: [String: String]
+    @Query(filter: #Predicate<PluginRecord> { $0.enabled }) private var plugins: [PluginRecord]
 
     var body: some View {
         let items = cart.items.filter { !hiddenSources.contains($0.sourceID) }
+        let sourceNames = Dictionary(uniqueKeysWithValues: plugins.map { ($0.uuid, $0.name) })
         Group {
             if items.isEmpty {
                 ContentUnavailableView(
@@ -51,22 +54,50 @@ struct DiscoverCartView: View {
 struct DiscoverCartToolbarButton: View {
     @Environment(DiscoverCartModel.self) private var cart
     @Environment(\.hiddenNSFWSources) private var hiddenSources
+    @ScaledMetric(relativeTo: .caption2) private var badgeDiameter: CGFloat = 20
     let action: () -> Void
 
     var body: some View {
         let count = cart.items.count { !hiddenSources.contains($0.sourceID) }
         Button(action: action) {
-            VStack(spacing: 1) {
-                Image(systemName: "cart")
-                if count > 0 {
+            Image(systemName: "cart")
+                .overlay {
                     Text(count, format: .number)
                         .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .frame(minWidth: badgeDiameter)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .frame(height: badgeDiameter)
+                        .background(.tint, in: .capsule)
+                        .opacity(count > 0 ? 1 : 0)
+                        .offset(x: 12, y: -12)
                 }
-            }
         }
         .accessibilityLabel(L10n.text("DiscoverCart.Title"))
         .accessibilityValue(count > 0 ? count.formatted() : "")
+    }
+}
+
+struct DiscoverCartToolbar: ViewModifier {
+    @Environment(DiscoverCartModel.self) private var cart: DiscoverCartModel?
+    @State private var showsCart = false
+    var isEnabled = true
+
+    func body(content: Content) -> some View {
+        if isEnabled, cart != nil {
+            content
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        DiscoverCartToolbarButton { showsCart = true }
+                    }
+                }
+                .navigationDestination(isPresented: $showsCart) {
+                    DiscoverCartView()
+                }
+        } else {
+            content
+        }
     }
 }
 
