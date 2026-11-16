@@ -210,20 +210,23 @@ private struct WillowTabs: View {
     @Query(filter: #Predicate<PluginContentRating> { $0.isNSFW }) private var ratings: [PluginContentRating]
     @Query(filter: #Predicate<FollowedComicRecord> { $0.isFollowing && $0.hasUnreadUpdate })
     private var unreadFollows: [FollowedComicRecord]
+    @Query(DownloadRecord.unfinishedDownloads) private var unfinishedDownloads: [DownloadRecord]
     @Environment(\.modelContext) private var context
     @State private var selectedTab: TabTitle = .shelf
     @State private var shelfPath: [NotificationDestination] = []
     @State private var authenticationError: String?
     @State private var authenticationTask: Task<Void, Never>?
+    @State private var showingDownloadTasks = false
     let updates: UpdateModel
 
     var body: some View {
         @Bindable var notices = PluginNoticeModel.shared.viewModel
         let updateBadge = updates.isUpdateAvailable == true ? Text(verbatim: "") : nil
         let hiddenSources = privacy.hidesNSFWSources ? Set(ratings.map(\.sourceID)) : []
+        let pendingDownloads = unfinishedDownloads.filter { !hiddenSources.contains($0.sourceID) }
         let pendingComic = scenePhase == .active && !appLock.isLocked && !privacy.requiresNSFWUnlock
             ? ComicUpdateNotifications.shared.pendingComicKey : nil
-        TabView(selection: $selectedTab) {
+        let tabs = TabView(selection: $selectedTab) {
             Tab(TabTitle.shelf.text, systemImage: "books.vertical", value: .shelf) {
                 NavigationStack(path: $shelfPath) {
                     LibraryView(kind: .favorites)
@@ -236,7 +239,7 @@ private struct WillowTabs: View {
                 NavigationStack { LibraryView(kind: .history) }
             }
             Tab(TabTitle.downloads.text, systemImage: "arrow.down.circle", value: .downloads) {
-                NavigationStack { DownloadsView() }
+                NavigationStack { DownloadsView { showingDownloadTasks = true } }
             }
             Tab(TabTitle.discover.text, systemImage: "safari", value: .discover) {
                 NavigationStack { DiscoverView() }
@@ -247,6 +250,11 @@ private struct WillowTabs: View {
             }
             .accessibilityIdentifier(SettingsTabLongPress.tabIdentifier)
             .badge(updateBadge)
+        }
+        downloadAccessory(for: tabs, count: pendingDownloads.count)
+        .sheet(isPresented: $showingDownloadTasks) {
+            DownloadTasksView(records: pendingDownloads)
+                .modifier(AppLockShield())
         }
         .environment(\.hiddenNSFWSources, hiddenSources)
         .environment(\.unreadFollowedComics, Set(unreadFollows.lazy.filter { !hiddenSources.contains($0.sourceID) }.map(\.id)))
@@ -271,6 +279,27 @@ private struct WillowTabs: View {
         .onDisappear { authenticationTask?.cancel() }
         .modifier(ErrorAlert(error: $authenticationError))
         .modifier(ErrorAlert(error: $notices.message))
+    }
+
+    @ViewBuilder
+    private func downloadAccessory(for tabs: some View, count: Int) -> some View {
+        let button = Button {
+            showingDownloadTasks = true
+        } label: {
+            Label(L10n.text("Downloads.TasksCount", defaultValue: "Download Tasks (\(count))"),
+                  systemImage: "arrow.down.circle")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+
+        if #available(iOS 26.1, *) {
+            tabs.tabViewBottomAccessory(isEnabled: count > 0) { button }
+        } else {
+            tabs.tabViewBottomAccessory {
+                if count > 0 { button }
+            }
+        }
     }
 
     private func openNotification(_ id: String, hiddenSources: Set<String>) {

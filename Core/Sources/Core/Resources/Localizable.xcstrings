@@ -304,6 +304,23 @@
         }
       }
     },
+    "ComicDetail.DownloadComicConfirmation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download all chapters?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载全部章节？"
+          }
+        }
+      }
+    },
     "ComicDetail.EmptyChapter" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -334,6 +351,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你可以在漫画详情中下载章节，方便离线阅读。"
+          }
+        }
+      }
+    },
+    "Downloads.NoTasks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Download Tasks"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无下载任务"
           }
         }
       }
@@ -1660,6 +1694,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下载进度"
+          }
+        }
+      }
+    },
+    "Downloads.Tasks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Tasks"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载任务"
+          }
+        }
+      }
+    },
+    "Downloads.TasksCount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Tasks (%lld)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载任务（%lld）"
           }
         }
       }

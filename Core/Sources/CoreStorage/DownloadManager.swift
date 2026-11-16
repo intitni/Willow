@@ -11,10 +11,12 @@ import UIKit
 @MainActor
 @Observable
 package final class DownloadManager {
+    private static let maximumConcurrentChapters = 3
+
     @ObservationIgnored private let context: ModelContext
     @ObservationIgnored private let directory: URL
-    @ObservationIgnored private var worker: Task<Void, Never>?
-    @ObservationIgnored private var activeID: String?
+    @ObservationIgnored private let imageCache: ImageCache
+    @ObservationIgnored private var workers: [String: Task<Void, Never>] = [:]
     @ObservationIgnored private let files = DownloadFileStore()
     @ObservationIgnored private var fileOperations = Set<String>()
 
@@ -34,10 +36,12 @@ package final class DownloadManager {
         backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Willow Downloads") { [weak self] in
             guard let self else { return }
             backgroundExpired = true
-            if let activeID, let record = try? context.fetch(FetchDescriptor<DownloadRecord>()).first(where: { $0.id == activeID }) {
+            let downloading = DownloadStatus.downloading.rawValue
+            let descriptor = FetchDescriptor<DownloadRecord>(predicate: #Predicate { $0.rawStatus == downloading })
+            for record in (try? context.fetch(descriptor)) ?? [] where workers[record.id] != nil {
                 try? changeStatus(of: record, to: .queued)
             }
-            worker?.cancel()
+            for worker in workers.values { worker.cancel() }
             endBackgroundDownload()
         }
         #endif
@@ -53,8 +57,9 @@ package final class DownloadManager {
 
     package private(set) var errorMessage: String?
 
-    package init(context: ModelContext, directory: URL? = nil) {
+    package init(context: ModelContext, directory: URL? = nil, imageCache: ImageCache = .shared) {
         self.context = context
+        self.imageCache = imageCache
         self.directory = directory ?? URL.applicationSupportDirectory
             .appending(path: "Willow/Downloads", directoryHint: .isDirectory)
 
@@ -86,20 +91,22 @@ package final class DownloadManager {
         guard !pageURLs.isEmpty else { throw DownloadError.emptyChapter }
         let id = DownloadRecord.identifier(sourceID: sourceID, comicID: comicID, chapterID: chapterID)
         guard fileOperations.insert(id).inserted else { throw DownloadError.operationInProgress }
-        defer { fileOperations.remove(id) }
+        defer {
+            fileOperations.remove(id)
+            startQueue()
+        }
         if let existing = try record(sourceID: sourceID, comicID: comicID, chapterID: chapterID) {
             if existing.status == .failed || existing.status == .paused {
                 if existing.pageURLs != pageURLs {
+                    await workers[id]?.value
                     try await files.remove(folder(for: existing))
                     existing.pageURLs = pageURLs
                     existing.completedPageCount = 0
                 }
                 existing.requestHeaders = requestHeaders
                 try changeStatus(of: existing, to: .queued)
-                startQueue()
             } else if existing.status == .completed && localPageURLs(for: existing).count != existing.pageURLs.count {
                 try changeStatus(of: existing, to: .queued)
-                startQueue()
             }
             return existing
         }
@@ -115,15 +122,15 @@ package final class DownloadManager {
             context.delete(record)
             throw error
         }
-        startQueue()
         return record
     }
 
     package func pause(_ record: DownloadRecord) {
-        guard [.queued, .downloading].contains(record.status) else { return }
+        guard !fileOperations.contains(record.id), [.queued, .downloading].contains(record.status) else { return }
         do {
             try changeStatus(of: record, to: .paused)
-            if activeID == record.id { worker?.cancel() }
+            workers[record.id]?.cancel()
+            errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -133,6 +140,7 @@ package final class DownloadManager {
         guard !fileOperations.contains(record.id), [.paused, .failed].contains(record.status) else { return }
         do {
             try changeStatus(of: record, to: .queued)
+            errorMessage = nil
             startQueue()
         } catch {
             errorMessage = error.localizedDescription
@@ -142,11 +150,18 @@ package final class DownloadManager {
     package func delete(_ record: DownloadRecord) async throws {
         let id = record.id
         guard fileOperations.insert(id).inserted else { throw DownloadError.operationInProgress }
-        defer { fileOperations.remove(id) }
+        defer {
+            fileOperations.remove(id)
+            startQueue()
+        }
         let folder = folder(for: record)
         let staging = directory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
         let shouldResume = record.status == .queued || record.status == .downloading
-        if shouldResume { pause(record) }
+        if shouldResume {
+            try changeStatus(of: record, to: .paused)
+            workers[id]?.cancel()
+        }
+        await workers[id]?.value
         do {
             let hasFiles = try await files.stage(folder, at: staging)
             context.delete(record)
@@ -208,46 +223,48 @@ package final class DownloadManager {
     }
 
     private func startQueue() {
-        guard worker == nil, !backgroundExpired else { return }
-        beginBackgroundDownload()
-        worker = Task { [weak self] in
-            guard let self else { return }
-            defer {
-                activeID = nil
-                worker = nil
-                endBackgroundDownload()
-                if Task.isCancelled { startQueue() }
-            }
-            do {
-                let queued = DownloadStatus.queued.rawValue
-                var descriptor = FetchDescriptor<DownloadRecord>(
-                    predicate: #Predicate { $0.rawStatus == queued },
-                    sortBy: [SortDescriptor(\.createdAt)]
-                )
-                descriptor.fetchLimit = 1
-                while !Task.isCancelled, let record = try context.fetch(descriptor).first {
-                    activeID = record.id
-                    try await download(record)
+        guard !backgroundExpired, workers.count < Self.maximumConcurrentChapters else { return }
+        do {
+            let queued = DownloadStatus.queued.rawValue
+            let descriptor = FetchDescriptor<DownloadRecord>(
+                predicate: #Predicate { $0.rawStatus == queued },
+                sortBy: [SortDescriptor(\.createdAt)]
+            )
+            for record in try context.fetch(descriptor) {
+                guard workers.count < Self.maximumConcurrentChapters else { break }
+                let id = record.id
+                guard workers[id] == nil, !fileOperations.contains(id) else { continue }
+                try changeStatus(of: record, to: .downloading)
+                beginBackgroundDownload()
+                workers[id] = Task {
+                    do {
+                        try await download(record)
+                    } catch {
+                        errorMessage = error.localizedDescription
+                    }
+                    workers[id] = nil
+                    startQueue()
+                    if workers.isEmpty { endBackgroundDownload() }
                 }
-            } catch {
-                errorMessage = error.localizedDescription
             }
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
     private func download(_ record: DownloadRecord) async throws {
-        try changeStatus(of: record, to: .downloading)
         let folder = folder(for: record)
         let pages = record.pageURLs
         let headers = record.requestHeaders ?? []
         do {
+            try Task.checkCancellation()
             try await files.prepare(folder)
             for (index, url) in pages.enumerated() {
                 try Task.checkCancellation()
                 let file = pageURL(in: folder, index: index)
                 if !(await files.contains(file)) {
                     let requestHeaders = headers.indices.contains(index) ? headers[index] : [:]
-                    let data = try await ImageCache.shared.data(for: url, headers: requestHeaders, priority: .download)
+                    let data = try await imageCache.data(for: url, headers: requestHeaders, priority: .download)
                     try Task.checkCancellation()
                     try await files.write(data, to: file)
                 }
