@@ -12,6 +12,7 @@ import UIKit
 public final class CoreAppModel {
     fileprivate let appLock = AppLock()
     fileprivate let contentPrivacy = ContentPrivacy()
+    fileprivate let discoverCart = DiscoverCartModel()
     fileprivate let updates = UpdateModel()
     fileprivate var startup: Result<AppSession, Error>
     private var followingRefresh: Task<Void, Never>?
@@ -91,7 +92,7 @@ public struct WillowRootView: View {
             case .success(let session):
                 let worker = session.sync.worker
                 let events = session.sync.events
-                WillowTabs(updates: model.updates)
+                WillowTabs(updates: model.updates, discoverCart: model.discoverCart)
                     .overlay(alignment: .top) { ToastHost() }
                     .modifier(AppLockShield())
                     .modelContainer(session.persistence.container)
@@ -218,6 +219,7 @@ private struct WillowTabs: View {
     @State private var authenticationTask: Task<Void, Never>?
     @State private var showingDownloadTasks = false
     let updates: UpdateModel
+    let discoverCart: DiscoverCartModel
 
     var body: some View {
         @Bindable var notices = PluginNoticeModel.shared.viewModel
@@ -244,6 +246,7 @@ private struct WillowTabs: View {
             Tab(TabTitle.discover.text, systemImage: "safari", value: .discover) {
                 NavigationStack { DiscoverView() }
                     .id(hiddenSources)
+                    .environment(discoverCart)
             }
             Tab(TabTitle.settings.text, systemImage: "gearshape", value: .settings) {
                 NavigationStack { SettingsView(updates: updates) }

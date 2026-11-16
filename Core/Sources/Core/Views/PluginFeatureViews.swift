@@ -159,6 +159,7 @@ private struct PluginFeatureResults: View {
                     }
                 }
             }
+            .modifier(DiscoverCartContextMenu(comic: comic, sourceID: pluginID))
         }
         if state.isLoading {
             ProgressView().frame(maxWidth: .infinity)

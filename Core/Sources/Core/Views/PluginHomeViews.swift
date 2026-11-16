@@ -3,32 +3,23 @@ import BreezeRuntime
 import CoreStorage
 import SwiftUI
 
-struct PluginHomePagesView: View {
+private struct PluginCloudPagesView: View {
     let plugin: PluginRecord
     let tabs: [PluginHomeTab]
-    var includesCloudFavorites = true
     @State private var selection: String?
-    private let favoritesID = "willow.cloud-favorites"
 
     var body: some View {
-        let selected = selection ?? tabs.first?.id ?? (includesCloudFavorites && plugin.supportsCloudFavorites ? favoritesID : "")
+        let selected = tabs.first { $0.id == selection } ?? tabs.first
         VStack(spacing: 0) {
-            if !tabs.isEmpty || (includesCloudFavorites && plugin.supportsCloudFavorites) {
+            if !tabs.isEmpty {
                 ScrollView(.horizontal) {
                     HStack {
                         ForEach(tabs) { tab in
                             Button(tab.title) { selection = tab.id }
                                 .buttonStyle(.bordered)
                                 .buttonBorderShape(.roundedRectangle(radius: 10))
-                                .tint(selected == tab.id ? WillowTheme.accent : .secondary)
-                                .accessibilityAddTraits(selected == tab.id ? .isSelected : [])
-                        }
-                        if includesCloudFavorites && plugin.supportsCloudFavorites {
-                            Button(L10n.text("CloudFavorites.Title")) { selection = favoritesID }
-                                .buttonStyle(.bordered)
-                                .buttonBorderShape(.roundedRectangle(radius: 10))
-                                .tint(selected == favoritesID ? WillowTheme.accent : .secondary)
-                                .accessibilityAddTraits(selected == favoritesID ? .isSelected : [])
+                                .tint(selected?.id == tab.id ? WillowTheme.accent : .secondary)
+                                .accessibilityAddTraits(selected?.id == tab.id ? .isSelected : [])
                         }
                     }
                     .padding(.horizontal)
@@ -37,9 +28,7 @@ struct PluginHomePagesView: View {
                 .scrollIndicators(.hidden)
                 .fixedSize(horizontal: false, vertical: true)
             }
-            if selected == favoritesID {
-                PluginCloudHomeView(plugin: plugin, embedded: true)
-            } else if let tab = tabs.first(where: { $0.id == selected }) {
+            if let tab = selected {
                 PluginHomePageView(plugin: plugin, tab: tab, embedded: true)
                     .id(tab.id)
             } else {
@@ -48,7 +37,7 @@ struct PluginHomePagesView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .onChange(of: tabs.map(\.id)) { _, ids in
-            if let selection, selection != favoritesID && !ids.contains(selection) { self.selection = nil }
+            if let selection, !ids.contains(selection) { self.selection = nil }
         }
     }
 }
@@ -58,21 +47,25 @@ struct PluginHomePageView: View {
     @State private var showingFilters = false
     @Environment(\.openURL) private var openURL
     let embedded: Bool
+    private let showsHeaderActions: Bool
 
-    init(plugin: PluginRecord, tab: PluginHomeTab, embedded: Bool = false) {
+    init(plugin: PluginRecord, tab: PluginHomeTab, embedded: Bool = false, showsHeaderActions: Bool = true) {
         _model = State(initialValue: PluginHomeModel(plugin: plugin, tab: tab))
         self.embedded = embedded
+        self.showsHeaderActions = showsHeaderActions
     }
 
     var body: some View {
         @Bindable var state = model.viewModel
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 20) {
-                ForEach(model.tab.actions.indices, id: \.self) { index in
-                    let item = model.tab.actions[index]
-                    Button(item["title"].string.isEmpty ? L10n.text("PluginHome.PageActions") : item["title"].string) { model.route(item) }
-                        .buttonStyle(.bordered)
+                if showsHeaderActions {
+                    ForEach(model.tab.actions.indices, id: \.self) { index in
+                        let item = model.tab.actions[index]
+                        Button(item["title"].string.isEmpty ? L10n.text("PluginHome.PageActions") : item["title"].string) { model.route(item) }
+                            .buttonStyle(.bordered)
                             .buttonBorderShape(.roundedRectangle(radius: 10))
+                    }
                 }
                 ForEach(state.blocks) { block in
                     PluginHomeBlockView(block: block, pluginID: model.plugin.uuid, action: model.route)
@@ -155,11 +148,19 @@ private struct PluginHomeBlockView: View {
                             }
                         }
                         .buttonStyle(.bordered)
-                            .buttonBorderShape(.roundedRectangle(radius: 10))
+                        .buttonBorderShape(.roundedRectangle(radius: 10))
+                        .modifier(DiscoverCartContextMenu(comic: cartComic(for: link), sourceID: pluginID))
                     }
                 }
             }
         }
+    }
+
+    private func cartComic(for link: PluginHomeLink) -> ComicSummary? {
+        let action = link.action["action"].isNull ? link.action : link.action["action"]
+        let id = action["payload"]["comicId"].string
+        guard action["type"].string == "openComicInfo", !id.isEmpty else { return nil }
+        return ComicSummary(id: id, title: link.title, coverURL: link.coverURL, author: "", summary: "")
     }
 }
 
@@ -173,6 +174,7 @@ private struct HomeComicGrid: View {
                     DiscoverComicTile(comic: comic, sourceID: pluginID)
                 }
                 .buttonStyle(.plain)
+                .modifier(DiscoverCartContextMenu(comic: comic, sourceID: pluginID))
             }
         }
     }
@@ -180,7 +182,6 @@ private struct HomeComicGrid: View {
 
 struct PluginCloudHomeView: View {
     let plugin: PluginRecord
-    var embedded = false
     @State private var model = PluginCloudHomeModel()
 
     var body: some View {
@@ -191,10 +192,10 @@ struct PluginCloudHomeView: View {
             } else if let error = state.error {
                 RetryView(title: L10n.text("CloudFavorites.LoadFailed"), message: error) { Task { await model.load(plugin: plugin) } }
             } else if state.loaded {
-                PluginHomePagesView(plugin: plugin, tabs: state.tabs, includesCloudFavorites: false)
+                PluginCloudPagesView(plugin: plugin, tabs: state.tabs)
             }
         }
-        .modifier(PluginPageTitle(title: embedded ? nil : L10n.text("CloudFavorites.TitleWithSource", defaultValue: "云端收藏 · \(plugin.name)")))
+        .navigationTitle(L10n.text("CloudFavorites.TitleWithSource", defaultValue: "云端收藏 · \(plugin.name)"))
         .task { if !state.loaded { await model.load(plugin: plugin) } }
     }
 }
