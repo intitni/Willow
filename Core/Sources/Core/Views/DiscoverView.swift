@@ -9,6 +9,8 @@ struct DiscoverView: View {
     @Query(filter: #Predicate<PluginRecord> { $0.enabled }, sort: \PluginRecord.name)
     private var installedPlugins: [PluginRecord]
     @State private var search = ""
+    @FocusState private var searchFocused: Bool
+    @State private var selectedHomeTabID: String?
     @State private var showingPlugins = false
     @State private var destination: Destination?
 
@@ -28,14 +30,17 @@ struct DiscoverView: View {
     var body: some View {
         let state = model.viewModel
         let request = model.request(for: plugin)
+        let homeTabs = state.displayedRequest == request && state.query.isEmpty ? state.tabs : []
+        let homeTab = homeTabs.first { $0.id == selectedHomeTabID } ?? homeTabs.first
         VStack(spacing: 0) {
-            DiscoverSearchField(text: $search) { model.submit(search) }
-                .padding(.horizontal)
-
             if let plugin, state.displayedRequest == request {
                 if state.query.isEmpty && !state.loading && state.error == nil {
-                    PluginHomePagesView(plugin: plugin, tabs: state.tabs)
-                        .id(plugin.uuid)
+                    if let homeTab {
+                        PluginHomePageView(plugin: plugin, tab: homeTab, embedded: true, showsHeaderActions: false)
+                            .id(homeTab.id)
+                    } else {
+                        ContentUnavailableView(L10n.text("PluginHome.EmptyTitle"), systemImage: "safari")
+                    }
                 } else {
                     DiscoverResults(
                         plugin: plugin, query: state.query, sections: state.sections, results: state.results,
@@ -59,11 +64,18 @@ struct DiscoverView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .searchFocused($searchFocused)
+        .searchable(text: $search, prompt: L10n.text("Discover.SearchPrompt"))
+        .onSubmit(of: .search) {
+            searchFocused = false
+            model.submit(search)
+        }
         .navigationTitle(plugin.map { L10n.text("Discover.TitleWithSource", defaultValue: "发现 · \($0.name)") } ?? L10n.text("Discover.Title"))
         .scrollDismissesKeyboard(.interactively)
         .onChange(of: search) { _, value in
             if value.isEmpty { model.clearSearch() }
         }
+        .onChange(of: plugin?.uuid) { selectedHomeTabID = nil }
         .toolbar {
             if let plugin {
                 Menu {
@@ -87,11 +99,22 @@ struct DiscoverView: View {
                 } label: {
                     Label(plugin.name, systemImage: "puzzlepiece.extension")
                 }
-                if !plugin.discoveryActions.isEmpty {
+                let actions = toolbarActions(plugin: plugin, homeTab: homeTab)
+                let canSwitchPages = homeTabs.count > 1
+                if !actions.isEmpty || canSwitchPages {
                     Menu {
-                        ForEach(Array(plugin.discoveryActions.enumerated()), id: \.offset) { _, item in
-                            Button(item["title"].string) {
-                                destination = .action(plugin, item["title"].string, item["action"])
+                        if canSwitchPages, let homeTab {
+                            Picker(L10n.text("Discover.PluginPages"), selection: Binding(
+                                get: { homeTab.id },
+                                set: { selectedHomeTabID = $0 }
+                            )) {
+                                ForEach(homeTabs) { Text($0.title).tag($0.id) }
+                            }
+                            .pickerStyle(.menu)
+                        }
+                        ForEach(Array(actions.enumerated()), id: \.offset) { _, item in
+                            Button(item.title) {
+                                destination = .action(plugin, item.title, item.action)
                             }
                         }
                     } label: {
@@ -127,42 +150,20 @@ struct DiscoverView: View {
         .task(id: request) { await model.loadInitial(plugin: plugin, request: request) }
         .refreshable { await model.loadInitial(plugin: plugin, request: request) }
     }
-}
 
-private struct DiscoverSearchField: View {
-    @Binding var text: String
-    @FocusState private var focused: Bool
-    let submit: () -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-                .onTapGesture { focused = true }
-            TextField(L10n.text("Discover.SearchPrompt"), text: $text)
-                .focused($focused)
-                .submitLabel(.search)
-                .onSubmit {
-                    focused = false
-                    submit()
-                }
-            if !text.isEmpty {
-                Button {
-                    text = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .frame(minWidth: 44, minHeight: 44)
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(L10n.text("Discover.ClearSearch"))
-            }
+    private func toolbarActions(plugin: PluginRecord, homeTab: PluginHomeTab?) -> [(title: String, action: JSONValue)] {
+        var actions = plugin.discoveryActions.map { (title: $0["title"].string, action: $0["action"]) }
+        var seen = Set(actions.map(\.action))
+        for item in homeTab?.actions ?? [] {
+            let action = item["action"].isNull ? item : item["action"]
+            let type = action["type"].string
+            guard !type.isEmpty, type != "none" else { continue }
+            if type == "openCloudFavorite", plugin.supportsCloudFavorites { continue }
+            guard seen.insert(action).inserted else { continue }
+            let title = item["title"].string.isEmpty ? action["payload"]["title"].string : item["title"].string
+            actions.append((title.isEmpty ? L10n.text("PluginHome.PageActions") : title, action))
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 44)
-        .background(.fill.tertiary, in: .capsule)
+        return actions
     }
 }
 

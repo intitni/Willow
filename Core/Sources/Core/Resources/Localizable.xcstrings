@@ -253,6 +253,23 @@
         }
       }
     },
+    "Discover.PluginPages" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plugin Pages"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "插件页面"
+          }
+        }
+      }
+    },
     "PluginManagement.RemoveNamedSubscription" : {
       "extractionState" : "manual",
       "localizations" : {
