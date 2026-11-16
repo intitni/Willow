@@ -13,6 +13,7 @@ struct LibraryView: View {
         }
     }
 
+    @Environment(\.unreadFollowedComics) private var unreadFollowedComics
     @Environment(\.modelContext) private var context
     @Environment(\.hiddenNSFWSources) private var hiddenSources
     @Query private var comics: [ComicRecord]
@@ -69,8 +70,18 @@ struct LibraryView: View {
         .searchable(text: Binding(get: { viewModel.search }, set: model.search), prompt: L10n.text("Library.SearchPrompt"))
         .navigationTitle(kind.title)
         .toolbar {
-            if kind == .favorites && !viewModel.tags.isEmpty {
-                LocalTagFilterMenu(tags: viewModel.tags, selected: viewModel.selectedTags, select: model.selectTags)
+            if kind == .favorites {
+                NavigationLink {
+                    FollowedComicsView()
+                } label: {
+                    Label(L10n.text("Following.Title"), systemImage: "bell")
+                        .overlay(alignment: .topTrailing) {
+                            if !unreadFollowedComics.isEmpty { UnreadComicUpdateDot() }
+                        }
+                }
+                if !viewModel.tags.isEmpty {
+                    LocalTagFilterMenu(tags: viewModel.tags, selected: viewModel.selectedTags, select: model.selectTags)
+                }
             }
             if kind == .history {
                 Menu(L10n.text("History.Sort"), systemImage: "arrow.up.arrow.down") {

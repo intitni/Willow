@@ -22,6 +22,9 @@ package enum PreferencePayload: Codable, Equatable, Sendable {
     case favorite(Comic)
     case reading(Reading)
     case readChapter(ReadChapter)
+    case followedComic(FollowedComicSnapshot)
+
+    static let followedComicKeyPrefix = "following/"
 
     package struct Comic: Codable, Equatable, Sendable {
         let sourceID: String
@@ -92,6 +95,7 @@ package enum PreferencePayload: Codable, Equatable, Sendable {
         case .tag(let value): "tag/" + value.normalizedName
         case .favorite(let comic): "favorite/" + comic.id
         case .reading(let reading): "reading/" + reading.comic.id
+        case .followedComic(let value): Self.followedComicKeyPrefix + value.id
         case .readChapter(let value): ReadChapter.keyPrefix + "\(value.comicKey.utf8.count):\(value.comicKey)\(value.chapterID)"
         case .tagLink(let value): "tag-link/" + Data(value.normalizedName.utf8).base64EncodedString() + "/" + Data(value.comicKey.utf8).base64EncodedString()
         }

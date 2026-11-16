@@ -9,14 +9,18 @@ struct DiscoverView: View {
     @Query(filter: #Predicate<PluginRecord> { $0.enabled }, sort: \PluginRecord.name)
     private var installedPlugins: [PluginRecord]
     @State private var search = ""
+    @FocusState private var searchFocused: Bool
+    @State private var selectedHomeTabID: String?
     @State private var showingPlugins = false
     @State private var destination: Destination?
 
     private enum Destination: Hashable {
+        case cart
         case favorites(PluginRecord)
         case advancedSearch(PluginRecord, String)
         case action(PluginRecord, String, JSONValue)
     }
+
     @State private var model = DiscoverModel()
 
     private var plugins: [PluginRecord] {
@@ -28,17 +32,29 @@ struct DiscoverView: View {
     var body: some View {
         let state = model.viewModel
         let request = model.request(for: plugin)
+        let homeTabs = state.displayedRequest == request && state.query.isEmpty ? state.tabs : []
+        let homeTab = homeTabs.first { $0.id == selectedHomeTabID } ?? homeTabs.first
         VStack(spacing: 0) {
-            DiscoverSearchField(text: $search) { model.submit(search) }
-                .padding(.horizontal)
-
             if let plugin, state.displayedRequest == request {
                 if state.query.isEmpty && !state.loading && state.error == nil {
-                    PluginHomePagesView(plugin: plugin, tabs: state.tabs)
-                        .id(plugin.uuid)
+                    if let homeTab {
+                        PluginHomePageView(
+                            plugin: plugin,
+                            tab: homeTab,
+                            embedded: true,
+                            showsHeaderActions: false
+                        )
+                        .id(homeTab.id)
+                    } else {
+                        ContentUnavailableView(
+                            L10n.text("PluginHome.EmptyTitle"),
+                            systemImage: "safari"
+                        )
+                    }
                 } else {
                     DiscoverResults(
-                        plugin: plugin, query: state.query, sections: state.sections, results: state.results,
+                        plugin: plugin, query: state.query, sections: state.sections,
+                        results: state.results,
                         loading: state.loading, error: state.error, hasMore: state.hasMore
                     ) {
                         model.loadMoreOrRetry(plugin: plugin, request: request)
@@ -48,65 +64,106 @@ struct DiscoverView: View {
                 ProgressView(L10n.text("Text.Loading"))
             } else {
                 ContentUnavailableView {
-                    Label(L10n.text("Discover.NoSourcesTitle"), systemImage: "puzzlepiece.extension")
+                    Label(
+                        L10n.text("Discover.NoSourcesTitle"),
+                        systemImage: "puzzlepiece.extension"
+                    )
                 } description: {
                     Text(L10n.text("Discover.NoSourcesDescription"))
                 } actions: {
                     Button(L10n.text("Discover.ManagePlugins")) { showingPlugins = true }
                         .buttonStyle(.glassProminent)
-                            .buttonBorderShape(.roundedRectangle(radius: 10))
+                        .buttonBorderShape(.roundedRectangle(radius: 10))
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .navigationTitle(plugin.map { L10n.text("Discover.TitleWithSource", defaultValue: "发现 · \($0.name)") } ?? L10n.text("Discover.Title"))
+        .searchFocused($searchFocused)
+        .searchable(text: $search, prompt: L10n.text("Discover.SearchPrompt"))
+        .onSubmit(of: .search) {
+            searchFocused = false
+            model.submit(search)
+        }
+        .navigationTitle(plugin.map { L10n.text(
+            "Discover.TitleWithSource",
+            defaultValue: "发现 · \($0.name)"
+        ) } ?? L10n.text("Discover.Title"))
         .scrollDismissesKeyboard(.interactively)
         .onChange(of: search) { _, value in
             if value.isEmpty { model.clearSearch() }
         }
+        .onChange(of: plugin?.uuid) { selectedHomeTabID = nil }
         .toolbar {
-            if let plugin {
-                Menu {
-                    Picker(L10n.text("Text.Sources"), selection: Binding(
-                        get: { self.plugin?.uuid ?? "" },
-                        set: model.selectPlugin
-                    )) {
-                        ForEach(plugins, id: \.uuid) { Text($0.name).tag($0.uuid) }
-                    }
-                    if plugin.supportsCloudFavorites {
-                        Button(L10n.text("CloudFavorites.OpenSourceFavorites"), systemImage: "bookmark") {
-                            destination = .favorites(plugin)
-                        }
-                    }
-                    Button(L10n.text("AdvancedSearch.Title"), systemImage: "line.3.horizontal.decrease") {
-                        destination = .advancedSearch(plugin, search)
-                    }
-                    Button(L10n.text("Discover.ManagePlugins"), systemImage: "puzzlepiece.extension") {
-                        showingPlugins = true
-                    }
-                } label: {
-                    Label(plugin.name, systemImage: "puzzlepiece.extension")
-                }
-                if !plugin.discoveryActions.isEmpty {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                DiscoverCartToolbarButton { destination = .cart }
+                if let plugin {
                     Menu {
-                        ForEach(Array(plugin.discoveryActions.enumerated()), id: \.offset) { _, item in
-                            Button(item["title"].string) {
-                                destination = .action(plugin, item["title"].string, item["action"])
+                        Picker(L10n.text("Text.Sources"), selection: Binding(
+                            get: { self.plugin?.uuid ?? "" },
+                            set: model.selectPlugin
+                        )) {
+                            ForEach(plugins, id: \.uuid) { Text($0.name).tag($0.uuid) }
+                        }
+                        if plugin.supportsCloudFavorites {
+                            Button(
+                                L10n.text("CloudFavorites.OpenSourceFavorites"),
+                                systemImage: "bookmark"
+                            ) {
+                                destination = .favorites(plugin)
                             }
                         }
+                        Button(
+                            L10n.text("AdvancedSearch.Title"),
+                            systemImage: "line.3.horizontal.decrease"
+                        ) {
+                            destination = .advancedSearch(plugin, search)
+                        }
+                        Button(
+                            L10n.text("Discover.ManagePlugins"),
+                            systemImage: "puzzlepiece.extension"
+                        ) {
+                            showingPlugins = true
+                        }
                     } label: {
-                        Label(L10n.text("Discover.PluginFunctions"), systemImage: "square.grid.2x2")
+                        Label(plugin.name, systemImage: "puzzlepiece.extension")
+                    }
+                    let actions = toolbarActions(plugin: plugin, homeTab: homeTab)
+                    let canSwitchPages = homeTabs.count > 1
+                    if !actions.isEmpty || canSwitchPages {
+                        Menu {
+                            if canSwitchPages, let homeTab {
+                                Picker(L10n.text("Discover.PluginPages"), selection: Binding(
+                                    get: { homeTab.id },
+                                    set: { selectedHomeTabID = $0 }
+                                )) {
+                                    ForEach(homeTabs) { Text($0.title).tag($0.id) }
+                                }
+                                .pickerStyle(.menu)
+                            }
+                            ForEach(Array(actions.enumerated()), id: \.offset) { _, item in
+                                Button(item.title) {
+                                    destination = .action(plugin, item.title, item.action)
+                                }
+                            }
+                        } label: {
+                            Label(
+                                L10n.text("Discover.PluginFunctions"),
+                                systemImage: "square.grid.2x2"
+                            )
+                        }
                     }
                 }
             }
         }
         .navigationDestination(item: $destination) { destination in
             switch destination {
-            case .favorites(let plugin):
+            case .cart:
+                DiscoverCartView()
+            case let .favorites(plugin):
                 PluginCloudHomeView(plugin: plugin)
-            case .advancedSearch(let plugin, let keyword):
+            case let .advancedSearch(plugin, keyword):
                 PluginAdvancedSearchView(plugin: plugin, keyword: keyword)
-            case .action(let plugin, let title, let action):
+            case let .action(plugin, title, action):
                 PluginActionDestinationView(plugin: plugin, title: title, action: action)
             }
         }
@@ -121,48 +178,34 @@ struct DiscoverView: View {
             }
             .modifier(AppLockShield())
         }
-        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification, object: UserDefaults.standard)) { _ in
+        .onReceive(NotificationCenter.default.publisher(
+            for: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard
+        )) { _ in
             model.reloadSelection()
         }
         .task(id: request) { await model.loadInitial(plugin: plugin, request: request) }
         .refreshable { await model.loadInitial(plugin: plugin, request: request) }
     }
-}
 
-private struct DiscoverSearchField: View {
-    @Binding var text: String
-    @FocusState private var focused: Bool
-    let submit: () -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-                .onTapGesture { focused = true }
-            TextField(L10n.text("Discover.SearchPrompt"), text: $text)
-                .focused($focused)
-                .submitLabel(.search)
-                .onSubmit {
-                    focused = false
-                    submit()
-                }
-            if !text.isEmpty {
-                Button {
-                    text = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .frame(minWidth: 44, minHeight: 44)
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(L10n.text("Discover.ClearSearch"))
-            }
+    private func toolbarActions(plugin: PluginRecord, homeTab: PluginHomeTab?) -> [(
+        title: String,
+        action: JSONValue
+    )] {
+        var actions = plugin.discoveryActions
+            .map { (title: $0["title"].string, action: $0["action"]) }
+        var seen = Set(actions.map(\.action))
+        for item in homeTab?.actions ?? [] {
+            let action = item["action"].isNull ? item : item["action"]
+            let type = action["type"].string
+            guard !type.isEmpty, type != "none" else { continue }
+            if type == "openCloudFavorite", plugin.supportsCloudFavorites { continue }
+            guard seen.insert(action).inserted else { continue }
+            let title = item["title"].string.isEmpty ? action["payload"]["title"]
+                .string : item["title"].string
+            actions.append((title.isEmpty ? L10n.text("PluginHome.PageActions") : title, action))
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 44)
-        .background(.fill.tertiary, in: .capsule)
+        return actions
     }
 }
 
@@ -187,8 +230,11 @@ private struct DiscoverResults: View {
             } else if !query.isEmpty {
                 ContentUnavailableView.search(text: query)
             } else {
-                ContentUnavailableView(L10n.text("Discover.EmptyTitle"), systemImage: "books.vertical",
-                                       description: Text(L10n.text("Discover.EmptyDescription")))
+                ContentUnavailableView(
+                    L10n.text("Discover.EmptyTitle"),
+                    systemImage: "books.vertical",
+                    description: Text(L10n.text("Discover.EmptyDescription"))
+                )
             }
         } else {
             ScrollView {
@@ -209,11 +255,15 @@ private struct DiscoverResults: View {
                         if loading {
                             ProgressView().frame(maxWidth: .infinity)
                         } else if let error {
-                            RetryView(title: L10n.text("Discover.LoadMoreFailed"), message: error, retry: load)
+                            RetryView(
+                                title: L10n.text("Discover.LoadMoreFailed"),
+                                message: error,
+                                retry: load
+                            )
                         } else if hasMore {
                             Button(L10n.text("Pagination.LoadMore"), action: load)
                                 .buttonStyle(.glass)
-                            .buttonBorderShape(.roundedRectangle(radius: 10))
+                                .buttonBorderShape(.roundedRectangle(radius: 10))
                                 .frame(maxWidth: .infinity)
                         }
                     }
@@ -233,18 +283,26 @@ private struct DiscoverResults: View {
                     DiscoverComicTile(comic: comic, sourceID: plugin.uuid)
                 }
                 .buttonStyle(.plain)
+                .modifier(DiscoverCartContextMenu(comic: comic, sourceID: plugin.uuid))
             }
         }
     }
 }
 
 struct DiscoverComicTile: View {
+    @Environment(\.unreadFollowedComics) private var unreadFollowedComics
     let comic: ComicSummary
     let sourceID: String
 
     var body: some View {
+        let comicKey = ComicRecord.identifier(sourceID: sourceID, comicID: comic.id)
         VStack(alignment: .leading, spacing: 6) {
-            ComicCover(url: comic.coverURL, cachePolicy: .comicCover(id: ComicRecord.identifier(sourceID: sourceID, comicID: comic.id)))
+            ComicCover(url: comic.coverURL, cachePolicy: .comicCover(id: comicKey))
+                .overlay(alignment: .topTrailing) {
+                    if unreadFollowedComics.contains(comicKey) {
+                        UnreadComicUpdateDot().padding(6)
+                    }
+                }
             Text(comic.title)
                 .font(.subheadline.weight(.medium))
                 .lineLimit(2, reservesSpace: true)
@@ -252,3 +310,4 @@ struct DiscoverComicTile: View {
         }
     }
 }
+

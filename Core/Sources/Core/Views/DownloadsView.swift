@@ -5,11 +5,12 @@ import SwiftUI
 struct DownloadsView: View {
     @Environment(DownloadManager.self) private var downloads
     @Environment(\.hiddenNSFWSources) private var hiddenSources
-    @Query(sort: \DownloadRecord.updatedAt, order: .reverse) private var records: [DownloadRecord]
+    @Query(DownloadRecord.completedDownloads) private var records: [DownloadRecord]
     @Query private var comics: [ComicRecord]
     @Query(sort: \LocalTagRecord.name) private var localTags: [LocalTagRecord]
     @State private var editingTags: DownloadItem?
     @State private var model = DownloadsModel()
+    let showTasks: () -> Void
 
     var body: some View {
         @Bindable var viewModel = model.viewModel
@@ -22,7 +23,7 @@ struct DownloadsView: View {
                 ContentUnavailableView(L10n.text("Downloads.NoMatchesTitle"), systemImage: "tag", description: Text(L10n.text("Downloads.NoMatchesDescription")))
             } else {
                 List(viewModel.items) { item in
-                    DownloadRow(item: item) { model.activate(item) }
+                    DownloadRow(item: item, action: { model.activate(item) })
                         .contextMenu { Button(L10n.text("LocalTags.Edit"), systemImage: "tag") { editingTags = item } }
                         .swipeActions {
                             Button(L10n.text("Downloads.Delete"), systemImage: "trash", role: .destructive) { model.delete(item) }
@@ -32,8 +33,11 @@ struct DownloadsView: View {
         }
         .navigationTitle(L10n.text("Downloads.Title"))
         .toolbar {
-            if !viewModel.tags.isEmpty {
-                LocalTagFilterMenu(tags: viewModel.tags, selected: viewModel.selectedTags, select: model.selectTags)
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if !viewModel.tags.isEmpty {
+                    LocalTagFilterMenu(tags: viewModel.tags, selected: viewModel.selectedTags, select: model.selectTags)
+                }
+                Button(L10n.text("Downloads.Tasks"), systemImage: "list.bullet", action: showTasks)
             }
         }
         .sheet(item: $editingTags) { item in LocalTagEditor(comicKey: item.comicKey).modifier(AppLockShield()) }
@@ -56,8 +60,47 @@ struct DownloadsView: View {
 
 }
 
+struct DownloadTasksView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(DownloadManager.self) private var downloads
+    @Query private var comics: [ComicRecord]
+    @State private var model = DownloadsModel()
+    let records: [DownloadRecord]
+
+    var body: some View {
+        @Bindable var viewModel = model.viewModel
+        NavigationStack {
+            Group {
+                if viewModel.items.isEmpty {
+                    ContentUnavailableView(L10n.text("Downloads.NoTasks"), systemImage: "arrow.down.circle")
+                } else {
+                    List(viewModel.items) { item in
+                        DownloadRow(item: item, delete: { model.delete(item) }, action: { model.activate(item) })
+                            .disabled(viewModel.deletingIDs.contains(item.id))
+                    }
+                }
+            }
+            .navigationTitle(L10n.text("Downloads.Tasks"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L10n.text("Text.Done")) { dismiss() }
+                }
+            }
+            .modifier(ErrorAlert(error: $viewModel.error))
+        }
+        .onChange(of: records.map(\.updatedAt), initial: true) { _, _ in
+            model.update(records: records, comics: comics, manager: downloads)
+        }
+        .onChange(of: comics.map(LibraryItem.init)) { _, _ in
+            model.update(records: records, comics: comics, manager: downloads)
+        }
+    }
+}
+
 private struct DownloadRow: View {
     let item: DownloadItem
+    var delete: (() -> Void)? = nil
     let action: () -> Void
 
     var body: some View {
@@ -81,6 +124,11 @@ private struct DownloadRow: View {
             Button(actionLabel, systemImage: actionIcon, action: action)
                 .labelStyle(.iconOnly)
                 .buttonStyle(.borderless)
+            if let delete {
+                Button(L10n.text("Downloads.Delete"), systemImage: "trash", role: .destructive, action: delete)
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
+            }
         }
     }
 

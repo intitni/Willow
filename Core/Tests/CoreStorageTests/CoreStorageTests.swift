@@ -244,6 +244,56 @@ struct CoreStorageTests {
     }
 
     #if WILLOW_TESTING
+    @Test func `Chapter downloads use three slots and refill after pause, deletion, and completion`() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let persistence = try WillowPersistence.make(inMemory: true)
+        let context = persistence.container.mainContext
+        let transport = ControlledImages()
+        let cache = ImageCache(directory: directory.appending(path: "Cache")) { try await transport.load($0) }
+        let manager = DownloadManager(
+            context: context, directory: directory.appending(path: "Downloads"), imageCache: cache
+        )
+
+        func enqueue(_ name: String) async throws -> DownloadRecord {
+            let page = try #require(URL(string: "https://example.com/\(name)"))
+            return try await manager.enqueue(sourceID: "source", comicID: "comic", chapterID: name,
+                                             title: name, pageURLs: [page])
+        }
+
+        let first = try await enqueue("first")
+        let second = try await enqueue("second")
+        let third = try await enqueue("third")
+        let fourth = try await enqueue("fourth")
+        #expect(try context.fetchCount(DownloadRecord.unfinishedDownloads) == 4)
+        try await waitUntil { await transport.started.count == 3 }
+        #expect(Set(await transport.started) == ["first", "second", "third"])
+        #expect(fourth.status == .queued)
+
+        manager.pause(first)
+        try await waitUntil { await transport.started.contains("fourth") }
+        #expect(first.status == .paused)
+        #expect(second.status == .downloading && third.status == .downloading)
+        await transport.release("first")
+
+        manager.resume(first)
+        #expect(first.status == .queued)
+        let fifth = try await enqueue("fifth")
+        #expect(fifth.status == .queued)
+        try await manager.delete(second)
+        try await waitUntil { await transport.started.filter { $0 == "first" }.count == 2 }
+        #expect(fifth.status == .queued)
+        await transport.release("second")
+
+        await transport.release("fourth")
+        try await waitForCompletion(fourth)
+        try await waitUntil { await transport.started.contains("fifth") }
+        await transport.releaseAll()
+        for record in [first, third, fifth] { try await waitForCompletion(record) }
+        #expect(try context.fetchCount(DownloadRecord.unfinishedDownloads) == 0)
+        #expect(try context.fetchCount(DownloadRecord.completedDownloads) == 4)
+    }
+
     @Test func `Visible pages outrank prefetch and stale prefetch cancels`() async throws {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

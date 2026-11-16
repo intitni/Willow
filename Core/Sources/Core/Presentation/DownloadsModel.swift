@@ -32,6 +32,7 @@ final class DownloadsViewModel {
     fileprivate(set) var tags: [LocalTagSnapshot] = []
     fileprivate(set) var selectedTags: Set<UUID> = []
     fileprivate(set) var isEmpty = true
+    fileprivate(set) var deletingIDs = Set<String>()
     var opened: OfflineChapter?
     var error: String?
 }
@@ -99,7 +100,9 @@ final class DownloadsModel {
     func delete(_ item: DownloadItem) {
         guard let manager else { return }
         let records = chapters(for: item)
+        guard !records.isEmpty, viewModel.deletingIDs.insert(item.id).inserted else { return }
         Task {
+            defer { viewModel.deletingIDs.remove(item.id) }
             do { for record in records { try await manager.delete(record) } }
             catch { viewModel.error = error.localizedDescription }
         }

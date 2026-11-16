@@ -129,29 +129,38 @@ struct PluginAdvancedSearchView: View {
             }
         }
         .navigationTitle(L10n.text("AdvancedSearch.Title"))
+        .modifier(DiscoverCartToolbar())
         .task { if !state.loaded { await model.load() } }
     }
 }
 
 private struct PluginFeatureResults: View {
+    @Environment(\.unreadFollowedComics) private var unreadFollowedComics
     let model: PluginComicListModel
     let pluginID: String
 
     var body: some View {
         let state = model.viewModel
         ForEach(state.comics) { comic in
+            let comicKey = ComicRecord.identifier(sourceID: pluginID, comicID: comic.id)
             NavigationLink {
                 ComicDetailView(sourceID: pluginID, summary: comic)
             } label: {
                 HStack(spacing: 12) {
-                    ComicCover(url: comic.coverURL, cachePolicy: .comicCover(id: ComicRecord.identifier(sourceID: pluginID, comicID: comic.id)))
+                    ComicCover(url: comic.coverURL, cachePolicy: .comicCover(id: comicKey))
                         .frame(width: 42)
+                        .overlay(alignment: .topTrailing) {
+                            if unreadFollowedComics.contains(comicKey) {
+                                UnreadComicUpdateDot().padding(3)
+                            }
+                        }
                     VStack(alignment: .leading) {
                         Text(comic.title)
                         if !comic.author.isEmpty { Text(comic.author).font(.caption).foregroundStyle(.secondary) }
                     }
                 }
             }
+            .modifier(DiscoverCartContextMenu(comic: comic, sourceID: pluginID))
         }
         if state.isLoading {
             ProgressView().frame(maxWidth: .infinity)
