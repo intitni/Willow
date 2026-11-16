@@ -12,7 +12,7 @@ final class ComicFollowingModel {
     private let container: ModelContainer
     private let privacy: ContentPrivacy
     private let store = FollowedComicStore.shared
-    private let center = UNUserNotificationCenter.current()
+    @ObservationIgnored private lazy var center = UNUserNotificationCenter.current()
     private let logger = Logger(subsystem: "Willow", category: "ComicFollowing")
     private var lastAttempted: [String: Date] = [:]
     private var isRefreshing = false
@@ -137,8 +137,10 @@ final class ComicFollowingModel {
 
     private func deliverPendingNotifications() async throws {
         let settings = await center.notificationSettings()
-        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
-                || settings.authorizationStatus == .ephemeral else { return }
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral: break
+        default: return
+        }
         guard settings.alertSetting == .enabled || settings.notificationCenterSetting == .enabled else { return }
         let pending = try await store.pendingNotifications(in: container)
         for record in pending {

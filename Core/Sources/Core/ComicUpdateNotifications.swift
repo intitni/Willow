@@ -1,6 +1,8 @@
 import Observation
-import UIKit
 import UserNotifications
+#if canImport(UIKit)
+import UIKit
+#endif
 
 @MainActor
 @Observable
@@ -24,6 +26,7 @@ final class ComicUpdateNotifications {
     }
 }
 
+#if canImport(UIKit)
 public final class WillowNotificationDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     public func application(_ application: UIApplication,
                             willFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
@@ -49,3 +52,4 @@ public final class WillowNotificationDelegate: NSObject, UIApplicationDelegate, 
         await ComicUpdateNotifications.shared.enqueue(id)
     }
 }
+#endif
