@@ -14,22 +14,42 @@ struct FollowedComicsView: View {
     @Environment(SyncSettingsModel.self) private var sync
     @Query(filter: #Predicate<FollowedComicRecord> { $0.isFollowing }, sort: \FollowedComicRecord.title)
     private var records: [FollowedComicRecord]
+    private let showsCovers: Bool
+
+    init(showsCovers: Bool = true) {
+        self.showsCovers = showsCovers
+    }
 
     var body: some View {
         let visible = records.filter { !hiddenSources.contains($0.sourceID) }
-        ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 112, maximum: 192), spacing: 14)], spacing: 18) {
-                ForEach(visible, id: \.id) { record in
+        Group {
+            if showsCovers {
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 112, maximum: 192), spacing: 14)], spacing: 18) {
+                        ForEach(visible, id: \.id) { record in
+                            NavigationLink {
+                                ComicDetailView(sourceID: record.sourceID, summary: record.comicSummary)
+                            } label: {
+                                DiscoverComicTile(comic: record.comicSummary, sourceID: record.sourceID)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                }
+            } else {
+                List(visible, id: \.id) { record in
                     NavigationLink {
                         ComicDetailView(sourceID: record.sourceID, summary: record.comicSummary)
                     } label: {
-                        DiscoverComicTile(comic: record.comicSummary, sourceID: record.sourceID)
+                        HStack {
+                            Text(record.title)
+                            if record.hasUnreadUpdate { UnreadComicUpdateDot() }
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
             }
-            .padding()
-            .frame(maxWidth: .infinity)
         }
         .overlay {
             if visible.isEmpty {

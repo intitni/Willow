@@ -34,6 +34,11 @@ private struct SettingsForm: View {
             }
 
             Section(L10n.text("Downloads.Read")) {
+                NavigationLink {
+                    FollowedComicsView(showsCovers: false)
+                } label: {
+                    Label(L10n.text("Following.Title"), systemImage: "bell")
+                }
                 Picker(L10n.text("ReadingDirection.Title"), selection: Binding(get: { viewModel.mode }, set: model.setMode)) {
                     ForEach(ReaderMode.allCases) { value in Text(value.label).tag(value) }
                 }
