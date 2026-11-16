@@ -20,6 +20,7 @@ struct DiscoverView: View {
         case advancedSearch(PluginRecord, String)
         case action(PluginRecord, String, JSONValue)
     }
+
     @State private var model = DiscoverModel()
 
     private var plugins: [PluginRecord] {
@@ -37,14 +38,23 @@ struct DiscoverView: View {
             if let plugin, state.displayedRequest == request {
                 if state.query.isEmpty && !state.loading && state.error == nil {
                     if let homeTab {
-                        PluginHomePageView(plugin: plugin, tab: homeTab, embedded: true, showsHeaderActions: false)
-                            .id(homeTab.id)
+                        PluginHomePageView(
+                            plugin: plugin,
+                            tab: homeTab,
+                            embedded: true,
+                            showsHeaderActions: false
+                        )
+                        .id(homeTab.id)
                     } else {
-                        ContentUnavailableView(L10n.text("PluginHome.EmptyTitle"), systemImage: "safari")
+                        ContentUnavailableView(
+                            L10n.text("PluginHome.EmptyTitle"),
+                            systemImage: "safari"
+                        )
                     }
                 } else {
                     DiscoverResults(
-                        plugin: plugin, query: state.query, sections: state.sections, results: state.results,
+                        plugin: plugin, query: state.query, sections: state.sections,
+                        results: state.results,
                         loading: state.loading, error: state.error, hasMore: state.hasMore
                     ) {
                         model.loadMoreOrRetry(plugin: plugin, request: request)
@@ -54,13 +64,16 @@ struct DiscoverView: View {
                 ProgressView(L10n.text("Text.Loading"))
             } else {
                 ContentUnavailableView {
-                    Label(L10n.text("Discover.NoSourcesTitle"), systemImage: "puzzlepiece.extension")
+                    Label(
+                        L10n.text("Discover.NoSourcesTitle"),
+                        systemImage: "puzzlepiece.extension"
+                    )
                 } description: {
                     Text(L10n.text("Discover.NoSourcesDescription"))
                 } actions: {
                     Button(L10n.text("Discover.ManagePlugins")) { showingPlugins = true }
                         .buttonStyle(.glassProminent)
-                            .buttonBorderShape(.roundedRectangle(radius: 10))
+                        .buttonBorderShape(.roundedRectangle(radius: 10))
                 }
             }
         }
@@ -71,7 +84,10 @@ struct DiscoverView: View {
             searchFocused = false
             model.submit(search)
         }
-        .navigationTitle(plugin.map { L10n.text("Discover.TitleWithSource", defaultValue: "发现 · \($0.name)") } ?? L10n.text("Discover.Title"))
+        .navigationTitle(plugin.map { L10n.text(
+            "Discover.TitleWithSource",
+            defaultValue: "发现 · \($0.name)"
+        ) } ?? L10n.text("Discover.Title"))
         .scrollDismissesKeyboard(.interactively)
         .onChange(of: search) { _, value in
             if value.isEmpty { model.clearSearch() }
@@ -89,14 +105,23 @@ struct DiscoverView: View {
                             ForEach(plugins, id: \.uuid) { Text($0.name).tag($0.uuid) }
                         }
                         if plugin.supportsCloudFavorites {
-                            Button(L10n.text("CloudFavorites.OpenSourceFavorites"), systemImage: "bookmark") {
+                            Button(
+                                L10n.text("CloudFavorites.OpenSourceFavorites"),
+                                systemImage: "bookmark"
+                            ) {
                                 destination = .favorites(plugin)
                             }
                         }
-                        Button(L10n.text("AdvancedSearch.Title"), systemImage: "line.3.horizontal.decrease") {
+                        Button(
+                            L10n.text("AdvancedSearch.Title"),
+                            systemImage: "line.3.horizontal.decrease"
+                        ) {
                             destination = .advancedSearch(plugin, search)
                         }
-                        Button(L10n.text("Discover.ManagePlugins"), systemImage: "puzzlepiece.extension") {
+                        Button(
+                            L10n.text("Discover.ManagePlugins"),
+                            systemImage: "puzzlepiece.extension"
+                        ) {
                             showingPlugins = true
                         }
                     } label: {
@@ -121,7 +146,10 @@ struct DiscoverView: View {
                                 }
                             }
                         } label: {
-                            Label(L10n.text("Discover.PluginFunctions"), systemImage: "square.grid.2x2")
+                            Label(
+                                L10n.text("Discover.PluginFunctions"),
+                                systemImage: "square.grid.2x2"
+                            )
                         }
                     }
                 }
@@ -131,11 +159,11 @@ struct DiscoverView: View {
             switch destination {
             case .cart:
                 DiscoverCartView()
-            case .favorites(let plugin):
+            case let .favorites(plugin):
                 PluginCloudHomeView(plugin: plugin)
-            case .advancedSearch(let plugin, let keyword):
+            case let .advancedSearch(plugin, keyword):
                 PluginAdvancedSearchView(plugin: plugin, keyword: keyword)
-            case .action(let plugin, let title, let action):
+            case let .action(plugin, title, action):
                 PluginActionDestinationView(plugin: plugin, title: title, action: action)
             }
         }
@@ -150,15 +178,22 @@ struct DiscoverView: View {
             }
             .modifier(AppLockShield())
         }
-        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification, object: UserDefaults.standard)) { _ in
+        .onReceive(NotificationCenter.default.publisher(
+            for: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard
+        )) { _ in
             model.reloadSelection()
         }
         .task(id: request) { await model.loadInitial(plugin: plugin, request: request) }
         .refreshable { await model.loadInitial(plugin: plugin, request: request) }
     }
 
-    private func toolbarActions(plugin: PluginRecord, homeTab: PluginHomeTab?) -> [(title: String, action: JSONValue)] {
-        var actions = plugin.discoveryActions.map { (title: $0["title"].string, action: $0["action"]) }
+    private func toolbarActions(plugin: PluginRecord, homeTab: PluginHomeTab?) -> [(
+        title: String,
+        action: JSONValue
+    )] {
+        var actions = plugin.discoveryActions
+            .map { (title: $0["title"].string, action: $0["action"]) }
         var seen = Set(actions.map(\.action))
         for item in homeTab?.actions ?? [] {
             let action = item["action"].isNull ? item : item["action"]
@@ -166,7 +201,8 @@ struct DiscoverView: View {
             guard !type.isEmpty, type != "none" else { continue }
             if type == "openCloudFavorite", plugin.supportsCloudFavorites { continue }
             guard seen.insert(action).inserted else { continue }
-            let title = item["title"].string.isEmpty ? action["payload"]["title"].string : item["title"].string
+            let title = item["title"].string.isEmpty ? action["payload"]["title"]
+                .string : item["title"].string
             actions.append((title.isEmpty ? L10n.text("PluginHome.PageActions") : title, action))
         }
         return actions
@@ -194,8 +230,11 @@ private struct DiscoverResults: View {
             } else if !query.isEmpty {
                 ContentUnavailableView.search(text: query)
             } else {
-                ContentUnavailableView(L10n.text("Discover.EmptyTitle"), systemImage: "books.vertical",
-                                       description: Text(L10n.text("Discover.EmptyDescription")))
+                ContentUnavailableView(
+                    L10n.text("Discover.EmptyTitle"),
+                    systemImage: "books.vertical",
+                    description: Text(L10n.text("Discover.EmptyDescription"))
+                )
             }
         } else {
             ScrollView {
@@ -216,11 +255,15 @@ private struct DiscoverResults: View {
                         if loading {
                             ProgressView().frame(maxWidth: .infinity)
                         } else if let error {
-                            RetryView(title: L10n.text("Discover.LoadMoreFailed"), message: error, retry: load)
+                            RetryView(
+                                title: L10n.text("Discover.LoadMoreFailed"),
+                                message: error,
+                                retry: load
+                            )
                         } else if hasMore {
                             Button(L10n.text("Pagination.LoadMore"), action: load)
                                 .buttonStyle(.glass)
-                            .buttonBorderShape(.roundedRectangle(radius: 10))
+                                .buttonBorderShape(.roundedRectangle(radius: 10))
                                 .frame(maxWidth: .infinity)
                         }
                     }
@@ -267,3 +310,4 @@ struct DiscoverComicTile: View {
         }
     }
 }
+

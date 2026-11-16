@@ -24,8 +24,11 @@ struct DiscoverCartView: View {
                         ComicDetailView(sourceID: item.sourceID, summary: item.comic)
                     } label: {
                         HStack(spacing: 12) {
-                            ComicCover(url: item.comic.coverURL, cachePolicy: .comicCover(id: item.id))
-                                .frame(width: 48)
+                            ComicCover(
+                                url: item.comic.coverURL,
+                                cachePolicy: .comicCover(id: item.id)
+                            )
+                            .frame(width: 48)
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(item.comic.title)
                                 if let source = sourceNames[item.sourceID] {
@@ -35,7 +38,9 @@ struct DiscoverCartView: View {
                         }
                     }
                     .swipeActions {
-                        Button(L10n.text("Text.Remove"), systemImage: "trash", role: .destructive) { cart.remove(item) }
+                        Button(L10n.text("Text.Remove"), systemImage: "trash", role: .destructive) {
+                            cart.remove(item)
+                        }
                     }
                     .modifier(DiscoverCartContextMenu(comic: item.comic, sourceID: item.sourceID))
                 }
@@ -111,13 +116,20 @@ struct DiscoverCartContextMenu: ViewModifier {
             if let cart, let comic {
                 let item = DiscoverCartItem(sourceID: sourceID, comic: comic)
                 if cart.contains(item) {
-                    Button(L10n.text("DiscoverCart.Remove"), systemImage: "minus.circle", role: .destructive) {
+                    Button(
+                        L10n.text("DiscoverCart.Remove"),
+                        systemImage: "minus.circle",
+                        role: .destructive
+                    ) {
                         cart.remove(item)
                     }
                 } else {
-                    Button(L10n.text("DiscoverCart.Add"), systemImage: "cart.badge.plus") { cart.add(item) }
+                    Button(L10n.text("DiscoverCart.Add"), systemImage: "cart.badge.plus") {
+                        cart.add(item)
+                    }
                 }
             }
         }
     }
 }
+
