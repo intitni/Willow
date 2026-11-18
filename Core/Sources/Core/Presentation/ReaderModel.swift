@@ -72,19 +72,20 @@ final class ReaderModel {
         viewModel.loadError = nil
     }
 
-    func selectPage(_ index: Int, request: Request, context: ModelContext) {
+    func selectPage(_ index: Int, request: Request, context: ModelContext, syncEvents: PreferenceSyncEvents) {
         guard self.request == request, viewModel.isLoaded, viewModel.pages.indices.contains(index),
               viewModel.pageIndex != index else { return }
         viewModel.pageIndex = index
-        saveProgress(context: context)
+        saveProgress(context: context, deferredSync: syncEvents)
     }
 
     @concurrent
     nonisolated static func prefetchPage(_ url: URL, checkAspectRatio: Bool) async -> Bool {
         guard checkAspectRatio || !url.isFileURL,
               let data = try? await ImageCache.shared.data(for: url, priority: .prefetch),
-              checkAspectRatio, !Task.isCancelled, let image = UIImage(data: data) else { return false }
-        return ReaderLayout.isWideImage(image.size)
+              checkAspectRatio, !Task.isCancelled,
+              let size = ReaderImage.orientedSize(of: data) ?? UIImage(data: data)?.size else { return false }
+        return ReaderLayout.isWideImage(size)
     }
 
     func loadChapter(request: Request, plugins: [PluginRecord], context: ModelContext,
@@ -130,13 +131,23 @@ final class ReaderModel {
         }
     }
 
-    private func saveProgress(context: ModelContext, at date: Date = .now) {
+    private func saveProgress(context: ModelContext, at date: Date = .now, deferredSync: PreferenceSyncEvents? = nil) {
         guard viewModel.isLoaded, let record else { return }
-        record.chapterID = viewModel.chapter.id
-        record.pageIndex = viewModel.pageIndex
-        record.lastReadAt = date
-        record.historyClearedAt = nil
-        do { try context.save() }
-        catch { viewModel.saveError = error.localizedDescription }
+        func update() {
+            record.chapterID = viewModel.chapter.id
+            record.pageIndex = viewModel.pageIndex
+            record.lastReadAt = date
+            record.historyClearedAt = nil
+        }
+        do {
+            if let deferredSync {
+                try deferredSync.savePageProgress(in: context, update: update)
+            } else {
+                update()
+                try context.save()
+            }
+        } catch {
+            viewModel.saveError = error.localizedDescription
+        }
     }
 }

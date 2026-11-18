@@ -170,15 +170,62 @@ struct DriveSyncDirectory: Sendable {
         return marker
     }
 
+    struct CachedRevision {
+        fileprivate let stamp: FileStamp
+        fileprivate let revision: SyncRevision
+
+        fileprivate struct FileStamp: Equatable {
+            let modifiedAt: Date
+            let attributesModifiedAt: Date?
+            let generation: NSObject?
+            let size: Int
+            let identity: NSObject
+
+            static let keys: Set<URLResourceKey> = [
+                .contentModificationDateKey, .attributeModificationDateKey, .generationIdentifierKey,
+                .fileSizeKey, .fileResourceIdentifierKey,
+                .isRegularFileKey, .isSymbolicLinkKey
+            ]
+
+            init?(_ url: URL) {
+                guard let values = try? url.resourceValues(forKeys: Self.keys),
+                      values.isRegularFile == true, values.isSymbolicLink == false,
+                      let modifiedAt = values.contentModificationDate, let size = values.fileSize,
+                      let identity = values.fileResourceIdentifier as? NSObject else { return nil }
+                let generation = values.generationIdentifier as? NSObject
+                let attributesModifiedAt = values.attributeModificationDate
+                // In-place edits can preserve the reported modification date,
+                // file identity and size. Avoid reuse without another change signal.
+                guard generation != nil || attributesModifiedAt != nil else { return nil }
+                self.modifiedAt = modifiedAt
+                self.attributesModifiedAt = attributesModifiedAt
+                self.generation = generation
+                self.size = size
+                self.identity = identity
+            }
+        }
+    }
+
     func readRevisions(
         key: DriveSyncKey,
         readRecord: ((URL) throws -> Data?)? = nil
     ) throws -> (revisions: [SyncRevision], isComplete: Bool, error: Error?, chapterError: Error?) {
+        var cache: [String: CachedRevision] = [:]
+        return try readRevisions(key: key, cache: &cache, readRecord: readRecord)
+    }
+
+    func readRevisions(
+        key: DriveSyncKey,
+        cache: inout [String: CachedRevision],
+        readRecord: ((URL) throws -> Data?)? = nil
+    ) throws -> (revisions: [SyncRevision], isComplete: Bool, error: Error?, chapterError: Error?) {
         try withAccess {
             let entries = try coordinateRead(directory) { url in
-                try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
+                try FileManager.default.contentsOfDirectory(at: url,
+                    includingPropertiesForKeys: Array(CachedRevision.FileStamp.keys), options: .skipsHiddenFiles)
             }
             var revisions: [SyncRevision] = []
+            var current: [String: CachedRevision] = [:]
             var firstError: Error?
             var chapterError: Error?
             var isComplete = true
@@ -189,6 +236,13 @@ struct DriveSyncDirectory: Sendable {
                         || url.pathExtension == SyncRevision.pluginRatingFileExtension
                         || url.pathExtension == SyncRevision.followedComicFileExtension,
                       UUID(uuidString: url.deletingPathExtension().lastPathComponent) != nil else { continue }
+                let filename = url.lastPathComponent
+                let stamp = CachedRevision.FileStamp(url)
+                if let stamp, let cached = cache[filename], cached.stamp == stamp {
+                    current[filename] = cached
+                    revisions.append(cached.revision)
+                    continue
+                }
                 do {
                     let bytes = if let readRecord {
                         try readRecord(url)
@@ -201,8 +255,9 @@ struct DriveSyncDirectory: Sendable {
                         if !isChapterFile { isComplete = false }
                         continue
                     }
-                    let cleartext = try key.open(data, name: url.lastPathComponent)
-                    let revision = try JSONDecoder().decode(SyncRevision.self, from: cleartext).validated(filename: url.lastPathComponent)
+                    let cleartext = try key.open(data, name: filename)
+                    let revision = try JSONDecoder().decode(SyncRevision.self, from: cleartext).validated(filename: filename)
+                    if let stamp { current[filename] = CachedRevision(stamp: stamp, revision: revision) }
                     revisions.append(revision)
                 } catch {
                     if isChapterFile {
@@ -213,6 +268,7 @@ struct DriveSyncDirectory: Sendable {
                     }
                 }
             }
+            cache = current
             return (revisions, isComplete, firstError, chapterError)
         }
     }

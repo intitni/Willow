@@ -64,6 +64,54 @@ struct DriveSyncTests {
         try directory.recoveryMarker().verify(key)
     }
 
+    @Test func incrementalReadRetriesUnavailableFilesAndRevalidatesInPlaceEdits() throws {
+        let directory = DriveSyncDirectory(root: try temporaryFolder())
+        defer { try? FileManager.default.removeItem(at: directory.root) }
+        let key = try DriveSyncKey(DriveSyncKeychain.generate())
+        try create(directory, key: key)
+        let payload = PreferencePayload.tag(.init(normalizedName: "tag", name: "Tag"))
+        let original = SyncRevision(key: payload.key, payload: try payload.encoded(), modifiedAt: .now, deleted: false)
+        let deletion = SyncRevision(key: payload.key, payload: try payload.encoded(),
+                                    modifiedAt: .now.addingTimeInterval(1), deleted: true)
+        try directory.publish(original, asset: nil, key: key)
+        var cache: [String: DriveSyncDirectory.CachedRevision] = [:]
+        _ = try directory.readRevisions(key: key, cache: &cache)
+
+        try directory.publish(deletion, asset: nil, key: key)
+        let file = directory.directory.appending(path: deletion.filename)
+        let modifiedAt = Date(timeIntervalSinceReferenceDate: 100)
+        try FileManager.default.setAttributes([.modificationDate: modifiedAt], ofItemAtPath: file.path)
+        var opened: [String] = []
+        let partial = try directory.readRevisions(key: key, cache: &cache) { url in
+            opened.append(url.lastPathComponent)
+            return nil
+        }
+        #expect(opened == [deletion.filename])
+        #expect(!partial.isComplete)
+        #expect(partial.revisions.map(\.revision) == [original.revision])
+
+        opened.removeAll()
+        let complete = try directory.readRevisions(key: key, cache: &cache) { url in
+            opened.append(url.lastPathComponent)
+            return try Data(contentsOf: url)
+        }
+        #expect(opened == [deletion.filename])
+        #expect(complete.isComplete)
+        #expect(complete.revisions.max(by: { $0.precedes($1) })?.deleted == true)
+
+        // Rewrite one byte without replacing the file or changing its size or mtime.
+        let firstByte = try #require(Data(contentsOf: file).first)
+        let handle = try FileHandle(forWritingTo: file)
+        try handle.write(contentsOf: Data([firstByte ^ 0xff]))
+        try handle.close()
+        try FileManager.default.setAttributes([.modificationDate: modifiedAt], ofItemAtPath: file.path)
+        let corrupt = try directory.readRevisions(key: key, cache: &cache)
+        #expect(!corrupt.isComplete)
+        #expect(corrupt.revisions.map(\.revision) == [original.revision])
+        try FileManager.default.removeItem(at: file)
+        #expect(try directory.readRevisions(key: key, cache: &cache).isComplete)
+    }
+
     @Test func readingAndFavoritesMergeIndependentlyAndDeletionDoesNotRollBack() async throws {
         let dir = DriveSyncDirectory(root: try temporaryFolder())
         defer { try? FileManager.default.removeItem(at: dir.root) }

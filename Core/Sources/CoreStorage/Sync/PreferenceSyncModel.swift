@@ -23,6 +23,8 @@ package actor PreferenceSyncModel {
     private let driveKey: (@Sendable (UUID) throws -> Data)?
     private let didImportFollowing: @Sendable () async -> Void
     private let readDriveRecord: (@Sendable (URL) throws -> Data?)?
+    private var cachedRevisionKey: Data?
+    private var cachedRevisions: [String: DriveSyncDirectory.CachedRevision] = [:]
     private(set) var isStopped = false
     private var stopWaiters: [CheckedContinuation<Void, Never>] = []
     private var reconciling = false
@@ -125,14 +127,19 @@ package actor PreferenceSyncModel {
         let directory = try drive.get()
         let context = ModelContext(container)
         context.autosaveEnabled = false
-        let encryptionKey: DriveSyncKey
+        let keyBytes: Data
         if let driveKey {
-            encryptionKey = try DriveSyncKey(driveKey(directory.id))
-            try directory.verify(key: encryptionKey)
+            keyBytes = try driveKey(directory.id)
         } else {
-            encryptionKey = try DriveSyncKey(directory.recoveryKey())
+            keyBytes = try directory.recoveryKey()
         }
-        let read = try directory.readRevisions(key: encryptionKey, readRecord: readDriveRecord)
+        let encryptionKey = try DriveSyncKey(keyBytes)
+        if driveKey != nil { try directory.verify(key: encryptionKey) }
+        if cachedRevisionKey != keyBytes {
+            cachedRevisions.removeAll()
+            cachedRevisionKey = keyBytes
+        }
+        let read = try directory.readRevisions(key: encryptionKey, cache: &cachedRevisions, readRecord: readDriveRecord)
         var firstError = read.chapterError
         let remote = Dictionary(grouping: read.revisions.filter { !$0.isFollowedComic }, by: \.key).compactMapValues { records in
             records.max { $0.precedes($1) }
