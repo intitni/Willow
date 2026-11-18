@@ -3,6 +3,7 @@ import CorePresentation
 import CoreStorage
 import SwiftData
 import SwiftUI
+import UIKit
 
 enum ReaderMode: String, CaseIterable, Identifiable {
     case vertical, leftToRight, rightToLeft
@@ -320,15 +321,20 @@ private struct ReaderPage: View {
     var isSpreadSlot = false
     var onWideImage: () -> Void = {}
     let toggleControls: () -> Void
-    @State private var scale: CGFloat = 1
-    @State private var offset = CGSize.zero
-    @GestureState private var pinch: CGFloat = 1
-    @GestureState private var drag = CGSize.zero
+    @State private var zoom = ReaderZoom()
+    @State private var pinch: Pinch?
+    @GestureState private var drag: ReaderZoom?
+
+    private struct Pinch {
+        var location: CGPoint
+        var magnification: CGFloat
+        var zoom: ReaderZoom
+    }
 
     var body: some View {
         // Keep the current bitmap during the gesture and request more pixels once it settles.
-        let zoom: CGFloat = scale == 1 ? 1 : (scale <= 2 ? 2 : 4)
-        let rendering = ReaderImage(viewport: viewport, displayScale: displayScale, zoom: zoom, vertical: vertical)
+        let resolution: CGFloat = zoom.scale == 1 ? 1 : (zoom.scale <= 2 ? 2 : 4)
+        let rendering = ReaderImage(viewport: viewport, displayScale: displayScale, zoom: resolution, vertical: vertical)
         CachedImage(url: url, readerImage: rendering) { image in
             let size = image.originalSize
             let isWide = ReaderLayout.isWideImage(size)
@@ -342,11 +348,18 @@ private struct ReaderPage: View {
                     fittedImage.allowsHitTesting(false)
                 } else {
                     fittedImage
-                        .scaleEffect(renderedScale)
-                        .offset(clampedOffset(x: offset.width + drag.width, y: offset.height + drag.height,
-                                              scale: renderedScale))
+                        .scaleEffect(displayedZoom.scale)
+                        .offset(displayedZoom.offset)
                         .clipped()
-                        .overlay { pageInteraction }
+                        .overlay {
+                            GeometryReader { geometry in
+                                pageInteraction(size: geometry.size)
+                                    .onChange(of: geometry.size) { _, size in
+                                        zoom = displayedZoom.clamped(in: size)
+                                        pinch = nil
+                                    }
+                            }
+                        }
                         .accessibilityAction(named: Text(L10n.text("Reader.ToggleControlsAccessibilityAction")), toggleControls)
                 }
             }
@@ -370,38 +383,73 @@ private struct ReaderPage: View {
         }
     }
 
-    private var pageInteraction: some View {
+    private var displayedZoom: ReaderZoom { pinch?.zoom ?? drag ?? zoom }
+
+    private func pageInteraction(size: CGSize) -> some View {
         // Keep gesture input in the page's clipping frame as the image moves underneath it.
         Color.clear
             .contentShape(.rect)
             .highPriorityGesture(DragGesture(coordinateSpace: .global)
                 .updating($drag) { value, state, transaction in
                     transaction.animation = nil
-                    state = value.translation
+                    guard pinch == nil else { return }
+                    state = zoom.moving(from: .zero,
+                                        to: CGPoint(x: value.translation.width, y: value.translation.height), in: size)
                 }
                 .onEnded { value in
-                    offset = clampedOffset(x: offset.width + value.translation.width,
-                                           y: offset.height + value.translation.height, scale: scale)
-                }, isEnabled: scale > 1)
-            .gesture(MagnifyGesture()
-                .updating($pinch) { value, state, _ in state = value.magnification }
-                .onEnded { value in
-                    scale = min(4, max(1, scale * value.magnification))
-                    if scale == 1 { offset = .zero }
-                })
-            .onTapGesture(count: 2) {
-                scale = scale > 1 ? 1 : 2
-                offset = .zero
+                    guard pinch == nil else { return }
+                    zoom = zoom.moving(from: .zero,
+                                       to: CGPoint(x: value.translation.width, y: value.translation.height), in: size)
+                }, isEnabled: zoom.scale > 1 && pinch == nil)
+            .gesture(ReaderPinchGesture { state, location, magnification in
+                switch state {
+                case .began:
+                    pinch = Pinch(location: location, magnification: magnification, zoom: displayedZoom)
+                case .changed:
+                    guard let previous = pinch, magnification > 0, previous.magnification > 0 else { return }
+                    let next = previous.zoom.moving(from: previous.location, to: location,
+                                                    magnification: magnification / previous.magnification, in: size)
+                    pinch = Pinch(location: location, magnification: magnification, zoom: next)
+                case .ended, .cancelled, .failed:
+                    if let pinch { zoom = pinch.zoom }
+                    pinch = nil
+                default:
+                    break
+                }
+            })
+            .onTapGesture(count: 2, coordinateSpace: .local) { location in
+                zoom = zoom.scale > 1 ? ReaderZoom() : zoom.moving(from: location, to: location, magnification: 2, in: size)
             }
             .onTapGesture(perform: toggleControls)
     }
+}
 
-    private var renderedScale: CGFloat { min(4, max(1, scale * pinch)) }
+private struct ReaderPinchGesture: UIGestureRecognizerRepresentable {
+    let update: (UIGestureRecognizer.State, CGPoint, CGFloat) -> Void
 
-    private func clampedOffset(x: CGFloat, y: CGFloat, scale: CGFloat) -> CGSize {
-        let limitX = viewport.width * (scale - 1) / 2
-        let limitY = viewport.height * (scale - 1) / 2
-        return CGSize(width: min(limitX, max(-limitX, x)), height: min(limitY, max(-limitY, y)))
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
+
+    func makeUIGestureRecognizer(context: Context) -> UIPinchGestureRecognizer {
+        let gesture = UIPinchGestureRecognizer()
+        gesture.delegate = context.coordinator
+        return gesture
     }
 
+    func handleUIGestureRecognizerAction(_ recognizer: UIPinchGestureRecognizer, context: Context) {
+        if recognizer.state == .began || recognizer.state == .changed {
+            guard recognizer.numberOfTouches == 2 else { return }
+            update(recognizer.state, context.converter.localLocation, recognizer.scale)
+        } else {
+            update(recognizer.state, .zero, recognizer.scale)
+        }
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+            // Switching from a one-finger drag to a pinch must not also scroll the chapter.
+            if let scrollView = other.view as? UIScrollView, scrollView.panGestureRecognizer == other { return false }
+            return true
+        }
+    }
 }
