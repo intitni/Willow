@@ -15,12 +15,28 @@ package final class PreferenceSyncEvents {
     private var storageObservers: [NSObjectProtocol] = []
     private var notificationCenter: NotificationCenter?
     private var drivePresenter: DriveSyncPresenter?
+    private var isSavingPageProgress = false
+    private var pendingPageProgress: UUID?
 
     package init(observesDirectory: Bool = true) {
         self.observesDirectory = observesDirectory
     }
 
     package func request() { continuation?.yield(()) }
+
+    package func savePageProgress(in context: ModelContext, update: () -> Void) throws {
+        // An unrelated edit already pending in this context still needs its usual save event.
+        isSavingPageProgress = !context.hasChanges
+        defer { isSavingPageProgress = false }
+        update()
+        try context.save()
+        pendingPageProgress = UUID()
+    }
+
+    package func requestPendingPageProgress() {
+        guard pendingPageProgress != nil else { return }
+        request()
+    }
 
     package func run(context: ModelContext, sync: PreferenceSyncModel, center: NotificationCenter = .default) async {
         let id = UUID()
@@ -41,8 +57,12 @@ package final class PreferenceSyncEvents {
         // Observe the UI context, not the worker's contexts, so applying cloud
         // changes cannot trigger an endless loop of our own saves.
         notificationCenter = center
-        observers = [center.addObserver(forName: ModelContext.didSave, object: context, queue: nil) { notification in
-            if Self.containsPreferenceChanges(notification) { continuation.yield(()) }
+        observers = [center.addObserver(forName: ModelContext.didSave, object: context, queue: nil) { [weak self] notification in
+            guard Self.containsPreferenceChanges(notification) else { return }
+            // This observer only receives saves from the UI's main context.
+            MainActor.assumeIsolated {
+                if self?.isSavingPageProgress == false { self?.request() }
+            }
         }]
         storageObservers = [ReadChapterStore.didRecordOpen, FollowedComicStore.didEdit].map { name in
             NotificationCenter.default.addObserver(forName: name, object: context.container, queue: nil) { _ in
@@ -69,11 +89,18 @@ package final class PreferenceSyncEvents {
         })
         #endif
         continuation.yield(()) // Startup / reattachment catches changes made without observers.
-        worker = Task {
+        worker = Task { [weak self] in
             for await _ in events {
                 if Task.isCancelled { return }
-                do { try await sync.reconcile() }
-                catch { /* The actor publishes errors; retry on the next event. */ }
+                let pending = self?.pendingPageProgress
+                do {
+                    try await sync.reconcile()
+                    // A failed or cancelled pass, or a newer page save during it,
+                    // leaves progress eligible for the next lifecycle event.
+                    if !Task.isCancelled, let pending, self?.pendingPageProgress == pending {
+                        self?.pendingPageProgress = nil
+                    }
+                } catch { /* The actor publishes errors; retry on the next event. */ }
             }
         }
     }

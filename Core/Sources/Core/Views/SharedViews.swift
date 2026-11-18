@@ -1,3 +1,4 @@
+import CorePresentation
 import CoreToast
 import CoreStorage
 import SwiftUI
@@ -47,7 +48,7 @@ struct ComicCover: View {
             .overlay {
                 CachedImage(url: url, thumbnail: true, cachePolicy: cachePolicy, refreshID: refreshID) { image in
                     GeometryReader { geometry in
-                        Image(uiImage: image).resizable().scaledToFill()
+                        Image(uiImage: image.bitmap).resizable().scaledToFill()
                             .frame(width: geometry.size.width, height: geometry.size.height)
                     }
                 } placeholder: { error in
@@ -76,7 +77,8 @@ struct CachedImage<ImageContent: View, Placeholder: View>: View {
     var thumbnail = false
     var cachePolicy: ImageCache.Policy = .byURL
     var refreshID = 0
-    @ViewBuilder let content: (UIImage) -> ImageContent
+    var readerImage: ReaderImage? = nil
+    @ViewBuilder let content: (LoadedImage) -> ImageContent
     @ViewBuilder let placeholder: (String?) -> Placeholder
     @State private var model = CachedImageModel()
     @State private var attempt = 0
@@ -88,6 +90,7 @@ struct CachedImage<ImageContent: View, Placeholder: View>: View {
         let refreshID: Int
         let attempt: Int
         let isVisible: Bool
+        let readerImage: ReaderImage?
     }
 
     var body: some View {
@@ -122,9 +125,10 @@ struct CachedImage<ImageContent: View, Placeholder: View>: View {
         }
         .onAppear { isVisible = true }
         .onDisappear { isVisible = false }
-        .task(id: Request(url: url, cachePolicy: cachePolicy, refreshID: refreshID, attempt: attempt, isVisible: isVisible)) {
+        .task(id: Request(url: url, cachePolicy: cachePolicy, refreshID: refreshID, attempt: attempt,
+                          isVisible: isVisible, readerImage: readerImage)) {
             guard isVisible else { return }
-            await model.load(url: url, policy: cachePolicy, thumbnail: thumbnail)
+            await model.load(url: url, policy: cachePolicy, thumbnail: thumbnail, readerImage: readerImage)
         }
     }
 }

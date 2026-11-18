@@ -76,6 +76,57 @@ struct PreferenceSyncEventTests {
         #expect(sync.viewModel.lastReconciledAt == stopped)
         #expect(try drive.revisions().count == 4, "Reconciliation must not publish duplicate revisions or publish after cancellation.")
     }
+
+    @Test func pageSavesStayLocalUntilRequested() async throws {
+        let container = try WillowPersistence.make(inMemory: true).container
+        let context = container.mainContext
+        let drive = try SyncTestFolder()
+        defer { drive.remove() }
+        let comic = ComicRecord(sourceID: "test", comicID: "comic", title: "Comic")
+        context.insert(comic)
+        try context.save()
+        let sync = drive.worker(container: container)
+        let events = PreferenceSyncEvents(observesDirectory: false)
+        let runner = Task { await events.run(context: context, sync: sync) }
+        defer { runner.cancel() }
+        try await waitUntil { sync.viewModel.lastReconciledAt != nil }
+        let startup = sync.viewModel.lastReconciledAt
+
+        for index in 1...4 {
+            try events.savePageProgress(in: context) {
+                comic.chapterID = "chapter"
+                comic.pageIndex = index
+                comic.lastReadAt = .now
+            }
+        }
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(sync.viewModel.lastReconciledAt == startup)
+        #expect(try drive.revisions().isEmpty)
+        #expect(try ModelContext(container).fetch(FetchDescriptor<ComicRecord>()).first?.pageIndex == 4)
+
+        let invalidRevision = drive.directory.directory.appending(path: UUID().uuidString + ".record")
+        try Data("invalid revision".utf8).write(to: invalidRevision)
+        events.request()
+        try await waitUntil { sync.viewModel.error != nil }
+        #expect(sync.viewModel.lastReconciledAt == startup)
+        try FileManager.default.removeItem(at: invalidRevision)
+
+        // Exiting the reader must still request a pass after the first one failed.
+        events.requestPendingPageProgress()
+        try await waitUntil { sync.viewModel.lastReconciledAt != startup }
+        let revisions = try drive.revisions()
+        let revision = try #require(revisions.first)
+        let payload = try JSONDecoder().decode(PreferencePayload.self, from: #require(revision.payload))
+        guard case .reading(let progress) = payload else {
+            Issue.record("Expected the latest reading position.")
+            return
+        }
+        #expect(revisions.count == 1)
+        #expect(progress.pageIndex == 4)
+        runner.cancel()
+        await runner.value
+    }
+
     @Test func closingFirstWindowKeepsRemainingWindowSubscribed() async throws {
         let container = try WillowPersistence.make(inMemory: true).container
         let context = container.mainContext
