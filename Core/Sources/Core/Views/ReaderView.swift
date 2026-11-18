@@ -22,6 +22,7 @@ struct ReaderView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.modelContext) private var context
     @Environment(DownloadManager.self) private var downloads
+    @Environment(SyncSettingsModel.self) private var sync
     @Environment(\.hiddenNSFWSources) private var hiddenSources
     @Query private var plugins: [PluginRecord]
     @AppStorage("reader.mode") private var mode = ReaderMode.vertical
@@ -49,6 +50,7 @@ struct ReaderView: View {
         .onChange(of: hidden, initial: true) { _, hidden in
             if hidden { dismiss() }
         }
+        .onDisappear { sync.events.requestPendingPageProgress() }
     }
 
     @ViewBuilder private var reader: some View {
@@ -56,7 +58,7 @@ struct ReaderView: View {
         let request = model.request
         let pageIndex = Binding(
             get: { state.pageIndex },
-            set: { model.selectPage($0, request: request, context: context) }
+            set: { model.selectPage($0, request: request, context: context, syncEvents: sync.events) }
         )
         NavigationStack {
             GeometryReader { geometry in
@@ -310,6 +312,7 @@ private struct ReaderPages: View {
 }
 
 private struct ReaderPage: View {
+    @Environment(\.displayScale) private var displayScale
     let url: URL
     let viewport: CGSize
     let vertical: Bool
@@ -323,14 +326,19 @@ private struct ReaderPage: View {
     @GestureState private var drag = CGSize.zero
 
     var body: some View {
-        CachedImage(url: url) { image in
-            let isWide = ReaderLayout.isWideImage(image.size)
-            let fittedImage = Image(uiImage: image).resizable().scaledToFit()
+        // Keep the current bitmap during the gesture and request more pixels once it settles.
+        let zoom: CGFloat = scale == 1 ? 1 : (scale <= 2 ? 2 : 4)
+        let rendering = ReaderImage(viewport: viewport, displayScale: displayScale, zoom: zoom, vertical: vertical)
+        CachedImage(url: url, readerImage: rendering) { image in
+            let size = image.originalSize
+            let isWide = ReaderLayout.isWideImage(size)
+            let fittedImage = Image(uiImage: image.bitmap).resizable()
+                .aspectRatio(size.height > 0 ? size.width / size.height : nil, contentMode: .fit)
                 .frame(width: viewport.width, height: vertical ? nil : viewport.height, alignment: imageAlignment)
             Group {
                 if isSpreadSlot && isWide {
                     Color.clear.frame(width: viewport.width, height: viewport.height)
-                } else if imageAlignment != .center && ReaderLayout.isNarrowImage(image.size, in: viewport) {
+                } else if imageAlignment != .center && ReaderLayout.isNarrowImage(size, in: viewport) {
                     fittedImage.allowsHitTesting(false)
                 } else {
                     fittedImage

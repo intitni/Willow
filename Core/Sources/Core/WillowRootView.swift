@@ -26,7 +26,10 @@ public final class CoreAppModel {
         if phase == .background {
             followingRefresh?.cancel()
             lockAccess()
-            if case .success(let session) = startup { scheduleBackgroundRefresh(for: session) }
+            if case .success(let session) = startup {
+                session.sync.events.requestPendingPageProgress()
+                scheduleBackgroundRefresh(for: session)
+            }
         }
         if phase == .active, case .success(let session) = startup {
             session.downloads.resumeForegroundDownloads()
