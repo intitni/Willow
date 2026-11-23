@@ -7,6 +7,7 @@ struct DiscoverCartView: View {
     @Environment(DiscoverCartModel.self) private var cart
     @Environment(\.hiddenNSFWSources) private var hiddenSources
     @Query(filter: #Predicate<PluginRecord> { $0.enabled }) private var plugins: [PluginRecord]
+    @State private var selectedItem: DiscoverCartItem?
 
     var body: some View {
         let items = cart.items.filter { !hiddenSources.contains($0.sourceID) }
@@ -20,8 +21,8 @@ struct DiscoverCartView: View {
                 )
             } else {
                 List(items) { item in
-                    NavigationLink {
-                        ComicDetailView(sourceID: item.sourceID, summary: item.comic)
+                    Button {
+                        selectedItem = item
                     } label: {
                         HStack(spacing: 12) {
                             ComicCover(
@@ -35,8 +36,15 @@ struct DiscoverCartView: View {
                                     Text(source).font(.caption).foregroundStyle(.secondary)
                                 }
                             }
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.forward")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                                .accessibilityHidden(true)
                         }
+                        .contentShape(.rect)
                     }
+                    .buttonStyle(.plain)
                     .swipeActions {
                         Button(L10n.text("Text.Remove"), systemImage: "trash", role: .destructive) {
                             cart.remove(item)
@@ -45,6 +53,10 @@ struct DiscoverCartView: View {
                     .modifier(DiscoverCartContextMenu(comic: item.comic, sourceID: item.sourceID))
                 }
             }
+        }
+        // Building the destination in the row's NavigationLink can stall SwiftUI during the push.
+        .navigationDestination(item: $selectedItem) { item in
+            ComicDetailView(sourceID: item.sourceID, summary: item.comic)
         }
         .navigationTitle(L10n.text("DiscoverCart.Title"))
         .toolbar {
@@ -85,8 +97,12 @@ struct DiscoverCartToolbarButton: View {
 }
 
 struct DiscoverCartToolbar: ViewModifier {
+    private enum Destination: Hashable {
+        case cart
+    }
+
     @Environment(DiscoverCartModel.self) private var cart: DiscoverCartModel?
-    @State private var showsCart = false
+    @State private var destination: Destination?
     var isEnabled = true
 
     func body(content: Content) -> some View {
@@ -94,10 +110,10 @@ struct DiscoverCartToolbar: ViewModifier {
             content
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        DiscoverCartToolbarButton { showsCart = true }
+                        DiscoverCartToolbarButton { destination = .cart }
                     }
                 }
-                .navigationDestination(isPresented: $showsCart) {
+                .navigationDestination(item: $destination) { _ in
                     DiscoverCartView()
                 }
         } else {
