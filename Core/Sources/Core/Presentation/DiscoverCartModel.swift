@@ -2,7 +2,7 @@ import BreezePlugins
 import CoreStorage
 import Observation
 
-struct DiscoverCartItem: Identifiable, Equatable {
+struct DiscoverCartItem: Identifiable, Hashable {
     let sourceID: String
     let comic: ComicSummary
 
